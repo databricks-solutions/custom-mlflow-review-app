@@ -92,19 +92,19 @@ async def health():
 # Any routes added after this will be unreachable!
 
 if os.path.exists('client/build'):
-  # Mount static files for assets if they exist
-  static_dir = 'client/build/static'
-  if os.path.exists(static_dir):
-    app.mount('/static', StaticFiles(directory=static_dir), name='static-assets')
+  # Mount static files for Vite assets
+  assets_dir = 'client/build/assets'
+  if os.path.exists(assets_dir):
+    app.mount('/assets', StaticFiles(directory=assets_dir), name='vite-assets')
 
   # Catch-all route for React Router - serve index.html for all non-API routes
   @app.get('/{path:path}')
   async def catch_all(request: Request, path: str):
     """Serve React app index.html for all routes that don't match API endpoints."""
     # If it's an API route, this shouldn't be reached due to router precedence
-    # If it's a static asset request, serve it directly
+    # If it's a static asset request (Vite assets), serve it directly
     static_file_path = f'client/build/{path}'
-    if path.startswith('static/') and os.path.exists(static_file_path):
+    if path.startswith('assets/') and os.path.exists(static_file_path):
       return FileResponse(static_file_path)
 
     # For all other routes (React Router routes), serve index.html
