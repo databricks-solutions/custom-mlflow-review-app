@@ -273,11 +273,14 @@ export function DefaultItemRenderer({
           flatLabels[key] = assessmentValue;
         }
         
-        // Add rationale/comment if present (check both rationale and comment fields)
+        // Add rationale/comment if present (check multiple possible locations)
         if (assessment.rationale) {
           flatLabels[`${key}_comment`] = assessment.rationale;
         } else if (assessment.comment) {
           flatLabels[`${key}_comment`] = assessment.comment;
+        } else if (assessment.metadata?.comment) {
+          // For expectations, comments are stored in metadata
+          flatLabels[`${key}_comment`] = assessment.metadata.comment;
         }
       });
       

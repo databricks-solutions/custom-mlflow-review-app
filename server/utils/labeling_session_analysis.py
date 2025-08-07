@@ -143,15 +143,19 @@ class SMEInsightDiscovery:
     agent_understanding: str,
   ) -> Dict[str, Any]:
     """Analyze patterns in SME assessments."""
-    # Aggregate labels by schema
+    # Aggregate labels by schema from completed items
     schema_labels = defaultdict(list)
+    completed_items = []
+    
     for item in items:
       if item.get('state') == 'COMPLETED':
+        completed_items.append(item)
         for schema_key, label_value in item.get('labels', {}).items():
           schema_labels[schema_key].append(
             {'trace_id': item.get('source', {}).get('trace_id'), 'value': label_value}
           )
 
+    # Always analyze, even with limited data
     # Prepare pattern analysis data
     pattern_data = {}
     for schema in schemas:
@@ -164,6 +168,10 @@ class SMEInsightDiscovery:
           'total_labels': len(labels),
           'sample_labels': labels[:10],  # Sample for analysis
         }
+    
+    # Include all items for broader context
+    total_items = len(items)
+    completed_count = len(completed_items)
 
     prompt = f"""
         ## Chain of Thought: Assessment Pattern Analysis

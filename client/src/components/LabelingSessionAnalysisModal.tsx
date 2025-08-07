@@ -203,7 +203,7 @@ export function LabelingSessionAnalysisModal({
                 {isRunning ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                    {statusData?.status === 'running' ? 'Analyzing...' : 'Starting...'}
+                    {statusData?.status === 'running' ? 'Computing...' : 'Computing...'}
                   </>
                 ) : (
                   <>
@@ -264,7 +264,7 @@ export function LabelingSessionAnalysisModal({
                 {isRunning ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Analysis Starting...
+                    Computing...
                   </>
                 ) : (
                   <>
