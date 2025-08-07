@@ -1,8 +1,77 @@
-# Databricks App Template Development Guide
+# MLflow Review App Development Guide
 
-## Project Memory
+## Project Overview
 
-This is a modern full-stack application template for Databricks Apps, featuring FastAPI backend with React TypeScript frontend and modern development tooling.
+This is a **production-ready MLflow Review App template** for evaluating AI agents and collecting human feedback on MLflow traces. It provides a complete infrastructure for:
+- **Trace Evaluation**: Review and rate AI agent interactions
+- **Custom Schemas**: Define evaluation criteria (ratings, categories, text feedback)
+- **SME Workflows**: Assign subject matter experts to review sessions
+- **Analytics**: Analyze feedback patterns and inter-rater agreement
+- **MLflow Integration**: Direct connection to traces and experiments
+
+## Quick Start for Customization
+
+### 1. Initial Setup
+```bash
+./setup.sh                    # Interactive environment setup
+./watch.sh                    # Start dev servers (frontend:5173, backend:8000)
+```
+
+### 2. Customize for Your Use Case
+
+#### Option A: Automated Customization (Recommended)
+Use the `/review-app` command in Claude Code for AI-guided setup:
+```
+/review-app [your experiment description]
+```
+This will:
+- Analyze your MLflow experiment
+- Suggest optimal labeling schemas
+- Create tailored evaluation criteria
+- Set up labeling sessions with appropriate filters
+
+#### Option B: Manual Customization
+1. **Update experiment in config.yaml**:
+   ```yaml
+   mlflow:
+     experiment_id: 'your_experiment_id'
+   sme_thank_you_message: "Custom thank you message"
+   ```
+
+2. **Create custom labeling schemas**:
+   ```bash
+   ./mlflow-cli run create_labeling_schemas --help
+   ```
+
+3. **Set up labeling sessions**:
+   ```bash
+   ./mlflow-cli run create_labeling_session --help
+   ```
+
+### 3. Key Customization Points
+
+#### Frontend Customization
+- **`client/src/pages/LabelingPage.tsx`**: Main SME interface
+- **`client/src/components/SMELabelingInterface.tsx`**: Core labeling UI
+- **`client/src/components/session-renderer/`**: Custom trace renderers
+- **`client/src/pages/DeveloperDashboard.tsx`**: Admin interface
+
+#### Backend Customization
+- **`server/routers/review/`**: Review app API endpoints
+- **`server/routers/mlflow/`**: MLflow proxy endpoints
+- **`server/utils/sme_*.py`**: SME analysis utilities
+- **`server/models/`**: Data models and types
+
+#### Custom Trace Renderers
+Create specialized views for your traces:
+```typescript
+// client/src/components/session-renderer/renderers/CustomRenderer.tsx
+export const CustomRenderer: ItemRenderer = {
+  name: 'Custom View',
+  description: 'Specialized view for your agent type',
+  render: (item) => <YourCustomComponent item={item} />
+};
+```
 
 ## Tech Stack
 
@@ -10,6 +79,7 @@ This is a modern full-stack application template for Databricks Apps, featuring 
 - Python with `uv` for package management
 - FastAPI for API framework
 - Databricks SDK for workspace integration
+- MLflow SDK for trace and experiment management
 - OpenAPI automatic client generation
 
 **Frontend:**
@@ -32,24 +102,33 @@ This is a modern full-stack application template for Databricks Apps, featuring 
 - `./fix.sh` - Format code (ruff for Python, prettier for TypeScript)
 - `./deploy.sh` - Deploy to Databricks Apps
 
-### 🚨 IMPORTANT: NEVER RUN THE SERVER MANUALLY 🚨
+### 🚨 Development Server (CRITICAL) 🚨
 
-**ALWAYS use the watch script with nohup and logging:**
+**ALWAYS use the watch script - NEVER run servers manually:**
 
 ```bash
 # Start development servers (REQUIRED COMMAND)
 nohup ./watch.sh > /tmp/databricks-app-watch.log 2>&1 &
-
-# Or for production mode
-nohup ./watch.sh --prod > /tmp/databricks-app-watch.log 2>&1 &
 ```
 
-**NEVER run uvicorn or the server directly!** Always use `./watch.sh` as it:
+**Why `./watch.sh` is required:**
 - Configures environment variables properly
 - Starts both frontend and backend correctly
 - Generates TypeScript client automatically
 - Handles authentication setup
 - Provides proper logging and error handling
+
+**Server Details:**
+- **Frontend**: http://localhost:5173 (React + Vite)
+- **Backend**: http://localhost:8000 (FastAPI)
+- **API docs**: http://localhost:8000/docs
+- **Hot reloading**: Both frontend and backend
+- **Logs**: `/tmp/databricks-app-watch.log`
+
+**Management Commands:**
+- **Check logs**: `tail -f /tmp/databricks-app-watch.log`
+- **Check status**: `ps aux | grep databricks-app` or check PID file
+- **Stop servers**: `pkill -f "watch.sh"` or `kill $(cat /tmp/databricks-app-watch.pid)`
 
 ### 🚨 PYTHON EXECUTION RULE 🚨
 
@@ -72,701 +151,447 @@ python scripts/make_fastapi_client.py
 **NEVER run `databricks` CLI directly - ALWAYS prefix with environment setup:**
 
 ```bash
-# ✅ CORRECT - Always source .env.local first
-source .env.local && export DATABRICKS_HOST && export DATABRICKS_TOKEN && databricks current-user me
-source .env.local && export DATABRICKS_HOST && export DATABRICKS_TOKEN && databricks apps list
-source .env.local && export DATABRICKS_HOST && export DATABRICKS_TOKEN && databricks workspace list /
+# ✅ CORRECT - Always source .env.local and export variables first
+source .env.local && export DATABRICKS_HOST && export DATABRICKS_CLIENT_ID && export DATABRICKS_CLIENT_SECRET && export DATABRICKS_WORKSPACE_ID && databricks current-user me
 
 # ❌ WRONG - Never use databricks CLI directly
 databricks current-user me
-databricks apps list
-databricks workspace list /
 ```
 
-**Why this is required:**
-- Ensures environment variables are loaded from .env.local
-- Exports authentication variables to environment
-- Prevents authentication failures and missing configuration
+## Claude Natural Language Commands
 
-### Claude Natural Language Commands
-Claude understands natural language commands for common development tasks:
+Claude understands natural language commands routed through the unified CLI system:
 
-**Development Lifecycle:**
+### Development Lifecycle
 - "start the devserver" → Runs `./watch.sh` in background with logging
 - "kill the devserver" → Stops all background development processes
 - "fix the code" → Runs `./fix.sh` to format Python and TypeScript code
 - "deploy the app" → Runs `./deploy.sh` to deploy to Databricks Apps
 
-**Development Tasks:**
-- "add a new API endpoint" → Creates FastAPI routes with proper patterns
-- "create a new React component" → Builds UI components using shadcn/ui
-- "debug this error" → Analyzes logs and fixes issues
-- "install [package]" → Adds dependencies using uv (Python) or bun (frontend)
-- "generate the TypeScript client" → Regenerates API client from OpenAPI spec
-- "open the UI in playwright" → Opens the frontend app in Playwright browser for testing
-- "open app" → Gets app URL from `./app_status.sh` and opens it with `open {url}`
+### MLflow Operations (via unified CLI)
+- "search traces" → `./mlflow-cli run search_traces`
+- "analyze my experiment" → `./mlflow-cli run ai_analyze_experiment`
+- "create labeling session" → `./mlflow-cli run create_labeling_session`
+- "get experiment info" → `./mlflow-cli run get_experiment_info`
 
-**Labeling Infrastructure Inspection:**
-- "show me the labeling schemas" → Detailed view of all current schemas with types and configurations
-- "show me the labeling sessions" → Comprehensive session overview with progress tracking, completion rates, assigned users, and status (mirrors UI display)
+## 🚨 CRITICAL: Claude Tool Discovery Rules 🚨
 
-**Databricks Integration:**
-- "open labeling session [name/id]" → **INTERACTIVE PROMPT**: Databricks or local app?
-  - Uses `uv run python tools/open_labeling_session.py [name/id]`
-  - **Databricks**: Opens production Databricks labeling session interface
-  - **Local App**: Opens local development labeling session interface  
-  - Can search by session name or use direct session ID
-  - Queries all labeling sessions to find by name if needed
-  - Example: "open labeling session test-session-1" or "open labeling session 86c89a01-7f31-4cc0-b610-f88c6ab057c2"
-- "open labeling schemas" → **INTERACTIVE PROMPT**: Databricks or local app?
-  - Uses `uv run python tools/open_labeling_schemas.py`
-  - **Databricks**: Opens production Databricks schemas management interface
-  - **Local App**: Opens local development schemas interface at http://localhost:5173/labeling-schemas
-  - Beautiful CLI prompts with emojis and clear environment descriptions
+**When users ask to modify review app state or want to know what tools are available:**
 
-**MLflow Review App Tools:**
-Claude has access to specialized tools for exploring MLflow traces and review apps:
-
-- "what traces have [xyz]" → Calls `uv run python tools/search_traces.py` with appropriate filters
-- "search for traces with [condition]" → Uses search_traces tool with filter strings
-- "show me traces from [timeframe/condition]" → Searches traces with date/filter parameters
-- "get the review app" → Calls `uv run python tools/get_review_app.py` using config experiment_id
-- "what's the review app for experiment [id]" → Gets review app by specific experiment ID
-- "show me the current user" → Calls `uv run python tools/get_current_user.py`
-- "get workspace info" → Calls `uv run python tools/get_workspace_info.py`
-- "get trace [trace_id]" → Calls `uv run python tools/get_trace.py --trace-id [id]`
-- "get trace metadata [trace_id]" → Calls `uv run python tools/get_trace_metadata.py [trace_id]` (returns trace info + span names/types only)
-- "list labeling sessions" → Calls `uv run python tools/list_labeling_sessions.py` (always returns full schema details + auto-analysis)
-  - **CRITICAL WORKFLOW**: Tool returns deterministic JSON output with analysis data
-  - **CLAUDE MUST**: Read the JSON output and create a comprehensive, beautiful summary report including:
-    - **Overall Status**: Total sessions, completion rates, engagement metrics
-    - **Progress Tracking**: For each session, show completion rates, assigned users, current status (like the UI)
-    - **Assessment-Oriented Analysis**: For each assessment schema, show:
-      - Statistical summaries (distributions, averages, consensus levels)
-      - SME response patterns and feedback themes
-      - Trace content correlation analysis (what drove SME decisions)
-      - Visual representations with emojis and progress bars
-    - **Pattern Detection**: Identify what parts of traces correlate with specific assessments
-    - **Actionable Insights**: Key findings, recommendations, sessions needing attention
-  - **Returns JSON structure**:
-    - `full_schemas` array with complete schema definitions
-    - `analysis` object with per-session statistical analysis:
-      - Completion rates and progress tracking
-      - Per-schema analysis with trace correlation data
-      - Assessment patterns and SME feedback analysis
-      - Auto-generated insights and recommendations
-  - **CRITICAL RENDERING FORMAT**: When displaying labeling sessions, always format metadata with proper line breaks:
-    ```
-    ## 1. **Session Name**
-    
-    🆔 **ID:** `session-id-here`
-    
-    🏃 **MLflow Run ID:** `run-id-here`
-    
-    👥 **Assigned Users:** user@example.com
-    
-    📅 **Created:** timestamp by creator
-    
-    🔄 **Last Updated:** timestamp by updater
-    
-    🔗 **Linked Traces:** X traces
-    ```
-    - Each metadata line must be on a separate line with blank lines between them
-    - This prevents concatenation of metadata items on a single line
-    - Use the exact format above to ensure proper rendering
-  - **TRACE PREVIEW REQUIREMENT**: When displaying labeling sessions, MUST show:
-    - Total number of linked traces in the metadata section
-    - Preview of first 5 traces showing request/response snippets
-    - Format: `### 📋 Trace Preview (First 5 of X traces)` followed by trace summaries
-    - Each trace preview should show: trace ID, timestamp, input/output snippets (first 100 chars)
-    - Use `search_traces` tool with run_id filter: `uv run python tools/search_traces.py --filter "run_id = 'session_mlflow_run_id'" --limit 5`
-    - The search_traces tool/REST API endpoint should propagate MLflow SDK `search_traces()` functionality with proper run_id filtering
-- "create labeling schemas" → Calls `uv run python tools/create_labeling_schemas.py` (create numeric, categorical, or text schemas)
-  - Supports `--schema-type FEEDBACK|EXPECTATION` to specify schema type (default: FEEDBACK)
-  - FEEDBACK schemas: for evaluating responses after they're generated
-  - EXPECTATION schemas: for defining criteria or requirements upfront
-- "update labeling schemas" → Calls `uv run python tools/update_labeling_schemas.py` (modify existing schemas)
-- "delete labeling schemas" → Calls `uv run python tools/delete_labeling_schemas.py` (remove schemas)
-- "create labeling session" → Calls `uv run python tools/create_labeling_session.py` (create sessions with users and schemas)
-- "update labeling session" → Calls `uv run python tools/update_labeling_session.py` (modify existing sessions)
-- "delete labeling session" → Calls `uv run python tools/delete_labeling_session.py` (remove sessions)
-- "link traces to session" → Calls `uv run python tools/link_traces_to_session.py`
-- "get trace URLs" → Calls `uv run python tools/get_trace_urls.py [review_app_id]` (gets URLs for traces in labeling sessions)
-- "get experiment URL" → Calls `uv run python tools/get_experiment_url.py` (prints MLflow experiment URL)
-- "open the traces tab in databricks" → Uses experiment URL with `open` command to launch browser
-- "get databricks labeling session link [session_id]" → Calls `uv run python tools/databricks_get_labeling_session_link.py [experiment_id] [session_id]` (generates Databricks labeling session URL)
-- "get databricks labeling schemas link" → Calls `uv run python tools/databricks_get_labeling_schemas_link.py [experiment_id]` (generates Databricks labeling schemas URL)
-- "get app labeling session link [session_id]" → Calls `uv run python tools/app_get_labeling_session_link.py [review_app_id] [session_id]` (generates local app labeling session URL)
-- "get app labeling schemas link" → Calls `uv run python tools/app_get_labeling_schemas_link.py` (generates local app labeling schemas URL)
-- "analyze labeling results [session_name]" → Calls `uv run python tools/analyze_labeling_results.py [review_app_id] --session-name [name]`
-  - Comprehensive statistical analysis of SME labeling results
-  - **Categorical schemas**: Count/percentage distributions, consensus analysis  
-  - **Numeric schemas**: Mean, median, std deviation, range, distribution visualization
-  - **Text schemas**: Response length analysis, word frequency, sample responses
-  - **Key insights**: Auto-generated findings about agreement, outliers, schema effectiveness
-  - Supports filtering by session name, ID, or criteria (e.g., state=COMPLETED)
-  - Output formats: beautiful CLI text (default) or JSON for programmatic use
-- "open labeling session [name/id]" → Calls `uv run python tools/open_labeling_session.py [name/id]` (interactive prompt for Databricks vs local app)
-- "open labeling schemas" → Calls `uv run python tools/open_labeling_schemas.py` (interactive prompt for Databricks vs local app)
-- "log feedback on trace [trace_id]" → Calls `uv run python tools/log_feedback.py [trace_id] [feedback_key] [feedback_value] [--comment "comment"]` (log feedback/evaluation on traces)
-  - Supports multiple data types: string, int, float, bool, list
-  - Used for evaluating traces after they've been generated
-  - Example: `uv run python tools/log_feedback.py tr-123 quality 4 --comment "Good response"`
-- "log expectation on trace [trace_id]" → Calls `uv run python tools/log_expectation.py [trace_id] [expectation_key] [expectation_value] [--comment "comment"]` (log expectations/requirements on traces)
-  - Supports multiple data types: string, int, float, bool, list, dict
-  - Used for defining criteria or requirements upfront
-  - Example: `uv run python tools/log_expectation.py tr-123 response_format "JSON" --comment "Should return structured data"`
-
-**Unified CLI Tool:**
-The project includes a unified CLI tool that provides discovery and centralized access to all individual tools:
-
-- **`./mlflow-cli list`** - List all available tools grouped by category
-- **`./mlflow-cli list [category]`** - List tools in specific category (user, traces, labeling, etc.)
-- **`./mlflow-cli categories`** - Show all available tool categories
-- **`./mlflow-cli search [query]`** - Search tools by name or description
-- **`./mlflow-cli help [tool]`** - Show detailed help for a specific tool
-- **`./mlflow-cli run [tool] [args...]`** - Run any tool with arguments
-- **`uv run python cli.py`** - Direct access to unified CLI (equivalent to ./mlflow-cli)
-
-Examples:
+### Rule 1: Always Discover Available Tools First
 ```bash
-./mlflow-cli list traces                    # List trace-related tools
-./mlflow-cli search user                    # Find user-related tools
-./mlflow-cli help search_traces             # Get help for search_traces
-./mlflow-cli run search_traces --limit 5    # Run search_traces with args
+# ALWAYS run this command first to see current tools
+./mlflow-cli list
 ```
 
-**Tool Behaviors:**
-- All tools use the centralized config experiment_id by default (from config.yaml)
-- Tools can accept explicit parameters to override defaults
-- Search filters support MLflow trace syntax (e.g., "tags.user = 'john'" or "metadata.status = 'completed'")
-- **CRITICAL: ALWAYS run `./mlflow-cli help [tool]` or `uv run python tools/[tool].py --help` before using any tool to see current parameter options and examples**
+### Rule 2: For Review App State Modifications
+When users ask to:
+- Create, update, or delete labeling schemas
+- Create, update, or delete labeling sessions
+- Link traces to sessions
+- Modify review app configuration
+- Grant permissions or update settings
 
-**Search Traces Advanced Features:**
-- Supports SQL-like filtering: `status = 'OK' AND execution_time_ms > 1000`
-- Tag filtering: `tags.model_name = 'gpt-4'` or `tag.user = 'alice'`
-- Metadata filtering: `metadata.version = '2.1'`
-- Status filtering: `status IN ('OK', 'ERROR')`
-- Time-based: `timestamp_ms > 1735689600000` (Unix timestamp in ms)
-- Ordering: `--order-by "timestamp_ms DESC"` or `--order-by "execution_time_ms ASC"`
-- Performance analysis: Find slow traces with `execution_time_ms > 5000`
-- Error investigation: `status = 'ERROR'` with recent first ordering
+**ALWAYS start with tool discovery:**
+```bash
+./mlflow-cli list labeling    # For labeling-related requests
+./mlflow-cli list mlflow      # For experiment/permission requests
+./mlflow-cli search [keyword] # For specific functionality
+```
 
-**Slash Commands:**
-Interactive commands for managing MLflow Review App components:
+### Rule 3: For "What tools are available?" requests
+When users ask:
+- "What tools do we have?"
+- "Show me available commands"
+- "What can I do with the CLI?"
+
+**ALWAYS respond with:**
+```bash
+./mlflow-cli list             # Show all tools by category
+```
+
+This ensures you always have current tool information and can provide accurate recommendations.
+
+### MLflow Tools via Unified CLI
+
+**Always use the unified CLI system** - it's your primary interface for all MLflow operations:
+
+```bash
+# Discovery and help
+./mlflow-cli list                    # List all available tools by category
+./mlflow-cli list labeling          # List labeling tools only
+./mlflow-cli search [query]         # Search tools by functionality
+./mlflow-cli help [tool]            # Get detailed usage for any tool
+
+# Execute tools (recommended approach)
+./mlflow-cli run search_traces --limit 10
+./mlflow-cli run create_labeling_session --name "review_session"
+./mlflow-cli run get_experiment_info --experiment-id 12345
+```
+
+**Tool Categories:**
+- **LABELING** (13 tools): Schema/session management, linking, analysis
+- **TRACES** (5 tools): Search, metadata, analysis, URL generation  
+- **MLFLOW** (5 tools): Experiment info, run management, permissions
+- **ANALYTICS** (3 tools): AI-powered analysis and pattern detection
+- **USER** (2 tools): Current user, workspace information
+- **REVIEW-APPS** (1 tool): Review app management and configuration
+- **LOGGING** (2 tools): MLflow feedback and expectation logging
+
+**Advanced Usage (for scripting):**
+```bash
+# Direct tool access (when needed for automation)
+uv run python tools/search_traces.py --limit 10
+```
+
+## 🎯 Claude Workflow for Review App Management
+
+### When User Requests Review App Modifications:
+
+1. **Discover Tools** (REQUIRED FIRST STEP):
+   ```bash
+   ./mlflow-cli list [category]  # Always check available tools first
+   ```
+
+2. **Get Tool Help**:
+   ```bash
+   ./mlflow-cli help [tool_name]  # Understand tool usage and options
+   ```
+
+3. **Execute Tool**:
+   ```bash
+   ./mlflow-cli run [tool_name] -- [tool_args]  # Run with proper arguments
+   ```
+
+### Example Workflows:
+
+**Creating Labeling Schemas:**
+```bash
+# 1. Check labeling tools
+./mlflow-cli list labeling
+
+# 2. Get help for schema creation
+./mlflow-cli help create_labeling_schemas
+
+# 3. Create schemas
+./mlflow-cli run create_labeling_schemas -- review_app_id --preset quality-helpfulness
+```
+
+**Managing Labeling Sessions:**
+```bash
+# 1. Check available session tools
+./mlflow-cli search session
+
+# 2. Get help for session creation
+./mlflow-cli help create_labeling_session
+
+# 3. Create session
+./mlflow-cli run create_labeling_session -- review_app_id --name "Session Name"
+```
+
+### Slash Commands
+Interactive commands for managing review app components:
+
+- **`/review-app`** - Complete customization workflow
+  - Analyzes your experiment
+  - Suggests optimal configurations
+  - Creates schemas and sessions
+  - Deploys customized app
 
 - **`/label-schemas`** - Manage labeling schemas
-  - `/label-schemas` → List all schemas with beautiful CLI formatting
-  - `/label-schemas add [description]` → Add new schema with natural language guidance
-  - `/label-schemas modify [schema_name] [changes]` → Update existing schema with confirmation
+  - `/label-schemas` → List all schemas with visual representations
+  - `/label-schemas add [description]` → Add new schema interactively
+  - `/label-schemas modify [schema_name] [changes]` → Update existing schema
   - `/label-schemas delete [schema_name]` → Delete schema with confirmation
-  - **Implementation**: Uses `.claude/commands/label-schemas.md` which orchestrates tools in `tools/`
 
 - **`/labeling-sessions`** - Manage labeling sessions  
-  - `/labeling-sessions` → List all sessions with status, users, traces, links, and **auto-analysis**
-  - `/labeling-sessions add [description]` → Create new session with natural language guidance
-  - `/labeling-sessions modify [session_name] [changes]` → Update existing session with confirmation
-  - `/labeling-sessions delete [session_name]` → Delete session with confirmation
-  - `/labeling-sessions link [session_name] [trace_criteria]` → Link traces to session
-  - `/labeling-sessions analyze [session_name]` → **NEW**: Generate statistical analysis of SME results
-  - **Implementation**: Uses `.claude/commands/labeling-sessions.md` which orchestrates tools in `tools/`
+  - `/labeling-sessions` → List all sessions with status and progress
+  - `/labeling-sessions add [description]` → Create new session
+  - `/labeling-sessions link [session_name] [trace_criteria]` → Link traces
+  - `/labeling-sessions analyze [session_name]` → Statistical analysis
 
-Both slash commands provide:
-- Beautiful CLI rendering with emojis and structured output
-- Natural language parsing and guidance
-- Dry-run previews before making changes
-- Explicit confirmation prompts for destructive actions
-- Integration with existing tools that use shared utilities
+## Implementation Validation Workflow
 
-### Implementation Validation Workflow
 **During implementation, ALWAYS:**
-1. **Start development server first**: `nohup ./watch.sh > /tmp/databricks-app-watch.log 2>&1 &`
-2. **Open app with Playwright** to see current state before changes
+1. **Start development server first**: Use `./watch.sh`
+2. **Open app with Playwright** to see current state
 3. **After each implementation step:**
    - Check logs: `tail -f /tmp/databricks-app-watch.log`
-   - Use Playwright to verify UI changes are working
-   - Take snapshots to confirm features render correctly
+   - Use Playwright to verify UI changes
    - Test user interactions and API calls
-4. **🚨 CRITICAL: FastAPI Endpoint Verification**
-   - **IMPORTANT: After adding ANY new FastAPI endpoint, MUST curl the endpoint to verify it works**
-   - **NEVER move on to the next step until the endpoint is verified with curl**
-   - **Example verification commands:**
-     ```bash
-     # Test GET endpoint
-     curl -s http://localhost:8000/api/new-endpoint | jq
-     
-     # Test POST endpoint
-     curl -X POST -H "Content-Type: application/json" -d '{"key":"value"}' http://localhost:8000/api/new-endpoint | jq
-     ```
-   - **Show the curl response to confirm the endpoint works correctly**
-   - **If the endpoint fails, debug and fix it before proceeding**
-5. **Install Playwright if needed**: `claude mcp add playwright npx '@playwright/mcp@latest'`
-6. **Iterative validation**: Test each feature before moving to next step
+4. **FastAPI Endpoint Verification**: After adding ANY new endpoint, curl test it
+5. **Iterative validation**: Test each feature before moving to next step
 
-**This ensures every implementation step is validated and working before proceeding.**
+## API Development Best Practices
 
-### Development Server
-- **ALWAYS** run `./watch.sh` with nohup in background and log to file for debugging
-- Watch script automatically runs in background and logs to `/tmp/databricks-app-watch.log`
-- Frontend runs on http://localhost:5173
-- Backend runs on http://localhost:8000
-- API docs available at http://localhost:8000/docs
-- Supports hot reloading for both frontend and backend
-- Automatically generates TypeScript client from FastAPI OpenAPI spec
-- **Check logs**: `tail -f /tmp/databricks-app-watch.log`
-- **Stop processes**: `pkill -f "watch.sh"` or check PID file
+### Type Safety
+- Use proper Pydantic models instead of Dict[str, Any]
+- Define clear request/response models
+- Leverage FastAPI's automatic validation
 
-### Code Quality
-- Use `./fix.sh` for code formatting before commits
-- Python: ruff for formatting and linting, ty for type checking
-- TypeScript: prettier for formatting, ESLint for linting
-- Type checking with TypeScript and ty (Python)
+### Error Handling
+- Custom exceptions in `server/exceptions.py`
+- Automatic conversion to JSON responses
+- Frontend toast notifications via error middleware
 
-### API Development
-- FastAPI automatically generates OpenAPI spec
-- TypeScript client is auto-generated from OpenAPI spec
-- Test endpoints with curl or FastAPI docs
-- Check server logs after requests
-- Verify response includes expected fields
-- **Type Safety**: Use proper Pydantic models instead of Dict[str, Any]
-- **Error Handling**: Custom exceptions are automatically converted to JSON responses with toast notifications
-- **React Query**: All API calls should use React Query hooks (useQuery for GET, useMutation for POST/PUT/DELETE)
+### React Query Integration
+- All API calls use React Query hooks
+- `useQuery` for GET requests
+- `useMutation` for POST/PUT/DELETE
+- Automatic cache invalidation
 
-### Databricks API Integration
-- **ALWAYS** reference `docs/databricks_apis/` documentation when implementing Databricks features
-- Use `docs/databricks_apis/databricks_sdk.md` for workspace, cluster, and SQL operations
-- Use `docs/databricks_apis/mlflow_genai.md` for AI agent and LLM functionality
-- Use `docs/databricks_apis/model_serving.md` for model serving endpoints and inference
-- Use `docs/databricks_apis/workspace_apis.md` for file operations and directory management
-- Follow the documented patterns and examples for proper API usage
-- Check official documentation links in each API guide for latest updates
+## MLflow Integration Details
 
-### Frontend Development
-- Use shadcn/ui components for consistent UI
-- Follow React Query patterns for API calls
-- Use TypeScript strictly - no `any` types
-- Import from auto-generated client: `import { apiClient } from '@/fastapi_client'`
-- Client uses shadcn/ui components with proper TypeScript configuration
-- shadcn components must be added with: npx shadcn@latest add <component-name>
-
-### Testing Methodology
-- Test API endpoints using FastAPI docs interface
-- Use browser dev tools for frontend debugging
-- Check network tab for API request/response inspection
-- Verify console for any JavaScript errors
-
-### Deployment
-- Use `./deploy.sh` for Databricks Apps deployment
-- Automatically builds frontend and generates requirements.txt
-- Configures app.yaml with environment variables
-- Verifies deployment through Databricks CLI
-- **IMPORTANT**: After deployment, monitor `/logz` endpoint of your Databricks app to check for installation issues
-- App logs are available at: `https://<app-url>/logz` (visit in browser - requires OAuth authentication)
-
-### Environment Configuration
-- Use `.env.local` for local development configuration
-- Set environment variables and Databricks credentials
-- Never commit `.env.local` to version control
-- Use `./setup.sh` to create and update environment configuration
-
-### MLflow Configuration
-- **Primary config file**: `config.yaml` contains only the MLflow experiment_id
-- **Configuration format**: When updating experiment_id, always use this exact format:
-  ```yaml
-  # MLflow Review App Configuration
-  mlflow:
-    experiment_id: 'your_experiment_id_here'
-  ```
-- **Tools for config management**:
-  - `uv run python tools/get_experiment_info.py [id_or_name]` - Get experiment details
-  - `uv run python tools/update_config_experiment.py [experiment_id]` - Update config.yaml
-- **Note**: Experiment ID should always be a string in quotes, not a number
-
-### Experiment Analysis and Summarization
-When users ask to "summarize an experiment", use this comprehensive analysis approach:
-
-**Note**: Databricks experiment links always follow this format:
+### Architecture Overview
 ```
-https://[workspace-url]/ml/experiments/[experiment_id]/traces?o=[workspace_id]
-```
-Example: `https://eng-ml-inference-team-us-west-2.cloud.databricks.com/ml/experiments/2178582188830602/traces?o=5722066275360235`
-
-To extract the experiment_id from a Databricks URL, look for the number after `/ml/experiments/`.
-
-1. **Get experiment information**:
-   ```bash
-   uv run python tools/get_experiment_info.py [experiment_id_or_name]
-   ```
-
-2. **Analyze broad trace patterns** (~50 traces):
-   ```bash
-   uv run python tools/analyze_trace_patterns.py --experiment-id [experiment_id] --limit 50
-   ```
-
-3. **Examine detailed traces with spans** (5 traces):
-   ```bash
-   uv run python tools/search_traces.py --limit 5 --include-spans --order-by "timestamp_ms DESC" --experiment-id [experiment_id]
-   ```
-
-4. **Generate comprehensive analysis report** including:
-   - **Experiment Overview**: Name, ID, URL, trace count
-   - **Agent Type**: Multi-agent, single-agent, tool-calling patterns
-   - **Key Capabilities**: What the agent can do (catalog management, SQL operations, etc.)
-   - **Agent Architecture**: Main components (agent, executor, LLM integration)
-   - **Tool Usage Patterns**: Number of tools, calling patterns (sequential/parallel), context-awareness
-   - **Request/Response Flow**: How the agent processes user inputs and generates outputs
-   - **Specific Use Cases**: Examples of what the agent handles based on actual trace data
-   - **Existing Labeling Infrastructure**: Current schemas and active labeling sessions
-
-**Example Analysis Output Format**:
-```
-🧪 Experiment: [Experiment Name]
-🆔 ID: [experiment_id]  
-🔗 URL: [workspace_url]/#/experiments/[experiment_id]
-📈 Traces: [count] traces available
-
-Agent Pattern Analysis:
-====================
-Agent Type: [Multi-agent SQL/Analytics Assistant with X+ specialized tools]
-
-Key Capabilities:
-- [Capability 1]: [Description]
-- [Capability 2]: [Description]
-- [Capability N]: [Description]
-
-Agent Architecture:
-1. [Main Agent]: [Description and span type]
-2. [Execution Chain]: [How orchestration works]
-3. [LLM Integration]: [Model used for reasoning]
-4. [Tool Selection]: [Calling pattern description]
-
-Tool Usage Pattern:
-- [X different tools] detected across traces
-- [Sequential/Parallel execution] pattern
-- [Context-aware] tool selection based on user requests
-- [Multi-step workflows] that build on previous tool outputs
-
-This analysis helps you understand exactly what your agent does and how to design 
-appropriate labeling schemas for evaluation.
+MLflow Experiment
+  └── Traces (AI agent interactions)
+       └── Review App (defines evaluation framework)
+            └── Labeling Sessions (organize review batches)
+                 └── Labeling Items (individual trace reviews)
 ```
 
-This approach provides deep insights into agent behavior and helps users understand their AI systems for better evaluation design.
+### Key Concepts
+1. **Trace Linking**: We link traces to sessions, not copy them
+2. **Session Backing**: Each labeling session has an MLflow run ID
+3. **Schema Flexibility**: Mix ratings, categories, and text feedback
+4. **User Assignment**: Automatic permission management via MLflow SDK
 
-**Experiment Summary Storage**:
-- **Location**: All experiment summaries are automatically saved to `experiments/[experiment_id]_summary.md`
-- **Format**: Complete markdown files with comprehensive analysis, agent patterns, and evaluation recommendations
-- **Usage**: These summaries serve as references for designing labeling schemas and creating targeted labeling sessions
-- **Benefits**: Provides context-aware schema suggestions based on specific agent capabilities and use cases
+### API Endpoints
+- **MLflow Proxies** (`/api/mlflow/*`): Direct MLflow API access
+- **Review Apps** (`/api/review-apps/*`): Evaluation framework management
+- **Labeling Sessions** (`/api/review-apps/{id}/labeling-sessions/*`): Session CRUD
+- **Labeling Items** (`/api/review-apps/{id}/labeling-sessions/{id}/items/*`): Review tracking
 
-**Example**: When users ask to summarize experiment `2178582188830602`, the analysis is saved to `experiments/2178582188830602_summary.md` and can be referenced later for:
-- Suggesting appropriate labeling schemas for multi-tool agents
-- Creating labeling sessions focused on tool selection accuracy
-- Designing evaluation criteria for complex analytical workflows
-- Understanding existing evaluation infrastructure (current schemas and sessions)
+## Deployment
 
-### Debugging Tips
-- Verify environment variables are set correctly
-- Use FastAPI docs for API testing: http://localhost:8000/docs
-- Check browser console for frontend errors
-- Use React Query DevTools for API state inspection
-- **Check watch logs**: `tail -f /tmp/databricks-app-watch.log` for all development server output
-- **Check process status**: `ps aux | grep databricks-app` or check PID file at `/tmp/databricks-app-watch.pid`
-- **Force stop**: `kill $(cat /tmp/databricks-app-watch.pid)` or `pkill -f watch.sh`
+### Deploy to Databricks Apps
+```bash
+./deploy.sh                  # Deploy existing app
+./deploy.sh --create        # Create and deploy new app
+./deploy.sh --verbose       # Deploy with detailed logging
+```
 
-### Key Files
-- `server/app.py` - FastAPI application entry point
-- `server/routers/` - API endpoint routers
-- `client/src/App.tsx` - React application entry point
-- `client/src/pages/` - React page components
-- `client/src/session-renderer/` - Custom session renderer system
-- `scripts/make_fastapi_client.py` - TypeScript client generator
-- `pyproject.toml` - Python dependencies and project configuration
-- `client/package.json` - Frontend dependencies and scripts
-- `claude_scripts/` - Test scripts created by Claude for testing functionality
+### 🚨 CRITICAL: Post-Deployment Verification 🚨
 
-### API Documentation
-- `docs/databricks_apis/` - Comprehensive API documentation for Databricks integrations
-- `docs/databricks_apis/databricks_sdk.md` - Databricks SDK usage patterns
-- `docs/databricks_apis/mlflow_genai.md` - MLflow GenAI for AI agents
-- `docs/databricks_apis/model_serving.md` - Model serving endpoints and inference
-- `docs/databricks_apis/workspace_apis.md` - Workspace file operations
+**ALWAYS perform these verification steps after deployment - DO NOT SKIP!**
 
-### Documentation Files
-- `docs/product.md` - Product requirements document (created during /dba workflow)
-- `docs/design.md` - Technical design document (created during /dba workflow)
-- These files are generated through iterative collaboration with the user during the /dba command
+#### Step 1: Check Deployment Logs (REQUIRED)
+```bash
+# Get app URL first
+uv run python app_status.py --format json | jq -r '.app_status.url'
+
+# Monitor logs for startup (replace with your app URL)
+uv run python dba_logz.py https://your-app.databricksapps.com --search "INFO" --duration 60
+```
+
+**What to look for:**
+- ✅ `"INFO: Uvicorn running on http://0.0.0.0:8000"` - Server started
+- ✅ `"INFO: Application startup complete"` - App ready
+- ❌ `"ERROR"` or `"CRITICAL"` - Check for failures
+- ❌ `"ModuleNotFoundError"` - Missing dependencies
+
+**If Uvicorn doesn't start within 2 minutes:**
+- Keep checking logs - deployment can take 3-5 minutes
+- Look for import errors or missing dependencies
+- Check requirements.txt was generated correctly
+
+#### Step 2: Test API Health (REQUIRED)
+```bash
+# Test health endpoint
+uv run python dba_client.py https://your-app.databricksapps.com /health
+
+# Expected response:
+# {"status": "healthy"}
+```
+
+**If health check fails:**
+- Server may still be starting - wait and retry
+- Check logs for startup errors
+- Verify app.yaml configuration
+
+#### Step 3: Verify API Documentation (REQUIRED)
+```bash
+# Test API docs endpoint
+uv run python dba_client.py https://your-app.databricksapps.com /docs
+
+# Should return HTML content starting with:
+# <!DOCTYPE html>
+# <html>
+# <head>
+#     <link type="text/css" rel="stylesheet" href="...swagger-ui...">
+```
+
+**If /docs fails:**
+- FastAPI may have startup errors
+- Check for router registration issues
+- Verify all imports in server/app.py
+
+#### Step 4: Test Core API Endpoints
+```bash
+# Test current user endpoint
+uv run python dba_client.py https://your-app.databricksapps.com /api/user/me
+
+# Test review app endpoint
+uv run python dba_client.py https://your-app.databricksapps.com /api/review-apps/current
+
+# Test configuration endpoint
+uv run python dba_client.py https://your-app.databricksapps.com /api/config
+```
+
+#### Step 5: Monitor Continuous Logs
+```bash
+# Keep monitoring for any runtime errors
+uv run python dba_logz.py https://your-app.databricksapps.com --search "ERROR" --duration 120
+
+# Check for successful requests
+uv run python dba_logz.py https://your-app.databricksapps.com --search "GET /api" --duration 60
+```
+
+### Common Deployment Issues & Solutions
+
+| Issue | Detection | Solution |
+|-------|-----------|----------|
+| **Uvicorn won't start** | No "Uvicorn running" in logs | Check requirements.txt, verify all imports |
+| **Import errors** | `ModuleNotFoundError` in logs | Add missing package to pyproject.toml, redeploy |
+| **Static files 404** | UI doesn't load | Verify client/build exists, check app.py static mount |
+| **API routes 404** | `/api/*` returns 404 | Check router registration in server/app.py |
+| **Auth failures** | 401/403 errors | Verify DATABRICKS_TOKEN in app environment |
+| **Slow startup** | Takes >5 minutes | Normal for first deploy, check logs for progress |
+
+### Deployment Debugging Commands
+
+```bash
+# Full app status with permissions
+uv run python app_status.py --verbose
+
+# Get app logs (browser authentication required)
+# Visit in browser: https://your-app.databricksapps.com/logz
+
+# Test specific API endpoint with full response
+uv run python dba_client.py https://your-app.databricksapps.com /api/health --verbose
+
+# Check workspace files were uploaded
+source .env.local && export DATABRICKS_HOST && export DATABRICKS_TOKEN
+databricks workspace list "$DBA_SOURCE_CODE_PATH"
+```
+
+### 🔄 Redeployment After Fixes
+
+If you need to fix issues and redeploy:
+```bash
+# 1. Fix the issue locally
+# 2. Test locally first
+./run_app_local.sh
+
+# 3. Redeploy
+./deploy.sh --verbose
+
+# 4. Repeat verification steps above
+```
+
+**IMPORTANT**: Never assume deployment succeeded without verification! Always check logs and test endpoints.
+
+## Troubleshooting
 
 ### Common Issues
-- If TypeScript client is not found, run the client generation script manually
-- If hot reload not working, restart `./watch.sh`
-- If dependencies missing, run `./setup.sh` to reinstall
 
-Remember: This is a development template focused on rapid iteration and modern tooling.
+#### Development Server Issues
+```bash
+# Check logs
+tail -f /tmp/databricks-app-watch.log
+
+# Restart servers
+pkill -f watch.sh
+nohup ./watch.sh > /tmp/databricks-app-watch.log 2>&1 &
+```
+
+#### TypeScript Client Missing
+```bash
+uv run python scripts/make_fastapi_client.py
+```
+
+#### Authentication Issues
+```bash
+# Test authentication
+source .env.local && export DATABRICKS_HOST && export DATABRICKS_TOKEN && databricks current-user me
+
+# Reconfigure if needed
+./setup.sh
+```
 
 ## Session Renderer System
 
-The MLflow Review App includes a comprehensive session renderer system that allows users to customize how traces and labeling schemas are displayed in the UI.
+Create custom views for different trace types:
 
-### Architecture Overview
-
-- **Location**: `client/src/session-renderer/`
-- **Registry System**: Dynamic renderer management with type safety
-- **MLflow Integration**: Renderer selection stored in MLflow run tags
-- **Claude Code Friendly**: AI can help create and modify custom renderers
-
-### Key Components
-
-- **`session-renderer/renderers/index.ts`** - Registry system managing all available renderers
-- **`session-renderer/renderers/DefaultItemRenderer.tsx`** - Standard conversation view (preserves existing functionality)
-- **`session-renderer/renderers/CompactTimelineRenderer.tsx`** - Timeline-based view with quick stats
-- **`components/RendererSelector.tsx`** - UI for choosing and applying renderers in dev mode
-- **`types/renderers.ts`** - TypeScript interfaces for type-safe renderer development
-
-### How It Works
-
-1. **Development Mode**: Use the Renderer Selector card to choose how traces are displayed
-2. **Persistence**: Renderer choice is saved to MLflow run tags (`mlflow.customRenderer`)
-3. **SME Experience**: Chosen renderer loads automatically in SME labeling mode
-4. **Custom Creation**: Users can create React components with full control over trace display and labeling schema placement
-
-### Available Renderers
-
-- **Default Renderer**: Standard conversation view with full labeling forms
-- **Compact Timeline**: Timeline-based view with quick stats and streamlined interface
+### Built-in Renderers
+- **Default**: Conversation-style chat view
+- **Compact Timeline**: Condensed timeline view
 
 ### Creating Custom Renderers
+See `client/src/session-renderer/README.md` for complete guide:
+1. Create renderer component in `renderers/`
+2. Register in `renderers/index.ts`
+3. Set via MLflow run tags or UI selector
 
-Users can create custom renderers by:
-1. Creating a React component that accepts `ItemRendererProps`
-2. Registering it in the renderer registry
-3. Selecting it via the dev mode interface
-4. Getting Claude Code assistance for component creation and modification
-
-### Natural Language Commands
-
-- "create a renderer focused on tool usage analysis" → Claude creates specialized tool-focused renderer
-- "add a compact card-based renderer for mobile review" → Claude designs mobile-optimized interface
-- "build a renderer that highlights errors and performance issues" → Claude creates error-focused renderer
-
-The system provides complete control over the trace review experience while maintaining type safety and ease of use.
-
-## MLflow Review App Architecture
-
-### Core Concepts and Component Relationships
-
-The MLflow Review App template integrates several key components that work together to enable AI/ML model evaluation workflows:
-
-#### 1. MLflow Experiments and Traces
-- **MLflow Experiments**: Container for ML runs and traces
-- **Traces**: Individual AI agent interactions or model inferences that need human review
-- **Trace Components**:
-  - `trace_id`: Unique identifier for each trace
-  - `trace_info`: Metadata including timestamps, execution duration, state
-  - `trace_data`: Actual input/output data and spans
-  - `experiment_id`: Links trace to its parent experiment
-
-#### 2. Review Apps
-- **Purpose**: Define the evaluation framework for an experiment
-- **Key Properties**:
-  - `review_app_id`: Unique identifier
-  - `experiment_id`: Links to MLflow experiment containing traces
-  - `labeling_schemas`: Define what aspects to evaluate (e.g., quality ratings, feedback categories)
-- **Relationship**: One Review App per Experiment (1:1)
-
-#### 3. Labeling Sessions
-- **Purpose**: Organize batches of traces for human review
-- **Key Properties**:
-  - `labeling_session_id`: Unique identifier
-  - `mlflow_run_id`: **CRITICAL** - This is an MLflow run that acts as a container for linked traces
-  - `assigned_users`: Who should review the traces
-  - `labeling_schemas`: Subset of review app schemas to use
-- **Relationship**: Many Labeling Sessions per Review App (1:N)
-
-#### 4. Trace Linking Methodology (NOT Copying!)
-- **Important**: We use trace LINKING, not trace copying
-- **How it works**:
-  1. Labeling session has an `mlflow_run_id`
-  2. Use `/api/mlflow/traces/link-to-run` to link existing traces to this run
-  3. Traces remain in their original location but are now associated with the labeling session
-  4. Multiple labeling sessions can link to the same trace (many-to-one relationship)
-- **Benefits**:
-  - Non-destructive: Original traces are preserved
-  - Efficient: No data duplication
-  - Flexible: Same trace can be in multiple labeling sessions
-
-#### 5. Labeling Items
-- **Purpose**: Track individual trace review status within a session
-- **Note**: Items are typically created automatically when traces are linked
-- **Properties**:
-  - `item_id`: Unique identifier
-  - `source.trace_id`: Reference to the linked trace
-  - `state`: PENDING, IN_PROGRESS, COMPLETED, SKIPPED
-  - Labels/feedback from reviewers
-
-### Data Flow Example
-
-```
-1. MLflow Experiment (ID: 2178582188830602)
-   └── Contains many traces from AI agent interactions
-
-2. Create Review App
-   └── Defines evaluation criteria (quality ratings, helpfulness, etc.)
-
-3. Create Labeling Session
-   └── Gets an mlflow_run_id (e.g., 27c42c9d1bff4184acf02c58fbc2b1f5)
-
-4. Search for Traces to Review
-   └── Use search_traces endpoint with filters
-
-5. Link Traces to Labeling Session
-   └── POST /api/mlflow/traces/link-to-run
-       {
-         "run_id": "27c42c9d1bff4184acf02c58fbc2b1f5",
-         "trace_ids": ["tr-6524c1867f1317f082594bc26f14dbe7"]
-       }
-
-6. Verify Traces are Linked
-   └── Search traces with run_id filter returns linked traces
+### Example Custom Renderer
+```typescript
+export const AnalyticsRenderer: ItemRenderer = {
+  name: 'Analytics View',
+  description: 'View for analytical agent traces',
+  render: (item) => <AnalyticsView trace={item.source} />
+};
 ```
 
-### API Endpoint Categories
+## Best Practices
 
-1. **MLflow Proxies** (`/api/mlflow/*`): Direct access to MLflow APIs
-   - Experiments, runs, traces operations
-   - Special: `search-traces` uses SDK (no direct API)
+### Code Quality
+- Run `./fix.sh` before commits
+- Use TypeScript strictly - no `any` types
+- Follow existing patterns in codebase
+- Write self-documenting code
 
-2. **Review Apps** (`/api/review-apps/*`): Managed evaluation framework
-   - Standard API path: `/api/2.0/managed-evals/`
-   - NOT ajax-api (never use ajax-api endpoints)
+### Performance
+- Use React Query for all API calls
+- Implement pagination for large datasets
+- Use virtual scrolling for long lists
+- Profile with middleware tools
 
-3. **Labeling Sessions** (`/api/review-apps/{id}/labeling-sessions/*`)
-   - CRUD operations for session management
-   - Each session is backed by an MLflow run
+### Security
+- Never commit secrets or tokens
+- Use environment variables for config
+- Validate all user inputs
+- Follow OWASP best practices
 
-4. **Labeling Items** (`/api/review-apps/{id}/labeling-sessions/{id}/items/*`)
-   - Read and update only (no direct create/delete)
-   - Items appear when traces are linked to the session
+### Testing
+- Test API endpoints via FastAPI docs
+- Use Playwright for UI testing
+- Check network tab for API issues
+- Verify with multiple user roles
 
-### Important Implementation Notes
+## Key Files Reference
 
-- **Authentication**: All APIs use Bearer token from DATABRICKS_TOKEN env var
-- **Empty Responses**: Some Databricks APIs return empty responses - normalize these in endpoints
-- **URL Patterns**: Use standard `/api/2.0/` paths, never `/ajax-api/`
-- **Trace Linking**: Always use link-to-run methodology, never copy traces
-- **Search Traces**: Implemented via MLflow SDK as there's no direct API endpoint
-- **User Management**: Use MLflow SDK (`mlflow.genai.labeling`) for adding/removing users from labeling sessions - it automatically handles experiment permissions
+### Configuration
+- `config.yaml` - MLflow experiment and app settings
+- `.env.local` - Environment variables (git-ignored)
+- `app.yaml` - Databricks Apps deployment config
 
-### Labeling Schema Visual Representations
+### Backend
+- `server/app.py` - FastAPI application entry
+- `server/routers/` - API endpoint routers
+- `server/models/` - Pydantic data models
+- `server/utils/` - Utility functions
 
-When displaying labeling schemas to users, always show visual representations that match how they appear in the Databricks labeling interface:
+### Frontend
+- `client/src/App.tsx` - React app entry
+- `client/src/pages/` - Page components
+- `client/src/components/` - Reusable components
+- `client/src/hooks/` - Custom React hooks
 
-#### Categorical Schema (True/False)
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Feedback                                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ● Correctness                                                ▲ │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Is the response correct?                                        │
-│                                                                 │
-│ ○ True                                                          │
-│                                                                 │
-│ ○ False                                                         │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Tools & Scripts
+- `tools/` - CLI tools for MLflow operations
+- `scripts/` - Development automation
+- `cli.py` - Unified CLI interface
+- `mlflow-cli` - Convenient CLI wrapper
 
-#### Categorical Schema (Multiple Options)
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Feedback                                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ● Helpfulness                                               ▲ │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Was the response helpful?                                       │
-│                                                                 │
-│ ○ Very Helpful                                                  │
-│                                                                 │
-│ ○ Somewhat Helpful                                              │
-│                                                                 │
-│ ○ Not Helpful                                                   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### Numeric Rating Schema
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Feedback                                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ● Response Quality                                           ▲ │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Rate the quality of the AI response                             │
-│                                                                 │
-│ [     5.0     ] ◄─────────────────────► Min: 1.0, Max: 5.0    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### Text Feedback Schema
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Feedback                                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ● General Feedback                                           ▲ │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Provide detailed feedback about the response                    │
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │                                                             │ │
-│ │ [Text input area - up to 500 characters]                   │ │
-│ │                                                             │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### Schema WITH Comments Enabled
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Feedback                                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ● Helpfulness Assessment                                     ▲ │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Rate the helpfulness and provide reasoning                      │
-│                                                                 │
-│ ○ Very Helpful                                                  │
-│                                                                 │
-│ ○ Somewhat Helpful                                              │
-│                                                                 │
-│ ○ Not Helpful                                                   │
-│                                                                 │
-│ Comments (Optional):                                            │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │                                                             │ │
-│ │ [Rationale/reasoning text area]                             │ │
-│ │                                                             │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Key Visual Elements:**
-- **Header:** Shows "Feedback" section
-- **Title:** Schema name with expand/collapse arrow (▲)
-- **Instruction:** Clear guidance text
-- **Input Controls:** Radio buttons (○), sliders, text areas
-- **Comments:** Optional text area when `enable_comment: true`
-- **Constraints:** Min/max values for numeric schemas
-
-**Schema Types Summary:**
-- **Categorical:** Radio button selection, supports comments
-- **Numeric:** Slider/input with min/max range, supports comments  
-- **Text:** Text area input, inherently supports detailed feedback
-
-Always use these visual representations when showing schemas to help users understand exactly how they will appear in the Databricks labeling interface.
+Remember: This is a production-ready template focused on rapid customization and deployment for MLflow trace evaluation workflows.

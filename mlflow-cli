@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# MLflow Review App CLI Wrapper
+# 
+# This is a convenience wrapper around the unified CLI tool that:
+# - Uses uv run automatically
+# - Provides a shorter command name
+# - Handles environment setup
+
+# Change to script directory
+cd "$(dirname "$0")"
+
+# Load environment variables
+if [ -f .env.local ]; then
+    source .env.local
+fi
+
+# Export Databricks variables if they exist
+if [ ! -z "$DATABRICKS_HOST" ]; then
+    export DATABRICKS_HOST
+fi
+if [ ! -z "$DATABRICKS_TOKEN" ]; then
+    export DATABRICKS_TOKEN
+fi
+
+# Run the unified CLI with uv
+exec uv run python cli.py "$@"

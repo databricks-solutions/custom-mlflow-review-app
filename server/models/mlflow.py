@@ -85,7 +85,9 @@ class LogExpectationRequest(BaseModel):
   """Request to log expectation on a trace."""
 
   expectation_key: str
-  expectation_value: Union[str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]]
+  expectation_value: Union[
+    str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]
+  ]
   expectation_comment: Optional[str] = None
 
 

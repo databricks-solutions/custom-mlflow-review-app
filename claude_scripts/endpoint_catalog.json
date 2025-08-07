@@ -1,0 +1,2965 @@
+{
+  "total_endpoints": 30,
+  "categories": {
+    "LOW_LATENCY": 2,
+    "MEDIUM_LATENCY": 27,
+    "HIGH_LATENCY": 1
+  },
+  "endpoints": [
+    {
+      "path": "/api/config/",
+      "method": "GET",
+      "summary": "Get Config",
+      "description": "Get application configuration.\n\nReturns:\n    Dictionary containing public configuration values",
+      "tags": [
+        "api",
+        "Core",
+        "Configuration"
+      ],
+      "parameters": [],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Response Get Config Api Config  Get"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "LOW_LATENCY",
+      "complexity": "LOW"
+    },
+    {
+      "path": "/api/config/experiment-id",
+      "method": "GET",
+      "summary": "Get Experiment Id",
+      "description": "Get the primary experiment ID.\n\nReturns:\n    Dictionary containing the experiment ID",
+      "tags": [
+        "api",
+        "Core",
+        "Configuration"
+      ],
+      "parameters": [],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object",
+                "title": "Response Get Experiment Id Api Config Experiment Id Get"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "LOW"
+    },
+    {
+      "path": "/api/user/me",
+      "method": "GET",
+      "summary": "Get Current User",
+      "description": "Get current user information from Databricks.",
+      "tags": [
+        "api",
+        "Core",
+        "User"
+      ],
+      "parameters": [],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInfo"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "LOW"
+    },
+    {
+      "path": "/api/user/me/workspace",
+      "method": "GET",
+      "summary": "Get User Workspace Info",
+      "description": "Get user information along with workspace details.",
+      "tags": [
+        "api",
+        "Core",
+        "User"
+      ],
+      "parameters": [],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserWorkspaceInfo"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "LOW"
+    },
+    {
+      "path": "/api/mlflow/search-traces",
+      "method": "POST",
+      "summary": "Search Traces",
+      "description": "Search for traces in MLflow experiments.\n\nUses MLflow SDK since there's no direct API endpoint.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/SearchTracesRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchTracesResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "HIGH_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/experiments/{experiment_id}",
+      "method": "GET",
+      "summary": "Get Experiment",
+      "description": "Get experiment details by ID.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [
+        {
+          "name": "experiment_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetExperimentResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/runs/{run_id}",
+      "method": "GET",
+      "summary": "Get Run",
+      "description": "Get run details by ID.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [
+        {
+          "name": "run_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Get Run Api Mlflow Runs  Run Id  Get"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/runs/create",
+      "method": "POST",
+      "summary": "Create Run",
+      "description": "Create a new MLflow run.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/CreateRunRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Response Create Run Api Mlflow Runs Create Post"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/runs/update",
+      "method": "POST",
+      "summary": "Update Run",
+      "description": "Update an MLflow run.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/UpdateRunRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object",
+                "title": "Response Update Run Api Mlflow Runs Update Post"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/runs/search",
+      "method": "POST",
+      "summary": "Search Runs",
+      "description": "Search for runs in experiments.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/SearchRunsRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRunsResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/traces/link-to-run",
+      "method": "POST",
+      "summary": "Link Traces To Run",
+      "description": "Link traces to an MLflow run.\n\nNote: For labeling sessions, use the combined endpoint at:\nPOST /api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/link-traces\n\nThis endpoint only handles MLflow trace linking, not labeling session item creation.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/LinkTracesToRunRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkTracesResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/traces/{trace_id}",
+      "method": "GET",
+      "summary": "Get Trace",
+      "description": "Get trace information by ID.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [
+        {
+          "name": "trace_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Trace"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/traces/{trace_id}/data",
+      "method": "GET",
+      "summary": "Get Trace Data",
+      "description": "Get trace data (spans) by trace ID.",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [
+        {
+          "name": "trace_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Get Trace Data Api Mlflow Traces  Trace Id  Data Get"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/mlflow/traces/{trace_id}/metadata",
+      "method": "GET",
+      "summary": "Get Trace Metadata",
+      "description": "Get trace metadata (info and spans without heavy inputs/outputs).",
+      "tags": [
+        "api",
+        "MLflow",
+        "MLflow"
+      ],
+      "parameters": [
+        {
+          "name": "trace_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Get Trace Metadata Api Mlflow Traces  Trace Id  Metadata Get"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps",
+      "method": "GET",
+      "summary": "List Review Apps",
+      "description": "List review apps with optional filtering.\n\nCommon filter: experiment_id=2178582188830602",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Review Apps"
+      ],
+      "parameters": [
+        {
+          "name": "filter",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": "Filter string (e.g., experiment_id=123)"
+        },
+        {
+          "name": "page_size",
+          "location": "query",
+          "required": false,
+          "type": "integer",
+          "description": ""
+        },
+        {
+          "name": "page_token",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListReviewAppsResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps",
+      "method": "POST",
+      "summary": "Create Review App",
+      "description": "Create a new review app for an experiment.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Review Apps"
+      ],
+      "parameters": [],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ReviewApp-Input"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewApp-Output"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}",
+      "method": "GET",
+      "summary": "Get Review App",
+      "description": "Get a specific review app by ID.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Review Apps"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewApp-Output"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}",
+      "method": "PATCH",
+      "summary": "Update Review App",
+      "description": "Update a review app.\n\nExample update_mask: \"agents,labeling_schemas\"",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Review Apps"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "update_mask",
+          "location": "query",
+          "required": true,
+          "type": "string",
+          "description": "Comma-separated list of fields to update"
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/ReviewApp-Input"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewApp-Output"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions",
+      "method": "GET",
+      "summary": "List Labeling Sessions",
+      "description": "List labeling sessions for a review app.\n\nCommon filters:\n- state=IN_PROGRESS\n- assigned_users=user@example.com",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "filter",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": "Filter string"
+        },
+        {
+          "name": "page_size",
+          "location": "query",
+          "required": false,
+          "type": "integer",
+          "description": ""
+        },
+        {
+          "name": "page_token",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListLabelingSessionsResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions",
+      "method": "POST",
+      "summary": "Create Labeling Session",
+      "description": "Create a new labeling session.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/LabelingSession"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelingSession"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+      "method": "GET",
+      "summary": "Get Labeling Session",
+      "description": "Get a specific labeling session.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelingSession"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+      "method": "PATCH",
+      "summary": "Update Labeling Session",
+      "description": "Update a labeling session.\n\nExample update_mask: \"name,assigned_users,labeling_schemas\"",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "update_mask",
+          "location": "query",
+          "required": true,
+          "type": "string",
+          "description": "Comma-separated list of fields to update"
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/LabelingSession"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelingSession"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+      "method": "DELETE",
+      "summary": "Delete Labeling Session",
+      "description": "Delete a labeling session.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Delete Labeling Session Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Delete"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "MEDIUM"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/link-traces",
+      "method": "POST",
+      "summary": "Link Traces To Session",
+      "description": "Link traces to a labeling session.\n\nThis endpoint combines two operations:\n1. Links traces to the MLflow run associated with the labeling session\n2. Creates labeling items for the traces in the session\n\nThis ensures traces are properly linked for both MLflow tracking and labeling workflows.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Sessions"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/LinkTracesToSessionRequest"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkTracesToSessionResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items",
+      "method": "GET",
+      "summary": "List Items",
+      "description": "List items in a labeling session.\n\nCommon filters:\n- state=PENDING\n- state=IN_PROGRESS\n- state=COMPLETED",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Items"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "filter",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": "Filter string (e.g., state=PENDING)"
+        },
+        {
+          "name": "page_size",
+          "location": "query",
+          "required": false,
+          "type": "integer",
+          "description": ""
+        },
+        {
+          "name": "page_token",
+          "location": "query",
+          "required": false,
+          "type": "",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListItemsResponse"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/batchCreate",
+      "method": "POST",
+      "summary": "Batch Create Items",
+      "description": "Batch create items by proxying to Databricks API.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Items"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "type": "object",
+          "additionalProperties": true,
+          "title": "Request"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Batch Create Items Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Items Batchcreate Post"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+      "method": "GET",
+      "summary": "Get Item",
+      "description": "Get a specific item.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Items"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "item_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Item-Output"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+      "method": "PATCH",
+      "summary": "Update Item",
+      "description": "Update an item.\n\nExample update_mask: \"state,chat_rounds\"",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Items"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "item_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "update_mask",
+          "location": "query",
+          "required": true,
+          "type": "string",
+          "description": "Comma-separated list of fields to update"
+        }
+      ],
+      "request_body": {
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Item-Input"
+        },
+        "description": ""
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Item-Output"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+      "method": "DELETE",
+      "summary": "Delete Item",
+      "description": "Delete/unlink an item from the labeling session.",
+      "tags": [
+        "api",
+        "Review Apps",
+        "Labeling Items"
+      ],
+      "parameters": [
+        {
+          "name": "review_app_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "labeling_session_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        },
+        {
+          "name": "item_id",
+          "location": "path",
+          "required": true,
+          "type": "string",
+          "description": ""
+        }
+      ],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Delete Item Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Items  Item Id  Delete"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      },
+      "performance_category": "MEDIUM_LATENCY",
+      "complexity": "HIGH"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "summary": "Health",
+      "description": "Health check endpoint.",
+      "tags": [],
+      "parameters": [],
+      "request_body": {},
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        }
+      },
+      "performance_category": "LOW_LATENCY",
+      "complexity": "LOW"
+    }
+  ],
+  "performance_test_groups": {
+    "basic_health": [
+      {
+        "path": "/api/config/",
+        "method": "GET",
+        "summary": "Get Config",
+        "description": "Get application configuration.\n\nReturns:\n    Dictionary containing public configuration values",
+        "tags": [
+          "api",
+          "Core",
+          "Configuration"
+        ],
+        "parameters": [],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Config Api Config  Get"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "LOW_LATENCY",
+        "complexity": "LOW"
+      },
+      {
+        "path": "/health",
+        "method": "GET",
+        "summary": "Health",
+        "description": "Health check endpoint.",
+        "tags": [],
+        "parameters": [],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "performance_category": "LOW_LATENCY",
+        "complexity": "LOW"
+      }
+    ],
+    "high_latency_read": [],
+    "medium_latency_read": [
+      {
+        "path": "/api/config/experiment-id",
+        "method": "GET",
+        "summary": "Get Experiment Id",
+        "description": "Get the primary experiment ID.\n\nReturns:\n    Dictionary containing the experiment ID",
+        "tags": [
+          "api",
+          "Core",
+          "Configuration"
+        ],
+        "parameters": [],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "object",
+                  "title": "Response Get Experiment Id Api Config Experiment Id Get"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "LOW"
+      },
+      {
+        "path": "/api/user/me",
+        "method": "GET",
+        "summary": "Get Current User",
+        "description": "Get current user information from Databricks.",
+        "tags": [
+          "api",
+          "Core",
+          "User"
+        ],
+        "parameters": [],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "LOW"
+      },
+      {
+        "path": "/api/user/me/workspace",
+        "method": "GET",
+        "summary": "Get User Workspace Info",
+        "description": "Get user information along with workspace details.",
+        "tags": [
+          "api",
+          "Core",
+          "User"
+        ],
+        "parameters": [],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserWorkspaceInfo"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "LOW"
+      },
+      {
+        "path": "/api/mlflow/experiments/{experiment_id}",
+        "method": "GET",
+        "summary": "Get Experiment",
+        "description": "Get experiment details by ID.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [
+          {
+            "name": "experiment_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExperimentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/runs/{run_id}",
+        "method": "GET",
+        "summary": "Get Run",
+        "description": "Get run details by ID.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Run Api Mlflow Runs  Run Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/traces/{trace_id}",
+        "method": "GET",
+        "summary": "Get Trace",
+        "description": "Get trace information by ID.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [
+          {
+            "name": "trace_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Trace"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/traces/{trace_id}/data",
+        "method": "GET",
+        "summary": "Get Trace Data",
+        "description": "Get trace data (spans) by trace ID.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [
+          {
+            "name": "trace_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Trace Data Api Mlflow Traces  Trace Id  Data Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/traces/{trace_id}/metadata",
+        "method": "GET",
+        "summary": "Get Trace Metadata",
+        "description": "Get trace metadata (info and spans without heavy inputs/outputs).",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [
+          {
+            "name": "trace_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Trace Metadata Api Mlflow Traces  Trace Id  Metadata Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps",
+        "method": "GET",
+        "summary": "List Review Apps",
+        "description": "List review apps with optional filtering.\n\nCommon filter: experiment_id=2178582188830602",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Review Apps"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": "Filter string (e.g., experiment_id=123)"
+          },
+          {
+            "name": "page_size",
+            "location": "query",
+            "required": false,
+            "type": "integer",
+            "description": ""
+          },
+          {
+            "name": "page_token",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListReviewAppsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}",
+        "method": "GET",
+        "summary": "Get Review App",
+        "description": "Get a specific review app by ID.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Review Apps"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewApp-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+        "method": "GET",
+        "summary": "Get Labeling Session",
+        "description": "Get a specific labeling session.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelingSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      }
+    ],
+    "write_operations": [
+      {
+        "path": "/api/mlflow/search-traces",
+        "method": "POST",
+        "summary": "Search Traces",
+        "description": "Search for traces in MLflow experiments.\n\nUses MLflow SDK since there's no direct API endpoint.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/SearchTracesRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchTracesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "HIGH_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/runs/create",
+        "method": "POST",
+        "summary": "Create Run",
+        "description": "Create a new MLflow run.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/CreateRunRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Run Api Mlflow Runs Create Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/runs/update",
+        "method": "POST",
+        "summary": "Update Run",
+        "description": "Update an MLflow run.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/UpdateRunRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Update Run Api Mlflow Runs Update Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/runs/search",
+        "method": "POST",
+        "summary": "Search Runs",
+        "description": "Search for runs in experiments.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/SearchRunsRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchRunsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/mlflow/traces/link-to-run",
+        "method": "POST",
+        "summary": "Link Traces To Run",
+        "description": "Link traces to an MLflow run.\n\nNote: For labeling sessions, use the combined endpoint at:\nPOST /api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/link-traces\n\nThis endpoint only handles MLflow trace linking, not labeling session item creation.",
+        "tags": [
+          "api",
+          "MLflow",
+          "MLflow"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/LinkTracesToRunRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkTracesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps",
+        "method": "POST",
+        "summary": "Create Review App",
+        "description": "Create a new review app for an experiment.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Review Apps"
+        ],
+        "parameters": [],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ReviewApp-Input"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewApp-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}",
+        "method": "PATCH",
+        "summary": "Update Review App",
+        "description": "Update a review app.\n\nExample update_mask: \"agents,labeling_schemas\"",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Review Apps"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "update_mask",
+            "location": "query",
+            "required": true,
+            "type": "string",
+            "description": "Comma-separated list of fields to update"
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ReviewApp-Input"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewApp-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions",
+        "method": "POST",
+        "summary": "Create Labeling Session",
+        "description": "Create a new labeling session.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/LabelingSession"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelingSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+        "method": "PATCH",
+        "summary": "Update Labeling Session",
+        "description": "Update a labeling session.\n\nExample update_mask: \"name,assigned_users,labeling_schemas\"",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "update_mask",
+            "location": "query",
+            "required": true,
+            "type": "string",
+            "description": "Comma-separated list of fields to update"
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/LabelingSession"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelingSession"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}",
+        "method": "DELETE",
+        "summary": "Delete Labeling Session",
+        "description": "Delete a labeling session.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Labeling Session Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "MEDIUM"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/link-traces",
+        "method": "POST",
+        "summary": "Link Traces To Session",
+        "description": "Link traces to a labeling session.\n\nThis endpoint combines two operations:\n1. Links traces to the MLflow run associated with the labeling session\n2. Creates labeling items for the traces in the session\n\nThis ensures traces are properly linked for both MLflow tracking and labeling workflows.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/LinkTracesToSessionRequest"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkTracesToSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/batchCreate",
+        "method": "POST",
+        "summary": "Batch Create Items",
+        "description": "Batch create items by proxying to Databricks API.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Items"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "type": "object",
+            "additionalProperties": true,
+            "title": "Request"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Batch Create Items Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Items Batchcreate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+        "method": "PATCH",
+        "summary": "Update Item",
+        "description": "Update an item.\n\nExample update_mask: \"state,chat_rounds\"",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Items"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "item_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "update_mask",
+            "location": "query",
+            "required": true,
+            "type": "string",
+            "description": "Comma-separated list of fields to update"
+          }
+        ],
+        "request_body": {
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Item-Input"
+          },
+          "description": ""
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+        "method": "DELETE",
+        "summary": "Delete Item",
+        "description": "Delete/unlink an item from the labeling session.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Items"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "item_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Item Api Review Apps  Review App Id  Labeling Sessions  Labeling Session Id  Items  Item Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      }
+    ],
+    "complex_operations": [
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions",
+        "method": "GET",
+        "summary": "List Labeling Sessions",
+        "description": "List labeling sessions for a review app.\n\nCommon filters:\n- state=IN_PROGRESS\n- assigned_users=user@example.com",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Sessions"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "filter",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": "Filter string"
+          },
+          {
+            "name": "page_size",
+            "location": "query",
+            "required": false,
+            "type": "integer",
+            "description": ""
+          },
+          {
+            "name": "page_token",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListLabelingSessionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items",
+        "method": "GET",
+        "summary": "List Items",
+        "description": "List items in a labeling session.\n\nCommon filters:\n- state=PENDING\n- state=IN_PROGRESS\n- state=COMPLETED",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Items"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "filter",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": "Filter string (e.g., state=PENDING)"
+          },
+          {
+            "name": "page_size",
+            "location": "query",
+            "required": false,
+            "type": "integer",
+            "description": ""
+          },
+          {
+            "name": "page_token",
+            "location": "query",
+            "required": false,
+            "type": "",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListItemsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      },
+      {
+        "path": "/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}",
+        "method": "GET",
+        "summary": "Get Item",
+        "description": "Get a specific item.",
+        "tags": [
+          "api",
+          "Review Apps",
+          "Labeling Items"
+        ],
+        "parameters": [
+          {
+            "name": "review_app_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "labeling_session_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          },
+          {
+            "name": "item_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "description": ""
+          }
+        ],
+        "request_body": {},
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Item-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "performance_category": "MEDIUM_LATENCY",
+        "complexity": "HIGH"
+      }
+    ]
+  }
+}

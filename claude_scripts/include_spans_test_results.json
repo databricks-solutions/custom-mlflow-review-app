@@ -1,0 +1,35 @@
+[
+  {
+    "test": "No spans (include_spans=False)",
+    "duration_ms": 1930.0,
+    "success": true,
+    "status_code": 200,
+    "response_size_bytes": 10451,
+    "traces_count": 5,
+    "traces_with_spans": 0,
+    "total_spans": 0,
+    "avg_spans_per_trace": 0.0
+  },
+  {
+    "test": "With spans (include_spans=True)",
+    "duration_ms": 3971.6,
+    "success": true,
+    "status_code": 200,
+    "response_size_bytes": 7763738,
+    "traces_count": 5,
+    "traces_with_spans": 5,
+    "total_spans": 285,
+    "avg_spans_per_trace": 57.0
+  },
+  {
+    "test": "Default (no include_spans parameter)",
+    "duration_ms": 1901.8,
+    "success": true,
+    "status_code": 200,
+    "response_size_bytes": 10451,
+    "traces_count": 5,
+    "traces_with_spans": 0,
+    "total_spans": 0,
+    "avg_spans_per_trace": 0.0
+  }
+]

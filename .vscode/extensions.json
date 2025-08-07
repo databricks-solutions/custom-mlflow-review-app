@@ -1,0 +1,30 @@
+{
+  "recommendations": [
+    "charliermarsh.ruff",
+    "esbenp.prettier-vscode",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-toolsai.jupyter",
+    "ms-toolsai.vscode-jupyter-cell-tags",
+    "ms-toolsai.vscode-jupyter-slideshow",
+    "ms-toolsai.jupyter-keymap",
+    "ms-toolsai.jupyter-renderers",
+    "ms-vscode.vscode-typescript-next",
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    "ms-vscode.vscode-json",
+    "ms-vscode.hexeditor",
+    "ms-vscode.live-server",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint"
+  ]
+}

@@ -1,0 +1,626 @@
+import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  BookOpen,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+  FileText,
+  Tag,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
+  Brain,
+  ClipboardList,
+  Save,
+  Check,
+  ExternalLink,
+} from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CoreService, ReviewAppsService } from "@/fastapi_client";
+import { SchemaPreview } from "./SchemaPreview";
+import { toast } from "sonner";
+import { useCurrentReviewApp } from "@/hooks/api-hooks";
+
+interface Schema {
+  key: string;
+  name: string;
+  label_type: "FEEDBACK" | "EXPECTATION" | "NOT_SPECIFIED";
+  schema_type: string;
+  description: string;
+  rationale?: string;
+  priority_score?: number;
+  grounded_in_traces?: string[];
+  title?: string;
+  instruction?: string;
+  min?: number;
+  max?: number;
+  options?: string[];
+  max_length?: number;
+  enable_comment?: boolean;
+}
+
+interface Issue {
+  issue_type: string;
+  severity: "critical" | "high" | "medium" | "low";
+  title: string;
+  description: string;
+  affected_traces: number;
+  example_traces?: string[];
+  problem_snippets?: string[];
+}
+
+interface ExperimentAnalysisProps {
+  experimentId: string;
+  experimentSummary?: any;
+  isLoadingSummary: boolean;
+}
+
+export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
+  experimentId,
+  experimentSummary,
+  isLoadingSummary,
+}) => {
+  const [expandedIssues, setExpandedIssues] = useState<Set<number>>(new Set());
+  const [expandedSchemas, setExpandedSchemas] = useState<Set<number>>(new Set());
+  const [savedSchemas, setSavedSchemas] = useState<Set<string>>(new Set());
+  const [savingSchemas, setSavingSchemas] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
+  
+  // Get current review app to check existing schemas
+  const { data: reviewApp } = useCurrentReviewApp();
+
+  // Mutation to trigger analysis
+  const triggerAnalysisMutation = useMutation({
+    mutationFn: async () => {
+      return await CoreService.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
+        experiment_id: experimentId,
+        focus: "comprehensive",
+        trace_sample_size: 50,
+        model_endpoint: "databricks-claude-sonnet-4",
+      });
+    },
+    onSuccess: () => {
+      // Start polling for status
+      setTimeout(() => checkAnalysisStatus(), 2000);
+    },
+  });
+
+  // Query for analysis status
+  const { data: analysisStatus, refetch: refetchStatus } = useQuery({
+    queryKey: ["analysis-status", experimentId],
+    queryFn: async () => {
+      return await CoreService.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId);
+    },
+    enabled: false, // Only fetch when explicitly called
+  });
+
+  const checkAnalysisStatus = async () => {
+    const result = await refetchStatus();
+    if (result.data?.status === "running" || result.data?.status === "pending") {
+      // Continue polling
+      setTimeout(() => checkAnalysisStatus(), 3000);
+    } else if (result.data?.status === "completed") {
+      // Refresh the summary
+      queryClient.invalidateQueries({ queryKey: ["experiment-summary", experimentId] });
+    }
+  };
+
+  const toggleIssue = (index: number) => {
+    const newExpanded = new Set(expandedIssues);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedIssues(newExpanded);
+  };
+
+  const toggleSchema = (index: number) => {
+    const newExpanded = new Set(expandedSchemas);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedSchemas(newExpanded);
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return "destructive";
+      case "high":
+        return "destructive";
+      case "medium":
+        return "default";
+      case "low":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case "critical":
+        return <XCircle className="h-4 w-4" />;
+      case "high":
+        return <AlertCircle className="h-4 w-4" />;
+      case "medium":
+        return <AlertTriangle className="h-4 w-4" />;
+      case "low":
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getLabelTypeColor = (labelType: string) => {
+    switch (labelType) {
+      case "FEEDBACK":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "EXPECTATION":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
+    }
+  };
+
+  if (isLoadingSummary) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-24" />
+      </div>
+    );
+  }
+
+  if (!experimentSummary?.has_summary) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            No Analysis Available
+          </CardTitle>
+          <CardDescription>
+            {experimentSummary?.message ||
+              "No analysis found. Click 'Run AI Analysis' to generate comprehensive quality analysis."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => triggerAnalysisMutation.mutate()}
+            disabled={triggerAnalysisMutation.isPending || analysisStatus?.status === "running"}
+            className="gap-2"
+          >
+            {triggerAnalysisMutation.isPending || analysisStatus?.status === "running" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {analysisStatus?.status === "running" ? "Analysis Running..." : "Starting Analysis..."}
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4" />
+                Run AI Analysis
+              </>
+            )}
+          </Button>
+          {analysisStatus?.message && (
+            <p className="mt-2 text-sm text-muted-foreground">{analysisStatus.message}</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const schemas = experimentSummary?.schemas_with_label_types || [];
+  const issues = experimentSummary?.detected_issues || [];
+  const metadata = experimentSummary?.metadata || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Analysis Metadata */}
+      {metadata.analysis_timestamp && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Analysis Metadata
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => triggerAnalysisMutation.mutate()}
+                disabled={triggerAnalysisMutation.isPending || analysisStatus?.status === "running"}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Re-run Analysis
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Timestamp:</span>
+                <p className="font-medium">{new Date(metadata.analysis_timestamp).toLocaleString()}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Model:</span>
+                <p className="font-medium">{metadata.model_endpoint}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Traces Analyzed:</span>
+                <p className="font-medium">{metadata.traces_analyzed || 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Tabs defaultValue="report" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="report">Analysis Report</TabsTrigger>
+          <TabsTrigger value="issues" className="gap-2">
+            Quality Issues
+            {issues.length > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {issues.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="schemas" className="gap-2">
+            Suggested Schemas
+            {schemas.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {schemas.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Analysis Report Tab */}
+        <TabsContent value="report">
+          <Card>
+            <CardContent className="p-6">
+              <div className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 dark:prose-p:text-gray-300">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-3">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-4 mb-2">
+                        {children}
+                      </h3>
+                    ),
+                  }}
+                >
+                  {experimentSummary.content}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Quality Issues Tab */}
+        <TabsContent value="issues">
+          <div className="space-y-4">
+            {issues.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No quality issues detected in this experiment.
+                </CardContent>
+              </Card>
+            ) : (
+              issues.map((issue: Issue, index: number) => (
+                <Card key={index}>
+                  <CardHeader
+                    className="cursor-pointer"
+                    onClick={() => toggleIssue(index)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {getSeverityIcon(issue.severity)}
+                        <div>
+                          <CardTitle className="text-lg">{issue.title}</CardTitle>
+                          <CardDescription className="mt-1">{issue.description}</CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getSeverityColor(issue.severity)}>{issue.severity}</Badge>
+                        <Badge variant="outline">{issue.affected_traces} traces</Badge>
+                        {expandedIssues.has(index) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {expandedIssues.has(index) && (
+                    <CardContent>
+                      <div className="space-y-4">
+                        {issue.problem_snippets && issue.problem_snippets.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Problem Examples:</h4>
+                            <div className="space-y-2">
+                              {issue.problem_snippets.map((snippet, i) => (
+                                <Alert key={i}>
+                                  <AlertDescription className="font-mono text-sm">
+                                    {snippet}
+                                  </AlertDescription>
+                                </Alert>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {issue.example_traces && issue.example_traces.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Affected Traces ({issue.example_traces.length} shown):</h4>
+                            <div className="border rounded-lg overflow-hidden">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-12">#</TableHead>
+                                    <TableHead>Trace ID</TableHead>
+                                    <TableHead className="w-24">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {issue.example_traces.map((traceId, i) => (
+                                    <TableRow key={i}>
+                                      <TableCell className="font-mono text-xs text-muted-foreground">
+                                        {i + 1}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-sm">
+                                        {traceId}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2"
+                                          onClick={() => {
+                                            // Open trace in new tab
+                                            window.open(
+                                              `https://eng-ml-inference-team-us-west-2.cloud.databricks.com/ml/experiments/${experimentId}/traces?requestId=${traceId}`,
+                                              '_blank'
+                                            );
+                                          }}
+                                        >
+                                          <ExternalLink className="h-3 w-3" />
+                                        </Button>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                            {issue.affected_traces > issue.example_traces.length && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                ... and {issue.affected_traces - issue.example_traces.length} more traces
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Suggested Schemas Tab */}
+        <TabsContent value="schemas">
+          <div className="space-y-4">
+            {schemas.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No evaluation schemas recommended.
+                </CardContent>
+              </Card>
+            ) : (
+              schemas.map((schema: Schema, index: number) => {
+                const isSchemaAlreadySaved = reviewApp?.labeling_schemas?.some(
+                  (existingSchema: any) => existingSchema.name === schema.key
+                ) || savedSchemas.has(schema.key);
+                const isSaving = savingSchemas.has(schema.key);
+                
+                // Transform schema to match the format expected by SchemaPreview
+                const previewSchema = {
+                  ...schema,
+                  title: schema.name,
+                  instruction: schema.description,
+                  enable_comment: true,
+                  // Parse numerical schemas
+                  ...(schema.schema_type === "numerical" && {
+                    min: 1,
+                    max: 5,
+                  }),
+                  // Parse categorical schemas (e.g., pass/fail)
+                  ...(schema.schema_type === "categorical" && {
+                    options: ["Yes", "No", "Not Applicable"],
+                  }),
+                  // Parse text schemas
+                  ...(schema.schema_type === "text" && {
+                    max_length: 500,
+                  }),
+                };
+                
+                const handleSaveSchema = async () => {
+                  setSavingSchemas(new Set([...savingSchemas, schema.key]));
+                  try {
+                    // Transform schema to review app format
+                    const newSchema = {
+                      name: schema.key,
+                      title: schema.name,
+                      instruction: schema.description,
+                      type: schema.label_type,
+                      enable_comment: true,
+                      ...(schema.schema_type === "numerical" && {
+                        numeric: { min_value: 1, max_value: 5 },
+                      }),
+                      ...(schema.schema_type === "categorical" && {
+                        categorical: { options: ["Yes", "No", "Not Applicable"] },
+                      }),
+                      ...(schema.schema_type === "text" && {
+                        text: { max_length: 500 },
+                      }),
+                    };
+                    
+                    // Update review app with new schema
+                    if (reviewApp?.review_app_id) {
+                      const updatedSchemas = [...(reviewApp.labeling_schemas || []), newSchema];
+                      await ReviewAppsService.updateReviewAppApiReviewAppsReviewAppIdPatch(
+                        reviewApp.review_app_id,
+                        {
+                          labeling_schemas: updatedSchemas,
+                        },
+                        "labeling_schemas"
+                      );
+                      
+                      setSavedSchemas(new Set([...savedSchemas, schema.key]));
+                      toast.success(`Schema "${schema.name}" saved successfully!`);
+                      queryClient.invalidateQueries({ queryKey: ["reviewApps"] });
+                    }
+                  } catch (error) {
+                    console.error("Failed to save schema:", error);
+                    toast.error(`Failed to save schema: ${error}`);
+                  } finally {
+                    setSavingSchemas((prev) => {
+                      const newSet = new Set(prev);
+                      newSet.delete(schema.key);
+                      return newSet;
+                    });
+                  }
+                };
+                
+                return (
+                  <Card key={index}>
+                    <CardHeader
+                      className="cursor-pointer"
+                      onClick={() => toggleSchema(index)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <ClipboardList className="h-4 w-4" />
+                          <div>
+                            <CardTitle className="text-lg">{schema.name}</CardTitle>
+                            <CardDescription className="mt-1">{schema.description}</CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getLabelTypeColor(schema.label_type)}>
+                            {schema.label_type}
+                          </Badge>
+                          <Badge variant="outline">{schema.schema_type}</Badge>
+                          {expandedSchemas.has(index) ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    {expandedSchemas.has(index) && (
+                      <CardContent>
+                        <div className="space-y-4">
+                          {schema.rationale && (
+                            <div>
+                              <h4 className="font-medium mb-2">Rationale:</h4>
+                              <p className="text-sm text-muted-foreground">{schema.rationale}</p>
+                            </div>
+                          )}
+                          
+                          {/* SME Preview Section - Always Visible */}
+                          <div className="pt-4 border-t">
+                            <h4 className="font-medium mb-3">SME Preview</h4>
+                            <div className="bg-muted/30 p-4 rounded-lg">
+                              <SchemaPreview
+                                schema={previewSchema}
+                                disabled={false}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="pt-4 border-t flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Tag className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Key:</span>
+                              <code className="px-2 py-1 bg-muted rounded">{schema.key}</code>
+                            </div>
+                            
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveSchema();
+                              }}
+                              disabled={isSchemaAlreadySaved || isSaving || !reviewApp?.review_app_id}
+                              size="sm"
+                            >
+                              {isSaving ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : isSchemaAlreadySaved ? (
+                                <>
+                                  <Check className="h-4 w-4 mr-2" />
+                                  Saved
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Save Schema
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
