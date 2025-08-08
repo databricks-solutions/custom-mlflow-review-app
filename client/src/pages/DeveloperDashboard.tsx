@@ -75,6 +75,7 @@ import {
   useLabelingItems,
   useCurrentUser,
   useSearchTraces,
+  useUpdateReviewApp,
   queryKeys,
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
@@ -140,6 +141,7 @@ export function DeveloperDashboard() {
 
   // Get current review app
   const { data: reviewApp, isLoading: isLoadingReviewApps } = useCurrentReviewApp();
+  const updateReviewAppMutation = useUpdateReviewApp();
 
   // Get labeling sessions
   const { data: sessionsData, isLoading: isLoadingSessions } = useLabelingSessions(
@@ -753,8 +755,41 @@ export function DeveloperDashboard() {
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Label Schemas</h2>
             <Button
-              onClick={() => {
-                toast.info("Use the CLI to create schemas: ./mlflow-cli run create_labeling_schemas");
+              onClick={async () => {
+                // Check if new_assessment schema already exists
+                if (reviewApp?.labeling_schemas?.find(s => s.name === "new_assessment")) {
+                  toast.info("Schema 'new_assessment' already exists");
+                  return;
+                }
+                
+                // Create new pass/fail schema
+                const newSchema = {
+                  name: "new_assessment",
+                  title: "New Assessment",
+                  instruction: "Does this pass or fail?",
+                  type: "FEEDBACK",
+                  categorical: {
+                    options: ["Pass", "Fail"]
+                  },
+                  enable_comment: true
+                };
+                
+                // Add to existing schemas
+                const updatedSchemas = [...(reviewApp?.labeling_schemas || []), newSchema];
+                
+                try {
+                  await updateReviewAppMutation.mutateAsync({
+                    reviewAppId: reviewApp?.review_app_id || "",
+                    reviewApp: {
+                      labeling_schemas: updatedSchemas
+                    },
+                    updateMask: "labeling_schemas"
+                  });
+                  toast.success("Created new assessment schema");
+                } catch (error) {
+                  toast.error("Failed to create schema");
+                  console.error(error);
+                }
               }}
             >
               <Plus className="h-4 w-4 mr-2" />
