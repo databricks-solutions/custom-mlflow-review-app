@@ -6,7 +6,6 @@
  * Location information for a trace.
  */
 export type TraceLocation = {
-    experiment_id: string;
-    run_id: string;
+  experiment_id: string;
+  run_id: string;
 };
-

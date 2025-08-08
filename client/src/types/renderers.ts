@@ -70,19 +70,22 @@ export interface ItemRendererProps {
   traceData: TraceData;
   reviewApp: ReviewApp;
   session: LabelingSession;
-  
+
   // Navigation
   currentIndex: number;
   totalItems: number;
-  
+
   // State management
   assessments: Map<string, Assessment>;
   onAssessmentsChange: (assessments: Map<string, Assessment>) => void;
-  
+
   // Actions - updated to include auto-save capability
-  onUpdateItem: (itemId: string, updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }) => Promise<any>;
+  onUpdateItem: (
+    itemId: string,
+    updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }
+  ) => Promise<any>;
   onNavigateToIndex: (index: number) => void;
-  
+
   // UI state
   isLoading?: boolean;
   isSubmitting?: boolean;

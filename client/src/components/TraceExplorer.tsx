@@ -74,11 +74,7 @@ export const TraceExplorer: React.FC<TraceExplorerProps> = ({
   experimentId,
   databricksHost,
 }) => {
-  const {
-    data: traceData,
-    isLoading,
-    error,
-  } = useTrace(traceId, !!traceId);
+  const { data: traceData, isLoading, error } = useTrace(traceId, !!traceId);
 
   // Construct MLflow trace URL
   const buildMLflowTraceUrl = () => {
@@ -107,7 +103,7 @@ export const TraceExplorer: React.FC<TraceExplorerProps> = ({
           <p className="text-sm text-muted-foreground mt-1">Trace ID: {traceId}</p>
           {error && (
             <p className="text-xs text-muted-foreground mt-2">
-              Error: {(error as any)?.message || 'Unknown error'}
+              Error: {(error as any)?.message || "Unknown error"}
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-4">
@@ -133,22 +129,22 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
   const spans = trace.data?.spans || [];
   const rootSpan = spans[0];
   const sortedSpans = [...spans].sort((a, b) => a.start_time_ms - b.start_time_ms);
-  
+
   // Filter spans for Summary view to only show TOOL and LLM spans
   const isToolOrLLMSpan = (span: SpanData): boolean => {
     const spanType = span.span_type?.toUpperCase();
     const mlflowSpanType = span.attributes?.["mlflow.spanType"]?.toUpperCase();
-    
+
     return (
-      spanType === "TOOL" || 
-      spanType === "LLM" || 
+      spanType === "TOOL" ||
+      spanType === "LLM" ||
       spanType === "CHAT" ||
-      mlflowSpanType === "TOOL" || 
+      mlflowSpanType === "TOOL" ||
       mlflowSpanType === "LLM" ||
       mlflowSpanType === "CHAT"
     );
   };
-  
+
   const filteredSpansForSummary = sortedSpans.filter(isToolOrLLMSpan);
 
   // Parse conversation from spans
@@ -180,7 +176,7 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
     const type = span.span_type?.toLowerCase() || "";
     const mlflowType = span.attributes?.["mlflow.spanType"]?.toLowerCase() || "";
     const name = span.name?.toLowerCase() || "";
-    
+
     if (type === "tool" || mlflowType === "tool" || name.includes("tool")) {
       return <Wrench className="h-4 w-4 text-red-600" />;
     } else if (
@@ -320,11 +316,9 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                       ) : (
                         <div className="prose prose-sm max-w-none dark:prose-invert">
                           <ReactMarkdown>
-                            {
-                              conversation.find(
-                                (item) => item.type === "message" && item.role === "user"
-                              )?.content || ""
-                            }
+                            {conversation.find(
+                              (item) => item.type === "message" && item.role === "user"
+                            )?.content || ""}
                           </ReactMarkdown>
                         </div>
                       )}
@@ -430,11 +424,9 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                       ) : (
                         <div className="prose prose-sm max-w-none dark:prose-invert">
                           <ReactMarkdown>
-                            {
-                              conversation.find(
-                                (item) => item.type === "message" && item.role === "assistant"
-                              )?.content || ""
-                            }
+                            {conversation.find(
+                              (item) => item.type === "message" && item.role === "assistant"
+                            )?.content || ""}
                           </ReactMarkdown>
                         </div>
                       )}
@@ -684,8 +676,8 @@ function parseConversationFromSpans(spans: SpanData[]): Array<{
 }
 
 // MLflow-style trace view component with hierarchical spans and tabbed content
-const MLflowStyleTraceView: React.FC<{ 
-  spans: SpanData[]; 
+const MLflowStyleTraceView: React.FC<{
+  spans: SpanData[];
   conversation: Array<{
     type: "message" | "tool";
     role?: string;
@@ -707,15 +699,15 @@ const MLflowStyleTraceView: React.FC<{
     const rootSpans: (SpanData & { children: SpanData[] })[] = [];
 
     // First pass: create map with children arrays
-    spans.forEach(span => {
-      const spanId = span.attributes?.['mlflow.span_id'] || `${span.name}-${span.start_time_ms}`;
+    spans.forEach((span) => {
+      const spanId = span.attributes?.["mlflow.span_id"] || `${span.name}-${span.start_time_ms}`;
       spanMap.set(spanId, { ...span, children: [] });
     });
 
     // Second pass: build hierarchy
-    spans.forEach(span => {
-      const spanId = span.attributes?.['mlflow.span_id'] || `${span.name}-${span.start_time_ms}`;
-      const parentId = span.attributes?.['mlflow.parent_id'];
+    spans.forEach((span) => {
+      const spanId = span.attributes?.["mlflow.span_id"] || `${span.name}-${span.start_time_ms}`;
+      const parentId = span.attributes?.["mlflow.parent_id"];
       const spanWithChildren = spanMap.get(spanId)!;
 
       if (parentId && spanMap.has(parentId)) {
@@ -756,7 +748,7 @@ const MLflowStyleTraceView: React.FC<{
     const type = span.span_type?.toLowerCase() || "";
     const mlflowType = span.attributes?.["mlflow.spanType"]?.toLowerCase() || "";
     const name = span.name?.toLowerCase() || "";
-    
+
     if (type === "tool" || mlflowType === "tool" || name.includes("tool")) {
       return <Wrench className="h-4 w-4 text-red-600" />;
     } else if (type === "llm" || type === "chat" || mlflowType === "llm" || mlflowType === "chat") {
@@ -766,9 +758,10 @@ const MLflowStyleTraceView: React.FC<{
   };
 
   const renderSpanItem = (span: SpanData & { children: SpanData[] }, depth: number = 0) => {
-    const spanId = span.attributes?.['mlflow.span_id'] || `${span.name}-${span.start_time_ms}`;
+    const spanId = span.attributes?.["mlflow.span_id"] || `${span.name}-${span.start_time_ms}`;
     const isExpanded = expandedSpans.has(spanId);
-    const isSelected = selectedSpan?.name === span.name && selectedSpan?.start_time_ms === span.start_time_ms;
+    const isSelected =
+      selectedSpan?.name === span.name && selectedSpan?.start_time_ms === span.start_time_ms;
     const duration = formatDuration(span.start_time_ms, span.end_time_ms);
     const hasChildren = span.children.length > 0;
 
@@ -776,7 +769,7 @@ const MLflowStyleTraceView: React.FC<{
       <div key={spanId}>
         <div
           className={`flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 cursor-pointer text-sm ${
-            isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
+            isSelected ? "bg-blue-50 border-l-2 border-l-blue-500" : ""
           }`}
           style={{ paddingLeft: `${8 + depth * 16}px` }}
           onClick={() => setSelectedSpan(span)}
@@ -803,9 +796,7 @@ const MLflowStyleTraceView: React.FC<{
           <span className="text-xs text-muted-foreground">{duration}</span>
         </div>
         {hasChildren && isExpanded && (
-          <div>
-            {span.children.map(child => renderSpanItem(child, depth + 1))}
-          </div>
+          <div>{span.children.map((child) => renderSpanItem(child, depth + 1))}</div>
         )}
       </div>
     );
@@ -813,7 +804,7 @@ const MLflowStyleTraceView: React.FC<{
 
   const getSelectedSpanData = () => {
     if (!selectedSpan) return { input: "", output: "" };
-    
+
     let input = "";
     let output = "";
 
@@ -871,7 +862,7 @@ const MLflowStyleTraceView: React.FC<{
 
         {/* Span list */}
         <div className="flex-1 overflow-auto">
-          {hierarchicalSpans.map(span => renderSpanItem(span))}
+          {hierarchicalSpans.map((span) => renderSpanItem(span))}
         </div>
       </div>
 
@@ -885,7 +876,9 @@ const MLflowStyleTraceView: React.FC<{
                 {getSpanIcon(selectedSpan)}
                 <span className="font-medium">{selectedSpan.name}</span>
                 <Badge variant="outline" className="text-xs">
-                  {selectedSpan.span_type || selectedSpan.attributes?.["mlflow.spanType"] || "UNKNOWN"}
+                  {selectedSpan.span_type ||
+                    selectedSpan.attributes?.["mlflow.spanType"] ||
+                    "UNKNOWN"}
                 </Badge>
               </div>
               <div className="text-xs text-muted-foreground">
@@ -894,7 +887,11 @@ const MLflowStyleTraceView: React.FC<{
             </div>
 
             {/* Content tabs */}
-            <Tabs value={activeContentTab} onValueChange={setActiveContentTab} className="flex-1 flex flex-col overflow-hidden">
+            <Tabs
+              value={activeContentTab}
+              onValueChange={setActiveContentTab}
+              className="flex-1 flex flex-col overflow-hidden"
+            >
               <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
                 <TabsTrigger value="chat">Chat</TabsTrigger>
                 <TabsTrigger value="inputs">Inputs/Outputs</TabsTrigger>
@@ -974,7 +971,9 @@ const MLflowStyleTraceView: React.FC<{
                           {key}
                         </div>
                         <div className="font-mono text-xs break-all">
-                          {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          {typeof value === "object"
+                            ? JSON.stringify(value, null, 2)
+                            : String(value)}
                         </div>
                       </div>
                     ))
@@ -1056,7 +1055,7 @@ const TraceFlowView: React.FC<{ spans: SpanData[] }> = ({ spans }) => {
     const type = span.span_type?.toLowerCase() || "";
     const mlflowType = span.attributes?.["mlflow.spanType"]?.toLowerCase() || "";
     const name = span.name?.toLowerCase() || "";
-    
+
     if (type === "tool" || mlflowType === "tool" || name.includes("tool")) {
       return <Wrench className="h-4 w-4 text-red-600" />;
     } else if (type === "llm" || type === "chat" || mlflowType === "llm" || mlflowType === "chat") {

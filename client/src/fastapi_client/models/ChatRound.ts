@@ -6,9 +6,8 @@
  * A round of chat interaction in labeling.
  */
 export type ChatRound = {
-    trace_id?: (string | null);
-    request?: (Record<string, any> | null);
-    response?: (Record<string, any> | null);
-    labels?: (Record<string, any> | null);
+  trace_id?: string | null;
+  request?: Record<string, any> | null;
+  response?: Record<string, any> | null;
+  labels?: Record<string, any> | null;
 };
-

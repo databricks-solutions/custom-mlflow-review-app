@@ -3,11 +3,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle, Circle } from "lucide-react";
 import { Assessment, LabelingSchema } from "@/types/renderers";
 
@@ -27,7 +23,7 @@ export function LabelSchemaField({
   // Local state for immediate UI updates
   const [localValue, setLocalValue] = useState<any>(assessment?.value || "");
   const [localRationale, setLocalRationale] = useState<string>(assessment?.rationale || "");
-  
+
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,22 +34,25 @@ export function LabelSchemaField({
   }, [assessment]);
 
   // Trigger save with debounce
-  const triggerSave = useCallback((value: any, rationale: string) => {
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+  const triggerSave = useCallback(
+    (value: any, rationale: string) => {
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
 
-    // Set new timeout for auto-save
-    saveTimeoutRef.current = setTimeout(() => {
-      const newAssessment: Assessment = {
-        name: schema.name,
-        value: value || null,
-        rationale: rationale || null,
-      };
-      onSave(newAssessment);
-    }, 1500); // 1.5 second debounce
-  }, [schema.name, onSave]);
+      // Set new timeout for auto-save
+      saveTimeoutRef.current = setTimeout(() => {
+        const newAssessment: Assessment = {
+          name: schema.name,
+          value: value || null,
+          rationale: rationale || null,
+        };
+        onSave(newAssessment);
+      }, 1500); // 1.5 second debounce
+    },
+    [schema.name, onSave]
+  );
 
   // Handle value change
   const handleValueChange = (newValue: any) => {
@@ -81,10 +80,7 @@ export function LabelSchemaField({
   const isCompleted = hasValue;
 
   return (
-    <AccordionItem 
-      value={schema.name} 
-      className="border rounded-lg px-4"
-    >
+    <AccordionItem value={schema.name} className="border rounded-lg px-4">
       <AccordionTrigger className="hover:no-underline">
         <div className="flex items-center gap-2">
           {isCompleted ? (
@@ -97,9 +93,7 @@ export function LabelSchemaField({
       </AccordionTrigger>
       <AccordionContent className="space-y-4 pt-4">
         {schema.instruction && (
-          <p className="text-sm text-muted-foreground">
-            {schema.instruction}
-          </p>
+          <p className="text-sm text-muted-foreground">{schema.instruction}</p>
         )}
 
         {/* Numeric rating */}

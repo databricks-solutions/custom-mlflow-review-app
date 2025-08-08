@@ -6,7 +6,6 @@
  * A label value with optional comment.
  */
 export type LabelValue = {
-    value: (string | number | Array<string>);
-    comment?: (string | null);
+  value: string | number | Array<string>;
+  comment?: string | null;
 };
-

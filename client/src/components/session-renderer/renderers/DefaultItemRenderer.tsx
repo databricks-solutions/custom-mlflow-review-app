@@ -12,15 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  Check,
-  Circle,
-  User,
-  Bot,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Check, Circle, User, Bot } from "lucide-react";
 import { ItemRendererProps } from "@/types/renderers";
 import { Assessment } from "@/types/assessment";
 import ReactMarkdown from "react-markdown";
@@ -29,7 +21,11 @@ import rehypeHighlight from "rehype-highlight";
 import { toast } from "sonner";
 import { useLogFeedbackMutation, useLogExpectationMutation } from "@/hooks/shared-hooks";
 import { useCurrentUser } from "@/hooks/api-hooks";
-import { combineSchemaWithAssessments, filterByType, isSchemaCompleted } from "@/utils/schema-assessment-utils";
+import {
+  combineSchemaWithAssessments,
+  filterByType,
+  isSchemaCompleted,
+} from "@/utils/schema-assessment-utils";
 
 // Constants for span type filtering
 const CONVERSATIONAL_SPAN_TYPES = ["CHAT_MODEL", "TOOL", "AGENT", "LLM", "USER", "ASSISTANT"];
@@ -55,16 +51,16 @@ export function DefaultItemRenderer({
   // React Query mutations for logging assessments
   const logFeedbackMutation = useLogFeedbackMutation();
   const logExpectationMutation = useLogExpectationMutation();
-  
+
   // Combine schemas with assessments from trace data
   const schemasWithAssessments = combineSchemaWithAssessments(
     reviewApp?.labeling_schemas || [],
     traceData?.info?.assessments as Assessment[] | undefined
   );
-  
+
   // Separate feedback and expectation schemas
-  const feedbackSchemas = filterByType(schemasWithAssessments, 'FEEDBACK');
-  const expectationSchemas = filterByType(schemasWithAssessments, 'EXPECTATION');
+  const feedbackSchemas = filterByType(schemasWithAssessments, "FEEDBACK");
+  const expectationSchemas = filterByType(schemasWithAssessments, "EXPECTATION");
 
   // Helper function to handle assessment changes
   const handleAssessmentChange = (schemaName: string, value: any, rationale?: string) => {
@@ -74,7 +70,7 @@ export function DefaultItemRenderer({
       value,
       rationale,
       timestamp: new Date().toISOString(),
-      user: currentUser?.email || 'unknown'
+      user: currentUser?.email || "unknown",
     };
     newAssessments.set(schemaName, assessment);
     onAssessmentsChange(newAssessments);
@@ -82,27 +78,28 @@ export function DefaultItemRenderer({
 
   // Get current user
   const { data: currentUser } = useCurrentUser();
-  
+
   // Auto-save functionality - save to MLflow when assessments change
   useEffect(() => {
     const saveAssessments = async () => {
-
       // Only proceed if assessments have changed
       const hasChanges = Array.from(assessments.entries()).some(([key, assessment]) => {
         const lastSaved = lastSavedAssessmentsRef.current.get(key);
-        return !lastSaved || 
-               lastSaved.value !== assessment.value || 
-               lastSaved.rationale !== assessment.rationale;
+        return (
+          !lastSaved ||
+          lastSaved.value !== assessment.value ||
+          lastSaved.rationale !== assessment.rationale
+        );
       });
-      
+
       if (!hasChanges) return;
-      
+
       // Clear any existing timeout to debounce the save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Set a new timeout to save after 2 seconds of no changes  
+      // Set a new timeout to save after 2 seconds of no changes
       saveTimeoutRef.current = setTimeout(async () => {
         try {
           console.log("[AUTO-SAVE] Starting auto-save for assessments");
@@ -119,12 +116,14 @@ export function DefaultItemRenderer({
           for (const [schemaName, assessment] of assessments.entries()) {
             // Skip if assessment hasn't changed
             const lastSaved = lastSavedAssessmentsRef.current.get(schemaName);
-            if (lastSaved && 
-                lastSaved.value === assessment.value && 
-                lastSaved.rationale === assessment.rationale) {
+            if (
+              lastSaved &&
+              lastSaved.value === assessment.value &&
+              lastSaved.rationale === assessment.rationale
+            ) {
               continue;
             }
-            
+
             // Save if there's either a value OR a rationale
             if (
               (assessment.value !== undefined &&
@@ -176,9 +175,15 @@ export function DefaultItemRenderer({
         }
       }, 2000); // Auto-save after 2 seconds of no changes
     };
-    
+
     saveAssessments();
-  }, [assessments, item.source?.trace_id, reviewApp?.labeling_schemas, logFeedbackMutation, logExpectationMutation]);
+  }, [
+    assessments,
+    item.source?.trace_id,
+    reviewApp?.labeling_schemas,
+    logFeedbackMutation,
+    logExpectationMutation,
+  ]);
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -188,109 +193,6 @@ export function DefaultItemRenderer({
       }
     };
   }, []);
-
-
-      console.log(
-        "DEBUG: Loading assessments for schemas:",
-        reviewApp?.labeling_schemas?.map((s) => s.name)
-      );
-      console.log(
-        "DEBUG: Available assessments:",
-        traceData?.info?.assessments?.map((a) => a.name)
-      );
-      console.log("DEBUG: Full assessments data:", traceData?.info?.assessments);
-
-      // Debug each assessment individually to see their structure
-      traceData?.info?.assessments?.forEach((assessment: any, index: number) => {
-        console.log(`DEBUG: Assessment ${index}:`, {
-          name: assessment.name,
-          value: assessment.value,
-          rationale: assessment.rationale,
-          comment: assessment.comment,
-          fullObject: assessment,
-        });
-      });
-
-      if (!traceData?.info?.assessments || !reviewApp?.labeling_schemas) {
-        console.log("No assessments or schemas available");
-        onLabelsChange({});
-        lastSavedLabelsRef.current = "";
-        return;
-      }
-
-      const flatLabels: Record<string, any> = {};
-      const schemaNames = reviewApp.labeling_schemas.map((s) => s.name);
-
-      // Process all assessments and match them to schema names
-      const assessments: Assessment[] = traceData.info.assessments;
-
-      // Group assessments by name and prioritize those with rationale
-      const assessmentsByName: Record<string, Assessment[]> = {};
-      assessments.forEach((assessment) => {
-        if (!assessmentsByName[assessment.name]) {
-          assessmentsByName[assessment.name] = [];
-        }
-        assessmentsByName[assessment.name].push(assessment);
-      });
-
-      // For each schema, find the best assessment (prioritize those with rationale)
-      Object.entries(assessmentsByName).forEach(([assessmentName, assessmentList]) => {
-        console.log(
-          `DEBUG: Processing assessment group ${assessmentName} with ${assessmentList.length} entries`
-        );
-
-        // Check if this assessment matches a schema name directly
-        if (schemaNames.includes(assessmentName)) {
-          console.log(`DEBUG: Schema match found for ${assessmentName}`);
-
-          // Sort assessments to prioritize those with rationale
-          const sortedAssessments = assessmentList.sort((a, b) => {
-            const aHasRationale = !!a.rationale;
-            const bHasRationale = !!b.rationale;
-
-            // Prioritize assessments with rationale
-            if (aHasRationale && !bHasRationale) return -1;
-            if (!aHasRationale && bHasRationale) return 1;
-            return 0; // Keep original order if both have or don't have rationale
-          });
-
-          // Use the best assessment (first after sorting)
-          const bestAssessment = sortedAssessments[0];
-          console.log(`DEBUG: Using assessment for ${assessmentName}:`, bestAssessment);
-
-          // Set the assessment value
-          if (bestAssessment.value !== undefined && bestAssessment.value !== null) {
-            flatLabels[assessmentName] = bestAssessment.value;
-            console.log(`Found value for ${assessmentName}:`, bestAssessment.value);
-          }
-
-          // Set the rationale (check metadata.rationale due to MLflow bug)
-          const rationale = bestAssessment.metadata?.rationale || bestAssessment.rationale;
-          if (rationale && rationale !== "") {
-            flatLabels[`${assessmentName}_comment`] = rationale;
-            console.log(`Found rationale for ${assessmentName}:`, rationale);
-          }
-        } else {
-          console.log(
-            `DEBUG: No schema match for assessment ${assessmentName}, available schemas:`,
-            schemaNames
-          );
-        }
-      });
-
-      // Update the form with existing labels
-      if (Object.keys(flatLabels).length > 0) {
-        console.log("Populating form with assessments:", flatLabels);
-        onLabelsChange(flatLabels);
-        lastSavedLabelsRef.current = JSON.stringify(convertLabelsToApiFormat(flatLabels));
-      } else {
-        onLabelsChange({});
-        lastSavedLabelsRef.current = "";
-      }
-    };
-
-    loadExistingLabels();
-  }, [item?.item_id, traceData?.info?.assessments, reviewApp?.labeling_schemas, onLabelsChange]);
 
   // Extract spans, filtering for conversational spans
   const allSpans = traceData?.spans || [];

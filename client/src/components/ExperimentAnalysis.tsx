@@ -38,7 +38,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ReviewAppsService } from "@/fastapi_client";
 import { SchemaPreview } from "./SchemaPreview";
 import { toast } from "sonner";
-import { useCurrentReviewApp, useExperimentAnalysisStatus, useTriggerExperimentAnalysis } from "@/hooks/api-hooks";
+import {
+  useCurrentReviewApp,
+  useExperimentAnalysisStatus,
+  useTriggerExperimentAnalysis,
+} from "@/hooks/api-hooks";
 
 interface Schema {
   key: string;
@@ -84,7 +88,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   const [savedSchemas, setSavedSchemas] = useState<Set<string>>(new Set());
   const [savingSchemas, setSavingSchemas] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
-  
+
   // Get current review app to check existing schemas
   const { data: reviewApp } = useCurrentReviewApp();
 
@@ -93,7 +97,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
 
   // Start with checking if analysis is already running
   const { data: analysisStatus } = useExperimentAnalysisStatus(
-    experimentId, 
+    experimentId,
     true // Always enabled to check status
   );
 
@@ -207,7 +211,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Starting Analysis...
               </>
-            ) : (analysisStatus?.status === "running") ? (
+            ) : analysisStatus?.status === "running" ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Analysis Running...
@@ -221,8 +225,8 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
           </Button>
           {analysisStatus?.message && (
             <p className="mt-2 text-sm text-muted-foreground">
-              {analysisStatus.status === "running" || analysisStatus.status === "pending" 
-                ? "Analysis is in progress. This may take several minutes..." 
+              {analysisStatus.status === "running" || analysisStatus.status === "pending"
+                ? "Analysis is in progress. This may take several minutes..."
                 : analysisStatus.message}
             </p>
           )}
@@ -257,8 +261,11 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                {triggerAnalysisMutation.isPending ? "Starting..." : 
-                 (analysisStatus?.status === "running") ? "Running..." : "Re-run Analysis"}
+                {triggerAnalysisMutation.isPending
+                  ? "Starting..."
+                  : analysisStatus?.status === "running"
+                    ? "Running..."
+                    : "Re-run Analysis"}
               </Button>
             </div>
           </CardHeader>
@@ -266,7 +273,9 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Timestamp:</span>
-                <p className="font-medium">{new Date(metadata.analysis_timestamp).toLocaleString()}</p>
+                <p className="font-medium">
+                  {new Date(metadata.analysis_timestamp).toLocaleString()}
+                </p>
               </div>
               <div>
                 <span className="text-muted-foreground">Model:</span>
@@ -306,7 +315,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
         <TabsContent value="report">
           <Card>
             <CardContent className="p-6">
-              <Markdown 
+              <Markdown
                 content={experimentSummary.content}
                 variant="large"
                 className="text-foreground"
@@ -327,10 +336,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
             ) : (
               issues.map((issue: Issue, index: number) => (
                 <Card key={index}>
-                  <CardHeader
-                    className="cursor-pointer"
-                    onClick={() => toggleIssue(index)}
-                  >
+                  <CardHeader className="cursor-pointer" onClick={() => toggleIssue(index)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {getSeverityIcon(issue.severity)}
@@ -369,7 +375,9 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                         )}
                         {issue.example_traces && issue.example_traces.length > 0 && (
                           <div>
-                            <h4 className="font-medium mb-2">Affected Traces ({issue.example_traces.length} shown):</h4>
+                            <h4 className="font-medium mb-2">
+                              Affected Traces ({issue.example_traces.length} shown):
+                            </h4>
                             <div className="border rounded-lg overflow-hidden">
                               <Table>
                                 <TableHeader>
@@ -385,9 +393,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                                       <TableCell className="font-mono text-xs text-muted-foreground">
                                         {i + 1}
                                       </TableCell>
-                                      <TableCell className="font-mono text-sm">
-                                        {traceId}
-                                      </TableCell>
+                                      <TableCell className="font-mono text-sm">{traceId}</TableCell>
                                       <TableCell>
                                         <Button
                                           variant="ghost"
@@ -397,7 +403,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                                             // Open trace in new tab
                                             window.open(
                                               `https://eng-ml-inference-team-us-west-2.cloud.databricks.com/ml/experiments/${experimentId}/traces?requestId=${traceId}`,
-                                              '_blank'
+                                              "_blank"
                                             );
                                           }}
                                         >
@@ -411,7 +417,8 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                             </div>
                             {issue.affected_traces > issue.example_traces.length && (
                               <p className="text-sm text-muted-foreground mt-2">
-                                ... and {issue.affected_traces - issue.example_traces.length} more traces
+                                ... and {issue.affected_traces - issue.example_traces.length} more
+                                traces
                               </p>
                             )}
                           </div>
@@ -436,11 +443,12 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
               </Card>
             ) : (
               schemas.map((schema: Schema, index: number) => {
-                const isSchemaAlreadySaved = reviewApp?.labeling_schemas?.some(
-                  (existingSchema: any) => existingSchema.name === schema.key
-                ) || savedSchemas.has(schema.key);
+                const isSchemaAlreadySaved =
+                  reviewApp?.labeling_schemas?.some(
+                    (existingSchema: any) => existingSchema.name === schema.key
+                  ) || savedSchemas.has(schema.key);
                 const isSaving = savingSchemas.has(schema.key);
-                
+
                 // Transform schema to match the format expected by SchemaPreview
                 const previewSchema = {
                   ...schema,
@@ -461,7 +469,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                     max_length: 500,
                   }),
                 };
-                
+
                 const handleSaveSchema = async () => {
                   setSavingSchemas(new Set([...savingSchemas, schema.key]));
                   try {
@@ -482,7 +490,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                         text: { max_length: 500 },
                       }),
                     };
-                    
+
                     // Update review app with new schema
                     if (reviewApp?.review_app_id) {
                       const updatedSchemas = [...(reviewApp.labeling_schemas || []), newSchema];
@@ -493,7 +501,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                         },
                         "labeling_schemas"
                       );
-                      
+
                       setSavedSchemas(new Set([...savedSchemas, schema.key]));
                       toast.success(`Schema "${schema.name}" saved successfully!`);
                       queryClient.invalidateQueries({ queryKey: ["reviewApps"] });
@@ -509,13 +517,10 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                     });
                   }
                 };
-                
+
                 return (
                   <Card key={index}>
-                    <CardHeader
-                      className="cursor-pointer"
-                      onClick={() => toggleSchema(index)}
-                    >
+                    <CardHeader className="cursor-pointer" onClick={() => toggleSchema(index)}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <ClipboardList className="h-4 w-4" />
@@ -546,31 +551,30 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                               <p className="text-sm text-muted-foreground">{schema.rationale}</p>
                             </div>
                           )}
-                          
+
                           {/* SME Preview Section - Always Visible */}
                           <div className="pt-4 border-t">
                             <h4 className="font-medium mb-3">SME Preview</h4>
                             <div className="bg-muted/30 p-4 rounded-lg">
-                              <SchemaPreview
-                                schema={previewSchema}
-                                disabled={false}
-                              />
+                              <SchemaPreview schema={previewSchema} disabled={false} />
                             </div>
                           </div>
-                          
+
                           <div className="pt-4 border-t flex items-center justify-between">
                             <div className="flex items-center gap-2 text-sm">
                               <Tag className="h-4 w-4 text-muted-foreground" />
                               <span className="text-muted-foreground">Key:</span>
                               <code className="px-2 py-1 bg-muted rounded">{schema.key}</code>
                             </div>
-                            
+
                             <Button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleSaveSchema();
                               }}
-                              disabled={isSchemaAlreadySaved || isSaving || !reviewApp?.review_app_id}
+                              disabled={
+                                isSchemaAlreadySaved || isSaving || !reviewApp?.review_app_id
+                              }
                               size="sm"
                             >
                               {isSaving ? (

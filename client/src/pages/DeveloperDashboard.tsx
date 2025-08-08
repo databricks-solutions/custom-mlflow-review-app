@@ -88,7 +88,7 @@ export function DeveloperDashboard() {
   const [newSessionName, setNewSessionName] = useState("");
   const [assignedUsers, setAssignedUsers] = useState("");
   const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
-  
+
   // Analysis modal state
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [selectedAnalysisSession, setSelectedAnalysisSession] = useState<any>(null);
@@ -480,13 +480,16 @@ export function DeveloperDashboard() {
         <TabsContent value="sessions" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Labeling Sessions</h2>
-            <Dialog open={isCreateSessionOpen} onOpenChange={(open) => {
-              setIsCreateSessionOpen(open);
-              // Reset selected schemas when dialog opens
-              if (open && reviewApp?.labeling_schemas) {
-                setSelectedSchemas(new Set());
-              }
-            }}>
+            <Dialog
+              open={isCreateSessionOpen}
+              onOpenChange={(open) => {
+                setIsCreateSessionOpen(open);
+                // Reset selected schemas when dialog opens
+                if (open && reviewApp?.labeling_schemas) {
+                  setSelectedSchemas(new Set());
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
@@ -510,7 +513,7 @@ export function DeveloperDashboard() {
                       placeholder="e.g., Week 1 Review"
                     />
                   </div>
-                  
+
                   <div className="grid gap-2">
                     <Label>Labeling Schemas</Label>
                     <p className="text-sm text-muted-foreground mb-2">
@@ -578,7 +581,8 @@ export function DeveloperDashboard() {
                     )}
                     {selectedSchemas.size > 0 && (
                       <p className="text-sm text-muted-foreground">
-                        {selectedSchemas.size} schema{selectedSchemas.size !== 1 ? "s" : ""} selected
+                        {selectedSchemas.size} schema{selectedSchemas.size !== 1 ? "s" : ""}{" "}
+                        selected
                       </p>
                     )}
                   </div>
@@ -599,7 +603,11 @@ export function DeveloperDashboard() {
                 <DialogFooter>
                   <Button
                     onClick={handleCreateSession}
-                    disabled={!newSessionName || selectedSchemas.size === 0 || createSessionMutation.isPending}
+                    disabled={
+                      !newSessionName ||
+                      selectedSchemas.size === 0 ||
+                      createSessionMutation.isPending
+                    }
                   >
                     {createSessionMutation.isPending ? "Creating..." : "Create Session"}
                   </Button>
@@ -611,124 +619,122 @@ export function DeveloperDashboard() {
           {sessionsData?.labeling_sessions && sessionsData.labeling_sessions.length > 0 ? (
             <div className="grid gap-4 overflow-x-hidden">
               {sessionsData.labeling_sessions
-                .sort((a, b) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime())
+                .sort(
+                  (a, b) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime()
+                )
                 .map((session) => {
-                const isHighlighted = highlightSessionId === session.labeling_session_id;
-                return (
-                  <Card
-                    key={session.labeling_session_id}
-                    className={isHighlighted ? "border-2 border-blue-500 shadow-lg" : ""}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{session.name}</CardTitle>
-                          <CardDescription className="text-xs flex items-center gap-3 mt-1">
-                            <span>
-                              Created {new Date(session.create_time).toLocaleDateString()} by{" "}
-                              {session.created_by}
-                            </span>
-                            {workspaceData?.workspace?.url && (
-                              <>
-                                <a
-                                  href={`${workspaceData.workspace.url}/ml/experiments/${EXPERIMENT_ID}/labeling-sessions?selectedLabelingSessionId=${session.labeling_session_id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
-                                  title="View Session in Databricks"
-                                >
-                                  Session
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                                <a
-                                  href={`${workspaceData.workspace.url}/ml/experiments/${EXPERIMENT_ID}/evaluation-runs?selectedRunUuid=${session.mlflow_run_id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
-                                  title="View MLflow Run in Databricks"
-                                >
-                                  Run
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              </>
-                            )}
-                          </CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedAnalysisSession(session);
-                              setAnalysisModalOpen(true);
-                            }}
-                          >
-                            <BarChart3 className="h-4 w-4 mr-1" />
-                            Analysis
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate(
-                                `/preview/${session.labeling_session_id}`
-                              )
-                            }
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Preview
-                          </Button>
-                          <AddTracesButton
-                            reviewAppId={reviewApp?.review_app_id || ""}
-                            sessionId={session.labeling_session_id}
-                            session={session}
-                            experimentId={EXPERIMENT_ID || ""}
-                          />
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {/* Labeling Schemas - Primary Focus */}
-                      {session.labeling_schemas && session.labeling_schemas.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                            <FileText className="h-4 w-4" />
-                            Labeling Schemas
-                          </p>
-                          <div className="flex gap-2 flex-wrap">
-                            {session.labeling_schemas.map((schema, idx) => (
-                              <SchemaButton
-                                key={idx}
-                                schema={schema}
-                                onClick={handleSchemaClick}
-                                className="h-7"
-                              />
-                            ))}
+                  const isHighlighted = highlightSessionId === session.labeling_session_id;
+                  return (
+                    <Card
+                      key={session.labeling_session_id}
+                      className={isHighlighted ? "border-2 border-blue-500 shadow-lg" : ""}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg">{session.name}</CardTitle>
+                            <CardDescription className="text-xs flex items-center gap-3 mt-1">
+                              <span>
+                                Created {new Date(session.create_time).toLocaleDateString()} by{" "}
+                                {session.created_by}
+                              </span>
+                              {workspaceData?.workspace?.url && (
+                                <>
+                                  <a
+                                    href={`${workspaceData.workspace.url}/ml/experiments/${EXPERIMENT_ID}/labeling-sessions?selectedLabelingSessionId=${session.labeling_session_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                                    title="View Session in Databricks"
+                                  >
+                                    Session
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                  <a
+                                    href={`${workspaceData.workspace.url}/ml/experiments/${EXPERIMENT_ID}/evaluation-runs?selectedRunUuid=${session.mlflow_run_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1"
+                                    title="View MLflow Run in Databricks"
+                                  >
+                                    Run
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                </>
+                              )}
+                            </CardDescription>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedAnalysisSession(session);
+                                setAnalysisModalOpen(true);
+                              }}
+                            >
+                              <BarChart3 className="h-4 w-4 mr-1" />
+                              Analysis
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/preview/${session.labeling_session_id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Preview
+                            </Button>
+                            <AddTracesButton
+                              reviewAppId={reviewApp?.review_app_id || ""}
+                              sessionId={session.labeling_session_id}
+                              session={session}
+                              experimentId={EXPERIMENT_ID || ""}
+                            />
                           </div>
                         </div>
-                      )}
-
-                      {/* Progress Section - Secondary Focus */}
-                      <SessionProgress
-                        reviewAppId={reviewApp?.review_app_id || ""}
-                        sessionId={session.labeling_session_id}
-                        reviewApp={reviewApp}
-                        workspaceUrl={workspaceData?.workspace?.url}
-                      />
-
-                      {/* Compact Users Info */}
-                      {session.assigned_users && session.assigned_users.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            <span>{session.assigned_users.join(", ")}</span>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {/* Labeling Schemas - Primary Focus */}
+                        {session.labeling_schemas && session.labeling_schemas.length > 0 && (
+                          <div className="mb-4">
+                            <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                              <FileText className="h-4 w-4" />
+                              Labeling Schemas
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                              {session.labeling_schemas.map((schema, idx) => (
+                                <SchemaButton
+                                  key={idx}
+                                  schema={schema}
+                                  onClick={handleSchemaClick}
+                                  className="h-7"
+                                />
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                        )}
+
+                        {/* Progress Section - Secondary Focus */}
+                        <SessionProgress
+                          reviewAppId={reviewApp?.review_app_id || ""}
+                          sessionId={session.labeling_session_id}
+                          reviewApp={reviewApp}
+                          workspaceUrl={workspaceData?.workspace?.url}
+                        />
+
+                        {/* Compact Users Info */}
+                        {session.assigned_users && session.assigned_users.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              <span>{session.assigned_users.join(", ")}</span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           ) : (
             <Card>
@@ -848,9 +854,7 @@ export function DeveloperDashboard() {
                                   size="sm"
                                   className="h-8 px-3 text-xs"
                                   onClick={() =>
-                                    navigate(
-                                      `/preview/${session.labeling_session_id}`
-                                    )
+                                    navigate(`/preview/${session.labeling_session_id}`)
                                   }
                                 >
                                   <Users className="h-3 w-3 mr-1" />
@@ -1202,10 +1206,12 @@ function SessionProgress({
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  
+
   // Debug logging for state changes
   useEffect(() => {
-    console.log(`[LAZY-LOAD-STATE] Session ${sessionId.slice(0, 8)} shouldFetch changed to: ${shouldFetch}`);
+    console.log(
+      `[LAZY-LOAD-STATE] Session ${sessionId.slice(0, 8)} shouldFetch changed to: ${shouldFetch}`
+    );
   }, [shouldFetch, sessionId]);
 
   // Set up intersection observer for lazy loading - trigger when session progress section comes into view
@@ -1218,9 +1224,11 @@ function SessionProgress({
     // Small delay to ensure DOM is fully rendered before setting up observer
     const timeoutId = setTimeout(() => {
       if (!cardRef.current || shouldFetch) return;
-      
-      console.log(`[LAZY-LOAD] Setting up intersection observer for session ${sessionId.slice(0, 8)}`);
-      
+
+      console.log(
+        `[LAZY-LOAD] Setting up intersection observer for session ${sessionId.slice(0, 8)}`
+      );
+
       // Clean up existing observer
       if (observerRef.current) {
         observerRef.current.disconnect();
@@ -1230,20 +1238,27 @@ function SessionProgress({
       observerRef.current = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
-          console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} intersection: ${entry.isIntersecting}, ratio: ${entry.intersectionRatio}, boundingRect top: ${entry.boundingClientRect.top}`);
-          
+          console.log(
+            `[LAZY-LOAD] Session ${sessionId.slice(0, 8)} intersection: ${entry.isIntersecting}, ratio: ${entry.intersectionRatio}, boundingRect top: ${entry.boundingClientRect.top}`
+          );
+
           // MUCH stricter visibility check - require at least 25% visible AND not too close to top
-          if (entry.isIntersecting && 
-              entry.intersectionRatio >= 0.25 && 
-              entry.boundingClientRect.top > 0) { // Ensure it's not at the very top
-            console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} came into view - STRICT check passed`);
-            
+          if (
+            entry.isIntersecting &&
+            entry.intersectionRatio >= 0.25 &&
+            entry.boundingClientRect.top > 0
+          ) {
+            // Ensure it's not at the very top
+            console.log(
+              `[LAZY-LOAD] Session ${sessionId.slice(0, 8)} came into view - STRICT check passed`
+            );
+
             // Throttling logic - prevent too many simultaneous requests
             const triggerFetch = () => {
               console.log(`[LAZY-LOAD] ✅ Triggering fetch for session ${sessionId.slice(0, 8)}`);
               globalLazyLoadState.currentlyLoading.add(sessionId);
               setShouldFetch(true);
-              
+
               // Disconnect observer immediately after triggering
               if (observerRef.current) {
                 observerRef.current.disconnect();
@@ -1255,16 +1270,20 @@ function SessionProgress({
             if (globalLazyLoadState.currentlyLoading.size < globalLazyLoadState.maxConcurrent) {
               triggerFetch();
             } else {
-              console.log(`[LAZY-LOAD] 📋 Queuing session ${sessionId.slice(0, 8)} (${globalLazyLoadState.currentlyLoading.size} already loading)`);
+              console.log(
+                `[LAZY-LOAD] 📋 Queuing session ${sessionId.slice(0, 8)} (${globalLazyLoadState.currentlyLoading.size} already loading)`
+              );
               globalLazyLoadState.queue.push({ sessionId, trigger: triggerFetch });
             }
           } else {
-            console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} - visibility check FAILED (ratio: ${entry.intersectionRatio}, top: ${entry.boundingClientRect.top})`);
+            console.log(
+              `[LAZY-LOAD] Session ${sessionId.slice(0, 8)} - visibility check FAILED (ratio: ${entry.intersectionRatio}, top: ${entry.boundingClientRect.top})`
+            );
           }
         },
-        { 
+        {
           threshold: [0.25], // Require 25% of element to be visible
-          rootMargin: '-50px' // Require element to be well within viewport
+          rootMargin: "-50px", // Require element to be well within viewport
         }
       );
 
@@ -1282,38 +1301,44 @@ function SessionProgress({
 
   // Early return if already fetched to prevent unnecessary renders
   const hasAlreadyFetched = shouldFetch;
-  
+
   // Only fetch when explicitly enabled AND required fields are present
   const enableQuery = shouldFetch && !!reviewAppId && !!sessionId;
-  
+
   // Debug logging for query enablement
   useEffect(() => {
-    console.log(`[LAZY-LOAD-QUERY] Session ${sessionId.slice(0, 8)} enableQuery: ${enableQuery} (shouldFetch: ${shouldFetch}, hasIds: ${!!reviewAppId && !!sessionId})`);
+    console.log(
+      `[LAZY-LOAD-QUERY] Session ${sessionId.slice(0, 8)} enableQuery: ${enableQuery} (shouldFetch: ${shouldFetch}, hasIds: ${!!reviewAppId && !!sessionId})`
+    );
   }, [enableQuery, shouldFetch, reviewAppId, sessionId]);
-  
-  const { data: itemsData, isLoading } = useLabelingItems(
-    reviewAppId,
-    sessionId,
-    enableQuery
-  );
+
+  const { data: itemsData, isLoading } = useLabelingItems(reviewAppId, sessionId, enableQuery);
 
   // Handle queue processing and cleanup when request completes
   useEffect(() => {
     if (!isLoading && shouldFetch && globalLazyLoadState.currentlyLoading.has(sessionId)) {
       // Request completed, remove from loading set
       globalLazyLoadState.currentlyLoading.delete(sessionId);
-      console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} completed loading, ${globalLazyLoadState.currentlyLoading.size} still loading`);
-      
+      console.log(
+        `[LAZY-LOAD] Session ${sessionId.slice(0, 8)} completed loading, ${globalLazyLoadState.currentlyLoading.size} still loading`
+      );
+
       // Process queue if there are waiting requests
-      if (globalLazyLoadState.queue.length > 0 && 
-          globalLazyLoadState.currentlyLoading.size < globalLazyLoadState.maxConcurrent) {
+      if (
+        globalLazyLoadState.queue.length > 0 &&
+        globalLazyLoadState.currentlyLoading.size < globalLazyLoadState.maxConcurrent
+      ) {
         const next = globalLazyLoadState.queue.shift();
         if (next) {
-          console.log(`[LAZY-LOAD] 🚀 Processing queued session ${next.sessionId.slice(0, 8)} (queue length: ${globalLazyLoadState.queue.length})`);
+          console.log(
+            `[LAZY-LOAD] 🚀 Processing queued session ${next.sessionId.slice(0, 8)} (queue length: ${globalLazyLoadState.queue.length})`
+          );
           next.trigger();
         }
       } else if (globalLazyLoadState.queue.length > 0) {
-        console.log(`[LAZY-LOAD] ⏸️ Queue has ${globalLazyLoadState.queue.length} items but ${globalLazyLoadState.currentlyLoading.size} still loading`);
+        console.log(
+          `[LAZY-LOAD] ⏸️ Queue has ${globalLazyLoadState.queue.length} items but ${globalLazyLoadState.currentlyLoading.size} still loading`
+        );
       }
     }
   }, [isLoading, shouldFetch, sessionId]);
@@ -1322,7 +1347,9 @@ function SessionProgress({
   useEffect(() => {
     return () => {
       globalLazyLoadState.currentlyLoading.delete(sessionId);
-      globalLazyLoadState.queue = globalLazyLoadState.queue.filter(q => q.sessionId !== sessionId);
+      globalLazyLoadState.queue = globalLazyLoadState.queue.filter(
+        (q) => q.sessionId !== sessionId
+      );
     };
   }, [sessionId]);
 
@@ -1343,10 +1370,7 @@ function SessionProgress({
             )}
           </span>
         </div>
-        <Progress 
-          value={!shouldFetch ? 0 : progressPercentage} 
-          className="h-2" 
-        />
+        <Progress value={!shouldFetch ? 0 : progressPercentage} className="h-2" />
 
         {/* Always show table */}
         <div className="mt-4">

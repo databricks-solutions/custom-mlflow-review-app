@@ -86,11 +86,7 @@ export const SchemaPreview: React.FC<SchemaPreviewProps> = ({
 
     if (schema.schema_type === "categorical" && schema.options) {
       return (
-        <RadioGroup
-          value={localValue}
-          onValueChange={handleValueChange}
-          disabled={disabled}
-        >
+        <RadioGroup value={localValue} onValueChange={handleValueChange} disabled={disabled}>
           {schema.options.map((option) => (
             <div key={option} className="flex items-center space-x-2">
               <RadioGroupItem value={option} id={`${schema.key}-${option}`} />
@@ -130,18 +126,12 @@ export const SchemaPreview: React.FC<SchemaPreviewProps> = ({
       <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1">
-            <h4 className="font-medium text-sm">
-              {schema.title || schema.name}
-            </h4>
+            <h4 className="font-medium text-sm">{schema.title || schema.name}</h4>
             {schema.instruction && (
-              <p className="text-sm text-muted-foreground">
-                {schema.instruction}
-              </p>
+              <p className="text-sm text-muted-foreground">{schema.instruction}</p>
             )}
             {schema.description && !schema.instruction && (
-              <p className="text-sm text-muted-foreground">
-                {schema.description}
-              </p>
+              <p className="text-sm text-muted-foreground">{schema.description}</p>
             )}
           </div>
           <div className="flex gap-2">
@@ -150,8 +140,8 @@ export const SchemaPreview: React.FC<SchemaPreviewProps> = ({
                 schema.label_type === "FEEDBACK"
                   ? "default"
                   : schema.label_type === "EXPECTATION"
-                  ? "secondary"
-                  : "outline"
+                    ? "secondary"
+                    : "outline"
               }
             >
               {schema.label_type}
@@ -163,9 +153,7 @@ export const SchemaPreview: React.FC<SchemaPreviewProps> = ({
 
         {schema.enable_comment !== false && (
           <div className="space-y-2 pt-2 border-t">
-            <Label htmlFor={`${schema.key}_comment`}>
-              Comments (Optional)
-            </Label>
+            <Label htmlFor={`${schema.key}_comment`}>Comments (Optional)</Label>
             <Textarea
               id={`${schema.key}_comment`}
               value={comment}

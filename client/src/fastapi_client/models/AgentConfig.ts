@@ -6,6 +6,5 @@
  * Agent configuration reference.
  */
 export type AgentConfig = {
-    agent_name: string;
+  agent_name: string;
 };
-

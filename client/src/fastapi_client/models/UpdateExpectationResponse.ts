@@ -6,8 +6,7 @@
  * Response from updating expectation.
  */
 export type UpdateExpectationResponse = {
-    success: boolean;
-    message?: (string | null);
-    assessment_id?: (string | null);
+  success: boolean;
+  message?: string | null;
+  assessment_id?: string | null;
 };
-

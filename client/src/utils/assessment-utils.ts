@@ -8,7 +8,7 @@ import { LabelingSchema } from "@/fastapi_client";
 /**
  * Align a label schema with an existing assessment
  * Returns the matching assessment if found, null otherwise
- * 
+ *
  * @param schema - The labeling schema to match
  * @param assessments - Array of existing assessments
  * @param currentUser - Current user's email
@@ -52,9 +52,7 @@ export function findUserAssessment(
 ): Assessment | null {
   if (!assessments) return null;
 
-  const userAssessments = assessments.filter(
-    a => a.name === schema.name && a.user === userEmail
-  );
+  const userAssessments = assessments.filter((a) => a.name === schema.name && a.user === userEmail);
 
   if (userAssessments.length === 0) return null;
 

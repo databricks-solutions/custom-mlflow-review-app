@@ -2,11 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Span } from './Span';
+import type { Span } from "./Span";
 /**
  * Trace data model.
  */
 export type TraceData = {
-    spans: Array<Span>;
+  spans: Array<Span>;
 };
-

@@ -5,16 +5,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser, useCurrentReviewApp, useLabelingSessions, useLabelingItems, useUserRole } from "@/hooks/api-hooks";
+import {
+  useCurrentUser,
+  useCurrentReviewApp,
+  useLabelingSessions,
+  useLabelingItems,
+  useUserRole,
+} from "@/hooks/api-hooks";
 
 // Helper component to show progress for each labeling session
-function SessionProgress({ 
-  reviewAppId, 
-  sessionId 
-}: { 
-  reviewAppId: string; 
-  sessionId: string; 
-}) {
+function SessionProgress({ reviewAppId, sessionId }: { reviewAppId: string; sessionId: string }) {
   // Get items for this specific session
   const { data: itemsData, isLoading } = useLabelingItems(
     reviewAppId,
@@ -33,13 +33,9 @@ function SessionProgress({
   }
 
   const items = itemsData?.items || [];
-  
+
   if (items.length === 0) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        No chats to review.
-      </div>
-    );
+    return <div className="text-sm text-muted-foreground">No chats to review.</div>;
   }
 
   const completedCount = items.filter((i) => i.state === "COMPLETED").length;
@@ -53,7 +49,9 @@ function SessionProgress({
       </div>
       <div className="flex items-center gap-3">
         <Progress value={progressPercentage} className="h-2 flex-1" />
-        <span className="text-sm text-muted-foreground">{completedCount}/{items.length}</span>
+        <span className="text-sm text-muted-foreground">
+          {completedCount}/{items.length}
+        </span>
       </div>
     </div>
   );
@@ -64,7 +62,7 @@ export function LabelingPage() {
 
   // Get current user info
   const { data: userInfo } = useCurrentUser();
-  
+
   // Get user role to determine if dev button should be shown
   const { data: userRole } = useUserRole();
 
@@ -83,7 +81,8 @@ export function LabelingPage() {
   );
 
   // Get user's first name for greeting
-  const firstName = userInfo?.displayName?.split(' ')[0] || userInfo?.userName?.split('@')[0] || "there";
+  const firstName =
+    userInfo?.displayName?.split(" ")[0] || userInfo?.userName?.split("@")[0] || "there";
 
   if (isLoadingReviewApps || isLoadingSessions) {
     return (
@@ -132,11 +131,11 @@ export function LabelingPage() {
             )}
           </div>
         </div>
-        
+
         <p className="text-muted-foreground max-w-4xl">
-          Thank you for participating to improve the quality of this Agent. Your expertise has made a huge impact, 
-          and every interaction you've reviewed helps the chatbot become smarter and more user-friendly. 
-          Thank you for your dedication and valuable insights.
+          Thank you for participating to improve the quality of this Agent. Your expertise has made
+          a huge impact, and every interaction you've reviewed helps the chatbot become smarter and
+          more user-friendly. Thank you for your dedication and valuable insights.
         </p>
       </div>
 
@@ -145,7 +144,7 @@ export function LabelingPage() {
         <CardHeader>
           <CardTitle className="text-xl">Chats to review</CardTitle>
           <CardDescription>
-            For each chat, review the conversation thread. Then answer the questions while reviewing 
+            For each chat, review the conversation thread. Then answer the questions while reviewing
             the chat content and data sourced for the response.
           </CardDescription>
         </CardHeader>
@@ -164,22 +163,22 @@ export function LabelingPage() {
                   <div>
                     <h4 className="font-semibold">{session.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(session.create_time || '').toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(session.create_time || "").toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>
                 </div>
-                
-                <SessionProgress 
-                  reviewAppId={reviewApp.review_app_id || ''}
-                  sessionId={session.labeling_session_id || ''}
+
+                <SessionProgress
+                  reviewAppId={reviewApp.review_app_id || ""}
+                  sessionId={session.labeling_session_id || ""}
                 />
-                
+
                 <div className="flex justify-end">
                   <Button
                     onClick={() =>
@@ -193,7 +192,7 @@ export function LabelingPage() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 {/* Divider */}
                 <div className="border-t" />
               </div>

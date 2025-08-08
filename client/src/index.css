@@ -1,5 +1,5 @@
 /* Import enhanced markdown styling */
-@import './styles/markdown.css';
+@import "./styles/markdown.css";
 
 @tailwind base;
 @tailwind components;

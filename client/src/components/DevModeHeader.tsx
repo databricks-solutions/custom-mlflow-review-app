@@ -10,7 +10,7 @@ interface DevModeHeaderProps {
 export function DevModeHeader({ session }: DevModeHeaderProps) {
   const navigate = useNavigate();
   const { data: userRole } = useUserRole();
-  
+
   return (
     <div className="flex items-center gap-3">
       {userRole?.is_developer && (
@@ -18,9 +18,7 @@ export function DevModeHeader({ session }: DevModeHeaderProps) {
           <ArrowLeft className="h-4 w-4" />
         </Button>
       )}
-      <h1 className="text-2xl font-bold">
-        {session?.name || "Labeling Session"} - Developer Mode
-      </h1>
+      <h1 className="text-2xl font-bold">{session?.name || "Labeling Session"} - Developer Mode</h1>
     </div>
   );
 }

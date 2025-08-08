@@ -6,8 +6,7 @@
  * Request to log expectation on a trace.
  */
 export type LogExpectationRequest = {
-    expectation_key: string;
-    expectation_value: (string | number | boolean | Record<string, any>);
-    rationale?: (string | null);
+  expectation_key: string;
+  expectation_value: string | number | boolean | Record<string, any>;
+  rationale?: string | null;
 };
-

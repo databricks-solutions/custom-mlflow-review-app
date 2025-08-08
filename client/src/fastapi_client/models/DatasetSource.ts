@@ -6,8 +6,7 @@
  * Dataset source for a labeling item.
  */
 export type DatasetSource = {
-    dataset_name?: (string | null);
-    dataset_digest?: (string | null);
-    dataset_index?: (number | null);
+  dataset_name?: string | null;
+  dataset_digest?: string | null;
+  dataset_index?: number | null;
 };
-

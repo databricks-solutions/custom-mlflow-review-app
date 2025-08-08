@@ -6,8 +6,7 @@
  * Request to update existing feedback on a trace.
  */
 export type UpdateFeedbackRequest = {
-    assessment_id: string;
-    feedback_value: (string | number | boolean);
-    rationale?: (string | null);
+  assessment_id: string;
+  feedback_value: string | number | boolean;
+  rationale?: string | null;
 };
-

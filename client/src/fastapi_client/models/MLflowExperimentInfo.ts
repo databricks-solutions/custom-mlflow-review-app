@@ -6,11 +6,10 @@
  * MLflow experiment information.
  */
 export type MLflowExperimentInfo = {
-    experiment_id: string;
-    name: string;
-    artifact_location: string;
-    lifecycle_stage: string;
-    creation_time: number;
-    last_update_time: number;
+  experiment_id: string;
+  name: string;
+  artifact_location: string;
+  lifecycle_stage: string;
+  creation_time: number;
+  last_update_time: number;
 };
-

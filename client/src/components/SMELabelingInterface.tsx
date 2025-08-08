@@ -23,7 +23,10 @@ interface SMELabelingInterfaceProps {
   hideNavigation?: boolean;
 }
 
-export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMELabelingInterfaceProps) {
+export function SMELabelingInterface({
+  sessionId,
+  hideNavigation = false,
+}: SMELabelingInterfaceProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
@@ -31,12 +34,16 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
 
   // Data fetching - use current review app instead of taking it as a prop
   const { data: reviewApp, isLoading: isLoadingReviewApp } = useCurrentReviewApp();
-  const { data: session } = useLabelingSession(reviewApp?.review_app_id || "", sessionId, !!reviewApp?.review_app_id && !!sessionId);
-  
+  const { data: session } = useLabelingSession(
+    reviewApp?.review_app_id || "",
+    sessionId,
+    !!reviewApp?.review_app_id && !!sessionId
+  );
+
   // Load items immediately for SME mode
   const { data: itemsData, isLoading: isLoadingItems } = useLabelingItems(
-    reviewApp?.review_app_id || "", 
-    sessionId, 
+    reviewApp?.review_app_id || "",
+    sessionId,
     !!reviewApp?.review_app_id && !!sessionId
   );
 
@@ -45,8 +52,10 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
   const nextItem = items[currentItemIndex + 1];
 
   const { data: traceSummary, isLoading: isLoadingTrace } = useTrace(
-    (currentItem?.source && 'trace_id' in currentItem.source ? currentItem.source.trace_id : null) || "",
-    !!(currentItem?.source && 'trace_id' in currentItem.source ? currentItem.source.trace_id : null)
+    (currentItem?.source && "trace_id" in currentItem.source
+      ? currentItem.source.trace_id
+      : null) || "",
+    !!(currentItem?.source && "trace_id" in currentItem.source ? currentItem.source.trace_id : null)
   );
 
   const updateItemMutation = useUpdateLabelingItem();
@@ -58,10 +67,10 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
     // 2. Next item exists and has a trace_id
     // 3. We have a valid trace summary for current item
     if (
-      !isLoadingTrace && 
-      traceSummary && 
+      !isLoadingTrace &&
+      traceSummary &&
       nextItem?.source?.trace_id &&
-      'trace_id' in nextItem.source
+      "trace_id" in nextItem.source
     ) {
       console.log(`[PREFETCH] Starting prefetch for next trace: ${nextItem.source.trace_id}`);
       queryClient.prefetchQuery({
@@ -73,37 +82,37 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
   }, [isLoadingTrace, traceSummary, nextItem?.source?.trace_id, queryClient]);
 
   // Get renderer name from MLflow run tags
-  const rendererQuery = useRendererName(
-    session?.mlflow_run_id || "",
-    !!session?.mlflow_run_id
-  );
+  const rendererQuery = useRendererName(session?.mlflow_run_id || "", !!session?.mlflow_run_id);
   const rendererName = rendererQuery.data?.rendererName;
 
   // Get the renderer component based on MLflow run tags
   const RendererComponent = getRendererComponent(rendererName);
 
   // Pass the update mutation to the renderer for auto-save
-  const handleUpdateItem = (itemId: string, updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }) => {
+  const handleUpdateItem = (
+    itemId: string,
+    updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }
+  ) => {
     if (!reviewApp?.review_app_id) {
       throw new Error("Review app ID not available");
     }
     // Only include basic fields that are supported by Databricks API
     const itemData: Record<string, any> = {};
     const updateFields: string[] = [];
-    
+
     if (updates.state !== undefined) {
       itemData.state = updates.state;
       updateFields.push("state");
     }
-    
+
     if (updates.comment !== undefined) {
       itemData.comment = updates.comment;
       updateFields.push("comment");
     }
-    
+
     // Note: assessments are handled separately via MLflow API calls
     // They are not sent as part of the item update
-    
+
     return updateItemMutation.mutateAsync({
       reviewAppId: reviewApp.review_app_id,
       sessionId,
@@ -147,13 +156,13 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
     }
   };
 
-  const hasUnreviewedItems = items.some(item => 
-    item.state !== "COMPLETED" && item.state !== "SKIPPED"
+  const hasUnreviewedItems = items.some(
+    (item) => item.state !== "COMPLETED" && item.state !== "SKIPPED"
   );
 
   const getCompletionPercentage = () => {
-    const completedItems = items.filter(item => 
-      item.state === "COMPLETED" || item.state === "SKIPPED"
+    const completedItems = items.filter(
+      (item) => item.state === "COMPLETED" || item.state === "SKIPPED"
     ).length;
     return Math.round((completedItems / items.length) * 100);
   };
@@ -255,7 +264,7 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -265,7 +274,7 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-            
+
             {hasUnreviewedItems && (
               <Button
                 variant="outline"

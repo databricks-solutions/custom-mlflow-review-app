@@ -16,7 +16,6 @@ export function LabelSchemaForm({
   onAssessmentSave,
   readOnly = false,
 }: LabelSchemaFormProps) {
-
   return (
     <Accordion type="single" collapsible className="w-full space-y-2">
       {schemas.map((schema) => (

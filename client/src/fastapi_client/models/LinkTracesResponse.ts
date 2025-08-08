@@ -6,8 +6,7 @@
  * Response from linking traces to a run.
  */
 export type LinkTracesResponse = {
-    success: boolean;
-    linked_count: number;
-    message?: (string | null);
+  success: boolean;
+  linked_count: number;
+  message?: string | null;
 };
-

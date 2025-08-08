@@ -7,10 +7,7 @@ import { SMELabelingInterface } from "@/components/SMELabelingInterface";
 import { RendererSelector } from "@/components/RendererSelector";
 import { LoadingState } from "@/components/LoadingState";
 import { NoSessionSelected } from "@/components/NoSessionSelected";
-import {
-  useCurrentReviewApp,
-  useLabelingSession,
-} from "@/hooks/api-hooks";
+import { useCurrentReviewApp, useLabelingSession } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
 
 export function PreviewPage() {
@@ -19,11 +16,11 @@ export function PreviewPage() {
 
   // Get the current review app (implicitly determined by server config)
   const { data: reviewApp, isLoading: isLoadingReviewApp } = useCurrentReviewApp();
-  
+
   // Get session data
   const { data: session } = useLabelingSession(
-    reviewApp?.review_app_id || "", 
-    sessionId || "", 
+    reviewApp?.review_app_id || "",
+    sessionId || "",
     !!reviewApp?.review_app_id && !!sessionId
   );
 
@@ -48,26 +45,20 @@ export function PreviewPage() {
             <h1 className="text-3xl font-bold">Session Preview</h1>
           </div>
         </div>
-        
+
         {/* Compact Renderer Selector on the same line */}
         <div className="ml-6">
           {session?.mlflow_run_id && (
-            <RendererSelector 
-              runId={session.mlflow_run_id} 
-              sessionName={session.name}
-            />
+            <RendererSelector runId={session.mlflow_run_id} sessionName={session.name} />
           )}
         </div>
       </div>
-      
+
       {/* Divider */}
       <div className="border-t border-border"></div>
-      
+
       {/* Direct SME UI without card wrapper */}
-      <SMELabelingInterface 
-        sessionId={sessionId!} 
-        hideNavigation={true} 
-      />
+      <SMELabelingInterface sessionId={sessionId!} hideNavigation={true} />
     </div>
   );
 }

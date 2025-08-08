@@ -19,12 +19,12 @@ interface RendererSelectorProps {
 export function RendererSelector({ runId, sessionName }: RendererSelectorProps) {
   const rendererQuery = useRendererName(runId, !!runId);
   const setRendererTag = useSetRendererTag();
-  
+
   const currentRenderer = rendererQuery.data?.rendererName;
   const isLoading = rendererQuery.isLoading;
-  
+
   const availableRenderers = rendererRegistry.listRenderers();
-  const currentRendererInfo = currentRenderer 
+  const currentRendererInfo = currentRenderer
     ? rendererRegistry.getRenderer(currentRenderer)
     : rendererRegistry.getRenderer(); // Gets default
 
@@ -45,17 +45,15 @@ export function RendererSelector({ runId, sessionName }: RendererSelectorProps) 
   return (
     <div className="flex items-center gap-4">
       <div className="flex items-center gap-2">
-        <Select 
-          value={currentRenderer || ""} 
+        <Select
+          value={currentRenderer || ""}
           onValueChange={handleRendererChange}
           disabled={setRendererTag.isPending}
         >
           <SelectTrigger className="w-48">
             <div className="flex items-center gap-2">
               <SelectValue placeholder={currentRendererInfo.displayName} />
-              {setRendererTag.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              )}
+              {setRendererTag.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
           </SelectTrigger>
           <SelectContent>

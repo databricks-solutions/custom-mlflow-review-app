@@ -6,7 +6,6 @@
  * Status information for a span.
  */
 export type SpanStatus = {
-    status_code: 'OK' | 'ERROR';
-    description: (string | null);
+  status_code: "OK" | "ERROR";
+  description: string | null;
 };
-

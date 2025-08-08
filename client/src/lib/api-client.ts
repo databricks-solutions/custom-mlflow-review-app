@@ -17,11 +17,11 @@ import {
   LabelingItemsService,
   MLflowService,
   OpenAPI,
-  ApiService
+  ApiService,
 } from "@/fastapi_client";
 
 // Configure the OpenAPI client - use relative URLs (Vite proxies /api to localhost:8000 in dev)
-OpenAPI.BASE = '';
+OpenAPI.BASE = "";
 
 interface ApiError {
   error: {
@@ -122,81 +122,112 @@ class ApiClientWrapper {
       // Configuration endpoints
       getConfig: () => ConfigurationService.getConfigApiConfigGet(),
       getExperimentId: () => ConfigurationService.getExperimentIdApiConfigExperimentIdGet(),
-      
+
       // User endpoints
       getCurrentUser: () => UserService.getCurrentUserApiUserMeGet(),
       getUserWorkspace: () => UserService.getUserWorkspaceInfoApiUserMeWorkspaceGet(),
-      
+
       // Review Apps endpoints
-      listReviewApps: (params?: { filter?: string; pageSize?: number }) => 
+      listReviewApps: (params?: { filter?: string; pageSize?: number }) =>
         ReviewAppsService.listReviewAppsApiReviewAppsGet(params?.filter, params?.pageSize),
-      getCurrentReviewApp: () =>
-        ReviewAppsService.getCurrentReviewAppApiReviewAppsCurrentGet(),
+      getCurrentReviewApp: () => ReviewAppsService.getCurrentReviewAppApiReviewAppsCurrentGet(),
       getReviewApp: (params: { reviewAppId: string }) =>
         ReviewAppsService.getReviewAppApiReviewAppsReviewAppIdGet(params.reviewAppId),
       createReviewApp: (params: { reviewApp: any }) =>
         ReviewAppsService.createReviewAppApiReviewAppsPost(params.reviewApp),
       updateReviewApp: (params: { reviewAppId: string; reviewApp: any; updateMask: string }) =>
         ReviewAppsService.updateReviewAppApiReviewAppsReviewAppIdPatch(
-          params.reviewAppId, params.reviewApp, params.updateMask
+          params.reviewAppId,
+          params.reviewApp,
+          params.updateMask
         ),
-      
+
       // Labeling Sessions endpoints
       listLabelingSessions: (params: { reviewAppId: string }) =>
-        LabelingSessionsService.listLabelingSessionsApiReviewAppsReviewAppIdLabelingSessionsGet(params.reviewAppId),
+        LabelingSessionsService.listLabelingSessionsApiReviewAppsReviewAppIdLabelingSessionsGet(
+          params.reviewAppId
+        ),
       getLabelingSession: (params: { reviewAppId: string; sessionId: string }) =>
         LabelingSessionsService.getLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdGet(
-          params.reviewAppId, params.sessionId
+          params.reviewAppId,
+          params.sessionId
         ),
       createLabelingSession: (params: { reviewAppId: string; session: any }) =>
         LabelingSessionsService.createLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsPost(
-          params.reviewAppId, params.session
+          params.reviewAppId,
+          params.session
         ),
-      updateLabelingSession: (params: { reviewAppId: string; sessionId: string; session: any; updateMask: string }) =>
+      updateLabelingSession: (params: {
+        reviewAppId: string;
+        sessionId: string;
+        session: any;
+        updateMask: string;
+      }) =>
         LabelingSessionsService.updateLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdPatch(
-          params.reviewAppId, params.sessionId, params.session, params.updateMask
+          params.reviewAppId,
+          params.sessionId,
+          params.session,
+          params.updateMask
         ),
       deleteLabelingSession: (params: { reviewAppId: string; sessionId: string }) =>
         LabelingSessionsService.deleteLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdDelete(
-          params.reviewAppId, params.sessionId
+          params.reviewAppId,
+          params.sessionId
         ),
-      
+
       // Labeling Items endpoints
       listLabelingItems: (params: { reviewAppId: string; sessionId: string }) =>
         LabelingItemsService.listItemsApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsGet(
-          params.reviewAppId, params.sessionId
+          params.reviewAppId,
+          params.sessionId
         ),
-      updateLabelingItem: (params: { reviewAppId: string; sessionId: string; itemId: string; item: any; updateMask: string }) =>
+      updateLabelingItem: (params: {
+        reviewAppId: string;
+        sessionId: string;
+        itemId: string;
+        item: any;
+        updateMask: string;
+      }) =>
         LabelingItemsService.updateItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdPatch(
-          params.reviewAppId, params.sessionId, params.itemId, params.updateMask, params.item
+          params.reviewAppId,
+          params.sessionId,
+          params.itemId,
+          params.updateMask,
+          params.item
         ),
       deleteLabelingItem: (params: { reviewAppId: string; sessionId: string; itemId: string }) =>
         ApiService.deleteItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdDelete(
-          params.reviewAppId, params.sessionId, params.itemId
+          params.reviewAppId,
+          params.sessionId,
+          params.itemId
         ),
-      
+
       // MLflow endpoints
-      searchTraces: (params: any) =>
-        MLflowService.searchTracesApiMlflowSearchTracesPost(params),
+      searchTraces: (params: any) => MLflowService.searchTracesApiMlflowSearchTracesPost(params),
       getTrace: (params: { traceId: string; runId?: string }) =>
         MLflowService.getTraceApiMlflowTracesTraceIdGet(params.traceId, params.runId),
       getTraceMetadata: (params: { traceId: string }) =>
         MLflowService.getTraceMetadataApiMlflowTracesTraceIdMetadataGet(params.traceId),
       linkTracesToRun: (params: { runId: string; traceIds: string[] }) =>
         MLflowService.linkTracesToRunApiMlflowTracesLinkToRunPost(params),
-      linkTracesToSession: (params: { reviewAppId: string; sessionId: string; mlflow_run_id: string; trace_ids: string[] }) =>
+      linkTracesToSession: (params: {
+        reviewAppId: string;
+        sessionId: string;
+        mlflow_run_id: string;
+        trace_ids: string[];
+      }) =>
         ApiService.linkTracesToSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdLinkTracesPost(
-          params.reviewAppId, params.sessionId, { mlflow_run_id: params.mlflow_run_id, trace_ids: params.trace_ids }
+          params.reviewAppId,
+          params.sessionId,
+          { mlflow_run_id: params.mlflow_run_id, trace_ids: params.trace_ids }
         ),
       getExperiment: (params: { experimentId: string }) =>
         MLflowService.getExperimentApiMlflowExperimentsExperimentIdGet(params.experimentId),
       getRun: (params: { runId: string }) =>
         MLflowService.getRunApiMlflowRunsRunIdGet(params.runId),
-      createRun: (params: any) =>
-        MLflowService.createRunApiMlflowRunsPost(params),
-      updateRun: (params: any) =>
-        MLflowService.updateRunApiMlflowRunsUpdatePost(params),
-      
+      createRun: (params: any) => MLflowService.createRunApiMlflowRunsPost(params),
+      updateRun: (params: any) => MLflowService.updateRunApiMlflowRunsUpdatePost(params),
+
       // Analysis endpoints
       getSessionAnalysis: (params: { reviewAppId: string; sessionId: string }) =>
         ApiService.getSessionAnalysisApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdAnalysisGet(
@@ -208,9 +239,9 @@ class ApiClientWrapper {
           params.reviewAppId,
           params.sessionId
         ),
-      triggerSessionAnalysis: (params: { 
-        reviewAppId: string; 
-        sessionId: string; 
+      triggerSessionAnalysis: (params: {
+        reviewAppId: string;
+        sessionId: string;
         include_ai_insights?: boolean;
         model_endpoint?: string;
       }) =>
@@ -219,7 +250,7 @@ class ApiClientWrapper {
           params.sessionId,
           {
             include_ai_insights: params.include_ai_insights ?? true,
-            model_endpoint: params.model_endpoint ?? 'databricks-claude-sonnet-4',
+            model_endpoint: params.model_endpoint ?? "databricks-claude-sonnet-4",
           }
         ),
     };

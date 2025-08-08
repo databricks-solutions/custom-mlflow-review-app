@@ -5,7 +5,7 @@ import { NoSessionSelected } from "@/components/NoSessionSelected";
 export function ReviewAppPage() {
   const { reviewAppId } = useParams<{ reviewAppId: string }>();
   const [searchParams] = useSearchParams();
-  
+
   const sessionId = searchParams.get("session");
 
   if (!sessionId) {

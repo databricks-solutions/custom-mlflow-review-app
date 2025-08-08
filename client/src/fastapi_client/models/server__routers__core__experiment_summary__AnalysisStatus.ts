@@ -6,9 +6,8 @@
  * Status of an analysis request.
  */
 export type server__routers__core__experiment_summary__AnalysisStatus = {
-    experiment_id: string;
-    status: string;
-    message?: (string | null);
-    run_id?: (string | null);
+  experiment_id: string;
+  status: string;
+  message?: string | null;
+  run_id?: string | null;
 };
-

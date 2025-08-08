@@ -11,16 +11,17 @@ class RendererRegistryImpl implements RendererRegistry {
     this.registerRenderer({
       name: "default",
       displayName: "Default Renderer",
-      description: "Standard MLflow trace review interface with conversation view and labeling forms",
+      description:
+        "Standard MLflow trace review interface with conversation view and labeling forms",
       component: DefaultItemRenderer,
     });
-
 
     // Register the tool renderer
     this.registerRenderer({
       name: "tool-renderer",
       displayName: "Tool Renderer",
-      description: "Conversation view with detailed tool execution details and comprehensive labeling interface",
+      description:
+        "Conversation view with detailed tool execution details and comprehensive labeling interface",
       component: ToolRenderer,
     });
   }
@@ -28,12 +29,12 @@ class RendererRegistryImpl implements RendererRegistry {
   getRenderer(name?: string): ItemRenderer {
     const rendererName = name || this.defaultRenderer;
     const renderer = this.renderers.get(rendererName);
-    
+
     if (!renderer) {
       console.warn(`Renderer '${rendererName}' not found, falling back to default`);
       return this.renderers.get(this.defaultRenderer)!;
     }
-    
+
     return renderer;
   }
 

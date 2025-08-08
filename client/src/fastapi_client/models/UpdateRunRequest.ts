@@ -6,9 +6,8 @@
  * Request to update an MLflow run.
  */
 export type UpdateRunRequest = {
-    run_id: string;
-    status?: (string | null);
-    end_time?: (number | null);
-    tags?: (Array<Record<string, string>> | null);
+  run_id: string;
+  status?: string | null;
+  end_time?: number | null;
+  tags?: Array<Record<string, string>> | null;
 };
-

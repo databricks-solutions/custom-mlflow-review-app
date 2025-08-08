@@ -93,10 +93,10 @@ export function LabelingSessionItemsTable({
                       item.state === "COMPLETED"
                         ? "default"
                         : item.state === "SKIPPED"
-                        ? "secondary"
-                        : item.state === "IN_PROGRESS"
-                        ? "outline"
-                        : "secondary"
+                          ? "secondary"
+                          : item.state === "IN_PROGRESS"
+                            ? "outline"
+                            : "secondary"
                     }
                   >
                     {item.state}
@@ -111,7 +111,10 @@ export function LabelingSessionItemsTable({
                     {truncate(item.request_preview || "-")}
                   </button>
                 </TableCell>
-                <TableCell className="max-w-xs truncate text-xs" title={item.response_preview || ""}>
+                <TableCell
+                  className="max-w-xs truncate text-xs"
+                  title={item.response_preview || ""}
+                >
                   {truncate(item.response_preview || "-")}
                 </TableCell>
                 {reviewApp?.labeling_schemas?.map((schema: any) => (

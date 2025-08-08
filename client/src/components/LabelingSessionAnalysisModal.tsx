@@ -103,7 +103,7 @@ export function LabelingSessionAnalysisModal({
         setIsPolling(false);
         refetchAnalysis();
         toast.success("Analysis completed successfully!");
-      } 
+      }
       // Check if analysis failed
       else if (statusData?.status === "failed") {
         setIsPolling(false);
@@ -188,10 +188,7 @@ export function LabelingSessionAnalysisModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className="max-w-6xl h-[90vh] flex flex-col"
-        hideCloseButton
-      >
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col" hideCloseButton>
         <DialogHeader className="space-y-4 pb-4">
           {/* Title row */}
           <div className="flex items-start justify-between gap-4">
@@ -263,7 +260,7 @@ export function LabelingSessionAnalysisModal({
               </div>
             </div>
           )}
-          
+
           {isLoadingAnalysis ? (
             <div className="space-y-4 p-4">
               <Skeleton className="h-6 w-1/3" />
@@ -309,32 +306,34 @@ export function LabelingSessionAnalysisModal({
             </div>
           ) : (
             <div className="px-6 py-4">
-                {/* Analysis metadata header - simplified */}
-                {analysisData?.metadata && (
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground pb-4 mb-4 border-b">
-                    {analysisData.metadata.completed_assessments !== undefined && (
-                      <div className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        <span>
-                          {analysisData.metadata.completed_assessments} labeled traces analyzed
-                        </span>
-                      </div>
-                    )}
-                    {analysisData.metadata.total_traces_analyzed && (
-                      <div className="flex items-center gap-1">
-                        <BarChart3 className="h-4 w-4" />
-                        <span>{analysisData.metadata.total_traces_analyzed} total traces in session</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {/* Analysis metadata header - simplified */}
+              {analysisData?.metadata && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground pb-4 mb-4 border-b">
+                  {analysisData.metadata.completed_assessments !== undefined && (
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      <span>
+                        {analysisData.metadata.completed_assessments} labeled traces analyzed
+                      </span>
+                    </div>
+                  )}
+                  {analysisData.metadata.total_traces_analyzed && (
+                    <div className="flex items-center gap-1">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>
+                        {analysisData.metadata.total_traces_analyzed} total traces in session
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {/* Analysis report content */}
-                <Markdown
-                  content={analysisData.content}
-                  variant="default"
-                  className="text-foreground"
-                />
+              {/* Analysis report content */}
+              <Markdown
+                content={analysisData.content}
+                variant="default"
+                className="text-foreground"
+              />
             </div>
           )}
         </div>

@@ -83,9 +83,9 @@ export function useUserRole() {
     queryKey: queryKeys.userRole(),
     queryFn: async () => {
       // Make a direct fetch call since the API client may not be generated yet
-      const response = await fetch('/api/auth/user-role');
+      const response = await fetch("/api/auth/user-role");
       if (!response.ok) {
-        throw new Error('Failed to fetch user role');
+        throw new Error("Failed to fetch user role");
       }
       return response.json();
     },
@@ -98,17 +98,17 @@ export function useUserRole() {
 export function useReviewApps(filter?: string) {
   return useQuery({
     queryKey: queryKeys.reviewApps.list(filter),
-    queryFn: () => apiClient.api.listReviewApps({ 
-      filter,
-      pageSize: filter ? 10 : 500 // Use smaller page size when filtering since we expect 1 result
-    }),
+    queryFn: () =>
+      apiClient.api.listReviewApps({
+        filter,
+        pageSize: filter ? 10 : 500, // Use smaller page size when filtering since we expect 1 result
+      }),
   });
 }
 
-
 export function useCurrentReviewApp() {
   return useQuery({
-    queryKey: ['current-review-app'],
+    queryKey: ["current-review-app"],
     queryFn: async () => {
       const result = await apiClient.api.getCurrentReviewApp();
       return result;
@@ -227,8 +227,10 @@ export function useDeleteLabelingSession() {
 // Labeling Items
 export function useLabelingItems(reviewAppId: string, sessionId: string, enabled = true) {
   // Debug logging to track which components are calling this hook
-  console.log(`[HOOK-DEBUG] useLabelingItems called for session ${sessionId.slice(0, 8)} with enabled: ${enabled}`);
-  
+  console.log(
+    `[HOOK-DEBUG] useLabelingItems called for session ${sessionId.slice(0, 8)} with enabled: ${enabled}`
+  );
+
   return useQuery({
     queryKey: queryKeys.labelingItems.list(reviewAppId, sessionId),
     queryFn: () => {
@@ -342,7 +344,7 @@ export function useExperimentSummary(experimentId: string, enabled = true) {
     queryFn: async () => {
       const response = await fetch(`/api/experiment-summary/${experimentId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch experiment summary');
+        throw new Error("Failed to fetch experiment summary");
       }
       return response.json();
     },
@@ -366,7 +368,7 @@ export function useRendererName(runId: string, enabled = true) {
     queryFn: async () => {
       const runData = await apiClient.api.getRun({ runId });
       const rendererName = runData?.run?.data?.tags?.find(
-        (tag) => tag.key === 'mlflow.customRenderer'
+        (tag) => tag.key === "mlflow.customRenderer"
       )?.value;
       return { rendererName, runData };
     },
@@ -380,10 +382,14 @@ export function useRendererName(runId: string, enabled = true) {
 
 export function useUpdateRun() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: { run_id: string; status?: string; end_time?: number; tags?: Array<{key: string; value: string}> }) =>
-      apiClient.api.updateRun(data),
+    mutationFn: (data: {
+      run_id: string;
+      status?: string;
+      end_time?: number;
+      tags?: Array<{ key: string; value: string }>;
+    }) => apiClient.api.updateRun(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.runs.detail(variables.run_id) });
     },
@@ -397,17 +403,17 @@ export function useUpdateRun() {
 export function useSetRendererTag() {
   const queryClient = useQueryClient();
   const updateRun = useUpdateRun();
-  
+
   return useMutation({
     mutationFn: ({ runId, rendererName }: { runId: string; rendererName: string }) =>
       updateRun.mutateAsync({
         run_id: runId,
-        tags: [{ key: 'mlflow.customRenderer', value: rendererName }]
+        tags: [{ key: "mlflow.customRenderer", value: rendererName }],
       }),
     onSuccess: (data, { runId }) => {
       // Invalidate renderer name queries to refetch with new value
       queryClient.invalidateQueries({
-        queryKey: queryKeys.renderers.name(runId)
+        queryKey: queryKeys.renderers.name(runId),
       });
     },
   });
@@ -447,24 +453,33 @@ export function useTriggerSessionAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ reviewAppId, sessionId, includeAiInsights = true, modelEndpoint = 'databricks-claude-sonnet-4' }: {
+    mutationFn: ({
+      reviewAppId,
+      sessionId,
+      includeAiInsights = true,
+      modelEndpoint = "databricks-claude-sonnet-4",
+    }: {
       reviewAppId: string;
       sessionId: string;
       includeAiInsights?: boolean;
       modelEndpoint?: string;
-    }) => apiClient.api.triggerSessionAnalysis({
-      reviewAppId,
-      sessionId,
-      include_ai_insights: includeAiInsights,
-      model_endpoint: modelEndpoint,
-    }),
+    }) =>
+      apiClient.api.triggerSessionAnalysis({
+        reviewAppId,
+        sessionId,
+        include_ai_insights: includeAiInsights,
+        model_endpoint: modelEndpoint,
+      }),
     onSuccess: (data, variables) => {
       // Invalidate analysis queries to refresh
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.analysis(variables.reviewAppId, variables.sessionId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.labelingSessions.analysisStatus(variables.reviewAppId, variables.sessionId),
+        queryKey: queryKeys.labelingSessions.analysisStatus(
+          variables.reviewAppId,
+          variables.sessionId
+        ),
       });
     },
   });
@@ -474,7 +489,8 @@ export function useTriggerSessionAnalysis() {
 export function useExperimentAnalysisStatus(experimentId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.experiments.analysisStatus(experimentId),
-    queryFn: () => apiClient.api.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId),
+    queryFn: () =>
+      apiClient.api.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId),
     enabled: enabled && !!experimentId,
     refetchInterval: 3000, // Poll every 3 seconds by default
     refetchIntervalInBackground: false,
@@ -485,17 +501,23 @@ export function useTriggerExperimentAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ experimentId, focus = 'comprehensive', traceSampleSize = 50, modelEndpoint = 'databricks-claude-sonnet-4' }: {
+    mutationFn: ({
+      experimentId,
+      focus = "comprehensive",
+      traceSampleSize = 50,
+      modelEndpoint = "databricks-claude-sonnet-4",
+    }: {
       experimentId: string;
       focus?: string;
       traceSampleSize?: number;
       modelEndpoint?: string;
-    }) => apiClient.api.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
-      experiment_id: experimentId,
-      focus,
-      trace_sample_size: traceSampleSize,
-      model_endpoint: modelEndpoint,
-    }),
+    }) =>
+      apiClient.api.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
+        experiment_id: experimentId,
+        focus,
+        trace_sample_size: traceSampleSize,
+        model_endpoint: modelEndpoint,
+      }),
     onSuccess: (data, variables) => {
       // Invalidate related queries
       queryClient.invalidateQueries({
@@ -507,4 +529,3 @@ export function useTriggerExperimentAnalysis() {
     },
   });
 }
-

@@ -6,9 +6,8 @@
  * Response from linking traces to a labeling session.
  */
 export type LinkTracesToSessionResponse = {
-    success: boolean;
-    linked_traces: number;
-    message?: (string | null);
-    items_created?: (number | null);
+  success: boolean;
+  linked_traces: number;
+  message?: string | null;
+  items_created?: number | null;
 };
-

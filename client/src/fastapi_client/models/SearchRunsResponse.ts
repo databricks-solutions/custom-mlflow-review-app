@@ -2,12 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { MLflowRunInfo } from './MLflowRunInfo';
+import type { MLflowRunInfo } from "./MLflowRunInfo";
 /**
  * Response from searching runs.
  */
 export type SearchRunsResponse = {
-    runs: Array<MLflowRunInfo>;
-    next_page_token?: (string | null);
+  runs: Array<MLflowRunInfo>;
+  next_page_token?: string | null;
 };
-

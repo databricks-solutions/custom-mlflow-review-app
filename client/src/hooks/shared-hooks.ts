@@ -12,11 +12,11 @@ import { toast } from "sonner";
  */
 export function useLogFeedbackMutation() {
   return useMutation({
-    mutationFn: async ({ 
-      traceId, 
-      feedbackKey, 
-      feedbackValue, 
-      rationale 
+    mutationFn: async ({
+      traceId,
+      feedbackKey,
+      feedbackValue,
+      rationale,
     }: {
       traceId: string;
       feedbackKey: string;
@@ -44,11 +44,11 @@ export function useLogFeedbackMutation() {
  */
 export function useLogExpectationMutation() {
   return useMutation({
-    mutationFn: async ({ 
-      traceId, 
-      expectationKey, 
-      expectationValue, 
-      rationale 
+    mutationFn: async ({
+      traceId,
+      expectationKey,
+      expectationValue,
+      rationale,
     }: {
       traceId: string;
       expectationKey: string;

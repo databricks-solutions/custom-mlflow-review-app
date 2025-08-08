@@ -6,8 +6,7 @@
  * Response from updating feedback.
  */
 export type UpdateFeedbackResponse = {
-    success: boolean;
-    message?: (string | null);
-    assessment_id?: (string | null);
+  success: boolean;
+  message?: string | null;
+  assessment_id?: string | null;
 };
-

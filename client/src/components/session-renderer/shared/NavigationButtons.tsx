@@ -27,29 +27,18 @@ export function NavigationButtons({
 }: NavigationButtonsProps) {
   return (
     <div className="col-span-1 lg:col-span-2 flex items-center justify-between pt-6 border-t">
-      <Button
-        variant="outline"
-        onClick={onPrevious}
-        disabled={currentIndex === 0}
-      >
+      <Button variant="outline" onClick={onPrevious} disabled={currentIndex === 0}>
         <ArrowLeft className="h-4 w-4 mr-2" />
         Previous
       </Button>
 
       <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={onSkip}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={onSkip} disabled={isSubmitting}>
           <XCircle className="h-4 w-4 mr-2" />
           Skip
         </Button>
-        
-        <Button
-          onClick={onSubmit}
-          disabled={isSubmitting || !hasAssessments}
-        >
+
+        <Button onClick={onSubmit} disabled={isSubmitting || !hasAssessments}>
           <CheckCircle className="h-4 w-4 mr-2" />
           Submit & Next
         </Button>

@@ -6,11 +6,10 @@
  * Databricks user information with authentication details.
  */
 export type UserInfo = {
-    userName: string;
-    displayName?: (string | null);
-    active: boolean;
-    emails?: Array<string>;
-    is_obo?: boolean;
-    has_token?: boolean;
+  userName: string;
+  displayName?: string | null;
+  active: boolean;
+  emails?: Array<string>;
+  is_obo?: boolean;
+  has_token?: boolean;
 };
-
