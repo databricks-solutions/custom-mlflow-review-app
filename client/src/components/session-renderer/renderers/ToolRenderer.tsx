@@ -27,6 +27,11 @@ import { MLflowService } from "@/fastapi_client";
 import { toast } from "sonner";
 import { LabelSchemaForm } from "@/components/LabelSchemaForm";
 import { useCurrentUser } from "@/hooks/api-hooks";
+import { useLogFeedbackMutation, useLogExpectationMutation } from "@/hooks/shared-hooks";
+import { alignSchemaToAssessment } from "@/utils/assessment-utils";
+
+// Constants for span type filtering
+const CONVERSATIONAL_SPAN_TYPES = ["CHAT_MODEL", "TOOL", "AGENT", "LLM", "USER", "ASSISTANT"];
 
 export function ToolRenderer({
   item,
@@ -53,24 +58,7 @@ export function ToolRenderer({
   const lastSavedAssessmentsRef = useRef<Map<string, Assessment>>(new Map());
   
   // React Query mutations for logging/updating assessments
-  const logFeedbackMutation = useMutation({
-    mutationFn: async ({ traceId, feedbackKey, feedbackValue, rationale }: {
-      traceId: string;
-      feedbackKey: string;
-      feedbackValue: any;
-      rationale?: string;
-    }) => {
-      return await MLflowService.logTraceFeedbackApiMlflowTracesTraceIdFeedbackPost(traceId, {
-        feedback_key: feedbackKey,
-        feedback_value: feedbackValue,
-        rationale: rationale
-      });
-    },
-    onError: (error) => {
-      console.error('Failed to log feedback:', error);
-      toast.error('Failed to save feedback. Please try again.');
-    }
-  });
+  const logFeedbackMutation = useLogFeedbackMutation();
 
   const updateFeedbackMutation = useMutation({
     mutationFn: async ({ traceId, assessmentId, feedbackValue, rationale }: {
@@ -91,10 +79,12 @@ export function ToolRenderer({
     }
   });
 
-  const logExpectationMutation = useMutation({
-    mutationFn: async ({ traceId, expectationKey, expectationValue, rationale }: {
+  const logExpectationMutation = useLogExpectationMutation();
+  
+  const updateExpectationMutation = useMutation({
+    mutationFn: async ({ traceId, assessmentId, expectationValue, rationale }: {
       traceId: string;
-      expectationKey: string;
+      assessmentId: string;
       expectationValue: any;
       rationale?: string;
     }) => {
@@ -349,7 +339,7 @@ export function ToolRenderer({
   // Filter for conversational spans - include USER, ASSISTANT, AGENT, CHAT_MODEL, and TOOL spans
   const spans = allSpans.filter((span) => {
     const spanType = getSpanType(span);
-    return ['CHAT_MODEL', 'TOOL', 'AGENT', 'LLM', 'USER', 'ASSISTANT'].includes(spanType);
+    return CONVERSATIONAL_SPAN_TYPES.includes(spanType);
   });
   
   // Helper function to extract user message for deduplication

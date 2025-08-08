@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/accordion";
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle,
   XCircle,
   Check,
@@ -27,10 +26,12 @@ import { Assessment } from "@/types/assessment";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { useMutation } from "@tanstack/react-query";
-import { MLflowService } from "@/fastapi_client";
 import { toast } from "sonner";
-// Removed TraceAssessmentsService import - assessments now come from trace data
+import { useLogFeedbackMutation, useLogExpectationMutation } from "@/hooks/shared-hooks";
+import { alignSchemaToAssessment } from "@/utils/assessment-utils";
+
+// Constants for span type filtering
+const CONVERSATIONAL_SPAN_TYPES = ["CHAT_MODEL", "TOOL", "AGENT", "LLM", "USER", "ASSISTANT"];
 
 export function DefaultItemRenderer({
   item,
@@ -52,53 +53,8 @@ export function DefaultItemRenderer({
   const previousLabelsRef = useRef<Record<string, any>>({});
 
   // React Query mutations for logging assessments
-  const logFeedbackMutation = useMutation({
-    mutationFn: async ({
-      traceId,
-      feedbackKey,
-      feedbackValue,
-      rationale,
-    }: {
-      traceId: string;
-      feedbackKey: string;
-      feedbackValue: any;
-      rationale?: string;
-    }) => {
-      return await MLflowService.logTraceFeedbackApiMlflowTracesTraceIdFeedbackPost(traceId, {
-        feedback_key: feedbackKey,
-        feedback_value: feedbackValue,
-        rationale: rationale,
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to log feedback:", error);
-      toast.error("Failed to save feedback. Please try again.");
-    },
-  });
-
-  const logExpectationMutation = useMutation({
-    mutationFn: async ({
-      traceId,
-      expectationKey,
-      expectationValue,
-      rationale,
-    }: {
-      traceId: string;
-      expectationKey: string;
-      expectationValue: any;
-      rationale?: string;
-    }) => {
-      return await MLflowService.logTraceExpectationApiMlflowTracesTraceIdExpectationPost(traceId, {
-        expectation_key: expectationKey,
-        expectation_value: expectationValue,
-        rationale: rationale,
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to log expectation:", error);
-      toast.error("Failed to save expectation. Please try again.");
-    },
-  });
+  const logFeedbackMutation = useLogFeedbackMutation();
+  const logExpectationMutation = useLogExpectationMutation();
 
   // Helper function to convert flat labels to API format
   const convertLabelsToApiFormat = (flatLabels: Record<string, any>) => {
@@ -238,28 +194,6 @@ export function DefaultItemRenderer({
     };
   }, []);
 
-  // Helper function to convert API format labels to flat structure for UI
-  const convertLabelsFromApiFormat = (apiLabels: Record<string, any>) => {
-    const flatLabels: Record<string, any> = {};
-
-    Object.keys(apiLabels).forEach((key) => {
-      const labelData = apiLabels[key];
-      if (typeof labelData === "object" && labelData !== null) {
-        // New format: { value: ..., comment: ... }
-        if (labelData.value !== undefined) {
-          flatLabels[key] = labelData.value;
-        }
-        if (labelData.rationale) {
-          flatLabels[`${key}_comment`] = labelData.rationale;
-        }
-      } else {
-        // Old format or direct value
-        flatLabels[key] = labelData;
-      }
-    });
-
-    return flatLabels;
-  };
 
   // Load existing assessments from trace data when item changes
   useEffect(() => {
@@ -374,10 +308,10 @@ export function DefaultItemRenderer({
     return span.span_type || span.attributes?.["mlflow.spanType"] || "UNKNOWN";
   };
 
-  // Filter for conversational spans - include USER, ASSISTANT, AGENT, CHAT_MODEL, and TOOL spans
+  // Filter for conversational spans
   const spans = allSpans.filter((span) => {
     const spanType = getSpanType(span);
-    return ["CHAT_MODEL", "TOOL", "AGENT", "LLM", "USER", "ASSISTANT"].includes(spanType);
+    return CONVERSATIONAL_SPAN_TYPES.includes(spanType);
   });
 
   // Helper function to extract user message for deduplication
