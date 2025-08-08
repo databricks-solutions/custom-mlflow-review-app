@@ -752,7 +752,11 @@ export function DeveloperDashboard() {
         <TabsContent value="schemas" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Label Schemas</h2>
-            <Button>
+            <Button
+              onClick={() => {
+                toast.info("Use the CLI to create schemas: ./mlflow-cli run create_labeling_schemas");
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Schema
             </Button>
