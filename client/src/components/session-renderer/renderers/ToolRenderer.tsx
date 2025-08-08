@@ -2,16 +2,6 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,24 +10,23 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle,
-  XCircle,
-  Check,
-  Circle,
   ChevronDown,
   ChevronRight,
   Wrench,
   User,
   Bot,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
-import { ItemRendererProps } from "@/types/renderers";
+import { ItemRendererProps, Assessment } from "@/types/renderers";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { useMutation } from "@tanstack/react-query";
 import { MLflowService } from "@/fastapi_client";
 import { toast } from "sonner";
-// Removed TraceAssessmentsService import - assessments now come from trace data
+import { LabelSchemaForm } from "@/components/LabelSchemaForm";
+import { useCurrentUser } from "@/hooks/api-hooks";
 
 export function ToolRenderer({
   item,
@@ -46,8 +35,8 @@ export function ToolRenderer({
   session,
   currentIndex,
   totalItems,
-  labels,
-  onLabelsChange,
+  assessments,
+  onAssessmentsChange,
   onUpdateItem,
   onNavigateToIndex,
   isLoading,
@@ -56,22 +45,25 @@ export function ToolRenderer({
   // State for collapsible tool sections
   const [openTools, setOpenTools] = React.useState<Set<string>>(new Set());
   
-  // Auto-save refs
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedLabelsRef = useRef<string>("");
+  // Get current user
+  const { data: currentUser } = useCurrentUser();
+  const currentUsername = currentUser?.email || 'unknown';
   
-  // React Query mutations for logging assessments
+  // Track last saved assessments to avoid duplicate saves
+  const lastSavedAssessmentsRef = useRef<Map<string, Assessment>>(new Map());
+  
+  // React Query mutations for logging/updating assessments
   const logFeedbackMutation = useMutation({
-    mutationFn: async ({ traceId, feedbackKey, feedbackValue, feedbackComment }: {
+    mutationFn: async ({ traceId, feedbackKey, feedbackValue, rationale }: {
       traceId: string;
       feedbackKey: string;
       feedbackValue: any;
-      feedbackComment?: string;
+      rationale?: string;
     }) => {
       return await MLflowService.logTraceFeedbackApiMlflowTracesTraceIdFeedbackPost(traceId, {
         feedback_key: feedbackKey,
         feedback_value: feedbackValue,
-        feedback_comment: feedbackComment
+        rationale: rationale
       });
     },
     onError: (error) => {
@@ -80,17 +72,36 @@ export function ToolRenderer({
     }
   });
 
+  const updateFeedbackMutation = useMutation({
+    mutationFn: async ({ traceId, assessmentId, feedbackValue, rationale }: {
+      traceId: string;
+      assessmentId: string;
+      feedbackValue: any;
+      rationale?: string;
+    }) => {
+      return await MLflowService.updateTraceFeedbackApiMlflowTracesTraceIdFeedbackPatch(traceId, {
+        assessment_id: assessmentId,
+        feedback_value: feedbackValue,
+        rationale: rationale
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to update feedback:', error);
+      toast.error('Failed to update feedback. Please try again.');
+    }
+  });
+
   const logExpectationMutation = useMutation({
-    mutationFn: async ({ traceId, expectationKey, expectationValue, expectationComment }: {
+    mutationFn: async ({ traceId, expectationKey, expectationValue, rationale }: {
       traceId: string;
       expectationKey: string;
       expectationValue: any;
-      expectationComment?: string;
+      rationale?: string;
     }) => {
       return await MLflowService.logTraceExpectationApiMlflowTracesTraceIdExpectationPost(traceId, {
         expectation_key: expectationKey,
         expectation_value: expectationValue,
-        expectation_comment: expectationComment
+        rationale: rationale
       });
     },
     onError: (error) => {
@@ -99,141 +110,136 @@ export function ToolRenderer({
     }
   });
   
-  // Helper function to convert flat labels to API format
-  const convertLabelsToApiFormat = (flatLabels: Record<string, any>) => {
-    const apiLabels: Record<string, any> = {};
-    
-    // Convert flat structure to nested structure expected by API
-    Object.keys(flatLabels).forEach(key => {
-      if (key.endsWith('_comment')) {
-        // Skip comment fields - they'll be handled with their parent
-        return;
-      }
-      
-      const commentKey = `${key}_comment`;
-      const value = flatLabels[key];
-      
-      if (value !== undefined && value !== null && value !== "") {
-        apiLabels[key] = {
-          value: value,
-          ...(flatLabels[commentKey] ? { comment: flatLabels[commentKey] } : {})
-        };
-      }
-    });
-    
-    return apiLabels;
-  };
+  const updateExpectationMutation = useMutation({
+    mutationFn: async ({ traceId, assessmentId, expectationValue, rationale }: {
+      traceId: string;
+      assessmentId: string;
+      expectationValue: any;
+      rationale?: string;
+    }) => {
+      return await MLflowService.updateTraceExpectationApiMlflowTracesTraceIdExpectationPatch(traceId, {
+        assessment_id: assessmentId,
+        expectation_value: expectationValue,
+        rationale: rationale
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to update expectation:', error);
+      toast.error('Failed to update expectation. Please try again.');
+    }
+  });
   
-  // Auto-save functionality - save to MLflow when labels change
-  const handleLabelsChange = useCallback(async (newLabels: Record<string, any>) => {
-    onLabelsChange(newLabels);
+  // Handle saving a single assessment  
+  const handleAssessmentSave = useCallback(async (assessment: Assessment) => {
+    console.log('[AUTO-SAVE] Saving assessment:', assessment);
     
-    // Clear any existing timeout to debounce the save
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    // Get trace ID from item
+    const traceId = item?.source?.trace_id;
+    if (!traceId) {
+      console.error('[AUTO-SAVE] No trace ID found in item');
+      return;
     }
     
-    // Set a new timeout to save after 2 seconds of no changes
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        console.log('[AUTO-SAVE] Starting auto-save for labels:', newLabels);
+    // Check if this schema is relevant to the review app
+    const relevantSchemaNames = new Set(reviewApp?.labeling_schemas?.map(schema => schema.name) || []);
+    if (!relevantSchemaNames.has(assessment.name)) {
+      console.log(`[AUTO-SAVE] Skipping assessment '${assessment.name}' - not relevant to current review app schemas`);
+      return;
+    }
+    
+    // Only save if there's either a value OR a rationale
+    if ((assessment.value === undefined || assessment.value === null || assessment.value === "") &&
+        (!assessment.rationale || assessment.rationale === "")) {
+      console.log(`[AUTO-SAVE] Skipping empty assessment '${assessment.name}'`);
+      return;
+    }
+    
+    try {
+      // Find the schema to determine if it's FEEDBACK or EXPECTATION
+      const schema = reviewApp?.labeling_schemas?.find(s => s.name === assessment.name);
+      const schemaType = schema?.type || 'FEEDBACK';
+      
+      let result: any;
+      
+      // Check if this assessment already exists (has an ID)
+      const existingAssessment = assessments.get(assessment.name);
+      const hasAssessmentId = existingAssessment?.assessment_id;
+      
+      // Check if the existing assessment belongs to the current user
+      let shouldUpdate = false;
+      if (hasAssessmentId && existingAssessment?.source) {
+        const sourceId = typeof existingAssessment.source === 'object' 
+          ? existingAssessment.source.source_id 
+          : existingAssessment.source;
+        shouldUpdate = sourceId === currentUsername;
         
-        // Get trace ID from item
-        const traceId = item.source?.trace_id;
-        if (!traceId) {
-          console.error('[AUTO-SAVE] No trace ID found in item');
-          return;
+        if (!shouldUpdate) {
+          console.log(`[AUTO-SAVE] Cannot update assessment '${assessment.name}' - belongs to different user (${sourceId} vs ${currentUsername})`);
         }
-        
-        // Get the schema names that are relevant to this review app
-        const relevantSchemaNames = new Set(reviewApp?.labeling_schemas?.map(schema => schema.name) || []);
-        
-        // Convert labels to API format and save each assessment, but ONLY for relevant schemas
-        const apiLabels = convertLabelsToApiFormat(newLabels);
-        let savedCount = 0;
-        
-        for (const [schemaName, labelData] of Object.entries(apiLabels)) {
-          // Only save assessments that belong to this review app's schemas
-          if (!relevantSchemaNames.has(schemaName)) {
-            console.log(`[AUTO-SAVE] Skipping assessment '${schemaName}' - not relevant to current review app schemas`);
-            continue;
-          }
-          
-          if (labelData.value !== undefined && labelData.value !== null && labelData.value !== "") {
-            try {
-              // Find the schema to determine if it's FEEDBACK or EXPECTATION
-              const schema = reviewApp?.labeling_schemas?.find(s => s.name === schemaName);
-              const schemaType = schema?.type || 'FEEDBACK';
-              
-              if (schemaType === 'FEEDBACK') {
-                await logFeedbackMutation.mutateAsync({
-                  traceId,
-                  feedbackKey: schemaName,
-                  feedbackValue: labelData.value,
-                  feedbackComment: labelData.comment
-                });
-              } else {
-                await logExpectationMutation.mutateAsync({
-                  traceId,
-                  expectationKey: schemaName,
-                  expectationValue: labelData.value,
-                  expectationComment: labelData.comment
-                });
-              }
-              savedCount++;
-              console.log(`[AUTO-SAVE] Saved ${schemaName}: ${labelData.value}`);
-            } catch (error) {
-              console.error(`[AUTO-SAVE] Failed to save ${schemaName}:`, error);
-            }
-          }
-        }
-        
-        if (savedCount > 0) {
-          console.log(`[AUTO-SAVE] Successfully auto-saved ${savedCount} assessments`);
-          // Show subtle feedback that auto-save worked
-          toast.success(`Auto-saved ${savedCount} assessment${savedCount > 1 ? 's' : ''}`, {
-            duration: 2000,
+      }
+      
+      if (schemaType === 'FEEDBACK') {
+        if (shouldUpdate) {
+          // Update existing feedback (only if owned by current user)
+          result = await updateFeedbackMutation.mutateAsync({
+            traceId,
+            assessmentId: existingAssessment.assessment_id!,
+            feedbackValue: assessment.value,
+            rationale: assessment.rationale || undefined
+          });
+        } else {
+          // Create new feedback (either no existing or belongs to different user)
+          result = await logFeedbackMutation.mutateAsync({
+            traceId,
+            feedbackKey: assessment.name,
+            feedbackValue: assessment.value,
+            rationale: assessment.rationale || undefined
           });
         }
-        
-      } catch (error) {
-        console.error('[AUTO-SAVE] Auto-save failed:', error);
-      }
-    }, 2000); // Auto-save after 2 seconds of no changes
-    
-  }, [onLabelsChange, item.source?.trace_id, reviewApp?.labeling_schemas, logFeedbackMutation, logExpectationMutation, convertLabelsToApiFormat]);
-  
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
-  
-  // Helper function to convert API format labels to flat structure for UI
-  const convertLabelsFromApiFormat = (apiLabels: Record<string, any>) => {
-    const flatLabels: Record<string, any> = {};
-    
-    Object.keys(apiLabels).forEach(key => {
-      const labelData = apiLabels[key];
-      if (typeof labelData === 'object' && labelData !== null) {
-        // New format: { value: ..., comment: ... }
-        if (labelData.value !== undefined) {
-          flatLabels[key] = labelData.value;
-        }
-        if (labelData.comment) {
-          flatLabels[`${key}_comment`] = labelData.comment;
-        }
       } else {
-        // Old format or direct value
-        flatLabels[key] = labelData;
+        if (shouldUpdate) {
+          // Update existing expectation (only if owned by current user)
+          result = await updateExpectationMutation.mutateAsync({
+            traceId,
+            assessmentId: existingAssessment.assessment_id!,
+            expectationValue: assessment.value,
+            rationale: assessment.rationale || undefined
+          });
+        } else {
+          // Create new expectation (either no existing or belongs to different user)
+          result = await logExpectationMutation.mutateAsync({
+            traceId,
+            expectationKey: assessment.name,
+            expectationValue: assessment.value,
+            rationale: assessment.rationale || undefined
+          });
+        }
       }
-    });
-    
-    return flatLabels;
-  };
+      
+      // Update parent's assessments with the new/updated assessment ID
+      const newAssessments = new Map(assessments);
+      const updatedAssessment = {
+        ...assessment,
+        assessment_id: result?.assessment_id || existingAssessment?.assessment_id
+      };
+      newAssessments.set(assessment.name, updatedAssessment);
+      onAssessmentsChange(newAssessments);
+      
+      // Update last saved ref
+      lastSavedAssessmentsRef.current.set(assessment.name, updatedAssessment);
+      
+      const action = shouldUpdate ? 'Updated' : 'Created';
+      console.log(`[AUTO-SAVE] ${action} ${assessment.name}: ${assessment.value || 'rationale-only'} with rationale: ${assessment.rationale || 'none'}`);
+      toast.success(`Auto-saved ${assessment.name}`, {
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error(`[AUTO-SAVE] Failed to save ${assessment.name}:`, error);
+      toast.error(`Failed to save ${assessment.name}. Please try again.`);
+    }
+  }, [item?.source?.trace_id, reviewApp?.labeling_schemas, assessments, onAssessmentsChange, logFeedbackMutation, logExpectationMutation, updateFeedbackMutation, updateExpectationMutation, currentUsername]);
+  
+  
   
   // Load existing assessments from trace data when item changes
   useEffect(() => {
@@ -243,70 +249,94 @@ export function ToolRenderer({
       console.log('DEBUG: traceData.info.assessments:', traceData?.info?.assessments);
       console.log('DEBUG: item.source:', item?.source);
       
+      // Add detailed assessment structure logging
+      if (traceData?.info?.assessments) {
+        traceData.info.assessments.forEach((assessment, index) => {
+          console.log(`DEBUG: Assessment ${index}:`, {
+            name: assessment.name,
+            value: assessment.value,
+            rationale: assessment.rationale,
+            metadata: assessment.metadata,
+            source: assessment.source,
+            fullObject: assessment
+          });
+        });
+      }
+      
       if (!traceData?.info?.assessments || !reviewApp?.labeling_schemas) {
         console.log('No assessments found in trace data or no labeling schemas');
-        onLabelsChange({});
-        lastSavedLabelsRef.current = "";
+        onAssessmentsChange(new Map());
+        lastSavedAssessmentsRef.current = new Map();
         return;
       }
       
-      const assessments = traceData.info.assessments;
+      const assessments: Assessment[] = traceData.info.assessments;
       console.log('Loading existing assessments from trace data:', assessments);
       
       // Get the schema names that are relevant to this review app
       const relevantSchemaNames = new Set(reviewApp.labeling_schemas.map(schema => schema.name));
       console.log('Relevant schema names for this review app:', relevantSchemaNames);
       
-      // Convert assessments to flat format for UI, but ONLY include assessments for relevant schemas
-      const flatLabels: Record<string, any> = {};
-      assessments.forEach((assessment: any) => {
-        const key = assessment.name;
-        
+      // Group assessments by name and prioritize current user's assessments
+      const assessmentsByName = new Map<string, Assessment>();
+      
+      assessments.forEach((assessment) => {
         // Only process assessments that belong to this review app's schemas
-        if (!relevantSchemaNames.has(key)) {
-          console.log(`Skipping assessment '${key}' - not relevant to current review app schemas`);
+        if (!relevantSchemaNames.has(assessment.name)) {
+          console.log(`Skipping assessment '${assessment.name}' - not relevant to current review app schemas`);
           return;
         }
         
-        // Extract value from nested structure (feedback/expectation) OR direct value
-        let assessmentValue = null;
-        if (assessment.feedback) {
-          assessmentValue = assessment.feedback.value;
-        } else if (assessment.expectation) {
-          assessmentValue = assessment.expectation.value;
-        } else if (assessment.value !== undefined) {
-          // Direct value format (what our API currently returns)
-          assessmentValue = assessment.value;
-        }
+        // Check for rationale in metadata (MLflow bug workaround)
+        const rationale = assessment.metadata?.rationale || assessment.rationale;
         
-        if (assessmentValue !== null && assessmentValue !== undefined) {
-          flatLabels[key] = assessmentValue;
-        }
+        // Get the source ID (email) from the assessment
+        const sourceId = typeof assessment.source === 'object' 
+          ? assessment.source.source_id 
+          : assessment.source;
         
-        // Add rationale/comment if present (check multiple possible locations)
-        if (assessment.rationale) {
-          flatLabels[`${key}_comment`] = assessment.rationale;
-        } else if (assessment.comment) {
-          flatLabels[`${key}_comment`] = assessment.comment;
-        } else if (assessment.metadata?.comment) {
-          // For expectations, comments are stored in metadata
-          flatLabels[`${key}_comment`] = assessment.metadata.comment;
+        const isCurrentUser = sourceId === currentUsername;
+        
+        // Keep the assessment if:
+        // 1. It's from the current user (prioritize user's own assessments)
+        // 2. OR there's no existing assessment for this name
+        // 3. OR the existing assessment is NOT from the current user (replace with current user's)
+        const existing = assessmentsByName.get(assessment.name);
+        const existingIsCurrentUser = existing?.source && (
+          typeof existing.source === 'object' 
+            ? existing.source.source_id === currentUsername
+            : existing.source === currentUsername
+        );
+        
+        if (isCurrentUser || !existing || !existingIsCurrentUser) {
+          // Only replace if this is the current user's assessment or there's no current user assessment
+          if (isCurrentUser || !existingIsCurrentUser) {
+            assessmentsByName.set(assessment.name, {
+              ...assessment,
+              rationale: rationale,
+              assessment_id: assessment.assessment_id || assessment.id  // Include assessment ID
+            });
+            console.log(`Loaded assessment ${assessment.name} from user ${sourceId}`);
+          }
         }
       });
       
-      // Update the form with existing labels (only relevant ones)
-      if (Object.keys(flatLabels).length > 0) {
-        console.log('Populating form with relevant existing assessments:', flatLabels);
-        onLabelsChange(flatLabels);
-        lastSavedLabelsRef.current = JSON.stringify(convertLabelsToApiFormat(flatLabels));
+      // Update the form with existing assessments (only relevant ones)
+      if (assessmentsByName.size > 0) {
+        console.log('Populating form with relevant existing assessments:', assessmentsByName);
+        assessmentsByName.forEach((assessment) => {
+          console.log(`Loaded assessment ${assessment.name}: value=${assessment.value}, rationale=${assessment.rationale}`);
+        });
+        onAssessmentsChange(assessmentsByName);
+        lastSavedAssessmentsRef.current = assessmentsByName;
       } else {
-        onLabelsChange({});
-        lastSavedLabelsRef.current = "";
+        onAssessmentsChange(new Map());
+        lastSavedAssessmentsRef.current = new Map();
       }
     };
     
     loadExistingLabels();
-  }, [item?.item_id, traceData?.info?.assessments, reviewApp?.labeling_schemas, onLabelsChange]);
+  }, [item?.item_id, traceData?.info?.assessments, reviewApp?.labeling_schemas, onAssessmentsChange, currentUsername]);
   
   // Extract spans, filtering for conversational spans
   const allSpans = traceData?.spans || [];
@@ -552,93 +582,12 @@ export function ToolRenderer({
         {reviewApp?.labeling_schemas?.filter(schema => schema.type === 'FEEDBACK').length > 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Feedback</h3>
-            <div className="space-y-4">
-              <Accordion type="single" collapsible className="w-full">
-                {reviewApp?.labeling_schemas?.filter(schema => schema.type === 'FEEDBACK').map((schema) => {
-                  const hasValue = labels[schema.name] !== undefined && labels[schema.name] !== null && labels[schema.name] !== "";
-                  const isCompleted = hasValue;
-                  
-                  return (
-                    <AccordionItem key={schema.name} value={schema.name} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          {isCompleted ? (
-                            <Check className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-green-600" />
-                          )}
-                          <span>{schema.title || schema.name}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 pt-4">
-                        {schema.instruction && (
-                          <p className="text-sm text-muted-foreground">{schema.instruction}</p>
-                        )}
-
-                        {schema.numeric && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">{schema.numeric.min_value}</span>
-                              <span className="text-lg font-semibold">
-                                {labels[schema.name] || schema.numeric.min_value}
-                              </span>
-                              <span className="text-sm">{schema.numeric.max_value}</span>
-                            </div>
-                            <Slider
-                              value={[labels[schema.name] || schema.numeric.min_value]}
-                              onValueChange={(value) => handleLabelsChange({ ...labels, [schema.name]: value[0] })}
-                              min={schema.numeric.min_value}
-                              max={schema.numeric.max_value}
-                              step={1}
-                            />
-                          </div>
-                        )}
-
-                        {schema.categorical && (
-                          <RadioGroup
-                            value={labels[schema.name]}
-                            onValueChange={(value) => handleLabelsChange({ ...labels, [schema.name]: value })}
-                          >
-                            {schema.categorical.options?.map((option) => (
-                              <div key={option} className="flex items-center space-x-2">
-                                <RadioGroupItem value={option} id={`${schema.name}-${option}`} />
-                                <Label htmlFor={`${schema.name}-${option}`}>{option}</Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        )}
-
-                        {schema.text && (
-                          <div className="space-y-2">
-                            <Label htmlFor={schema.name}>Response</Label>
-                            <Textarea
-                              id={schema.name}
-                              value={labels[schema.name] || ""}
-                              onChange={(e) => handleLabelsChange({ ...labels, [schema.name]: e.target.value })}
-                              placeholder={schema.text.placeholder || "Enter your response..."}
-                              rows={4}
-                            />
-                          </div>
-                        )}
-
-                        {schema.enable_comment && (
-                          <div className="space-y-2 pt-2 border-t">
-                            <Label htmlFor={`${schema.name}_comment`}>Comments</Label>
-                            <Textarea
-                              id={`${schema.name}_comment`}
-                              value={labels[`${schema.name}_comment`] || ""}
-                              onChange={(e) => handleLabelsChange({ ...labels, [`${schema.name}_comment`]: e.target.value })}
-                              placeholder="Add your reasoning or additional feedback..."
-                              rows={2}
-                            />
-                          </div>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </div>
+            <LabelSchemaForm
+              schemas={reviewApp.labeling_schemas.filter(schema => schema.type === 'FEEDBACK')}
+              assessments={assessments}
+              onAssessmentSave={handleAssessmentSave}
+              readOnly={false}
+            />
           </div>
         )}
 
@@ -646,93 +595,12 @@ export function ToolRenderer({
         {reviewApp?.labeling_schemas?.filter(schema => schema.type === 'EXPECTATION').length > 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Expectations</h3>
-            <div className="space-y-4">
-              <Accordion type="single" collapsible className="w-full">
-                {reviewApp?.labeling_schemas?.filter(schema => schema.type === 'EXPECTATION').map((schema) => {
-                  const hasValue = labels[schema.name] !== undefined && labels[schema.name] !== null && labels[schema.name] !== "";
-                  const isCompleted = hasValue;
-                  
-                  return (
-                    <AccordionItem key={schema.name} value={schema.name} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          {isCompleted ? (
-                            <Check className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-blue-600" />
-                          )}
-                          <span>{schema.title || schema.name}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 pt-4">
-                        {schema.instruction && (
-                          <p className="text-sm text-muted-foreground">{schema.instruction}</p>
-                        )}
-
-                        {schema.numeric && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">{schema.numeric.min_value}</span>
-                              <span className="text-lg font-semibold">
-                                {labels[schema.name] || schema.numeric.min_value}
-                              </span>
-                              <span className="text-sm">{schema.numeric.max_value}</span>
-                            </div>
-                            <Slider
-                              value={[labels[schema.name] || schema.numeric.min_value]}
-                              onValueChange={(value) => handleLabelsChange({ ...labels, [schema.name]: value[0] })}
-                              min={schema.numeric.min_value}
-                              max={schema.numeric.max_value}
-                              step={1}
-                            />
-                          </div>
-                        )}
-
-                        {schema.categorical && (
-                          <RadioGroup
-                            value={labels[schema.name]}
-                            onValueChange={(value) => handleLabelsChange({ ...labels, [schema.name]: value })}
-                          >
-                            {schema.categorical.options?.map((option) => (
-                              <div key={option} className="flex items-center space-x-2">
-                                <RadioGroupItem value={option} id={`${schema.name}-${option}`} />
-                                <Label htmlFor={`${schema.name}-${option}`}>{option}</Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        )}
-
-                        {schema.text && (
-                          <div className="space-y-2">
-                            <Label htmlFor={schema.name}>Response</Label>
-                            <Textarea
-                              id={schema.name}
-                              value={labels[schema.name] || ""}
-                              onChange={(e) => handleLabelsChange({ ...labels, [schema.name]: e.target.value })}
-                              placeholder={schema.text.placeholder || "Enter your response..."}
-                              rows={4}
-                            />
-                          </div>
-                        )}
-
-                        {schema.enable_comment && (
-                          <div className="space-y-2 pt-2 border-t">
-                            <Label htmlFor={`${schema.name}_comment`}>Comments</Label>
-                            <Textarea
-                              id={`${schema.name}_comment`}
-                              value={labels[`${schema.name}_comment`] || ""}
-                              onChange={(e) => handleLabelsChange({ ...labels, [`${schema.name}_comment`]: e.target.value })}
-                              placeholder="Add your reasoning or additional expectations..."
-                              rows={2}
-                            />
-                          </div>
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </div>
+            <LabelSchemaForm
+              schemas={reviewApp.labeling_schemas.filter(schema => schema.type === 'EXPECTATION')}
+              assessments={assessments}
+              onAssessmentSave={handleAssessmentSave}
+              readOnly={false}
+            />
           </div>
         )}
       </div>
@@ -757,9 +625,6 @@ export function ToolRenderer({
             variant="outline"
             onClick={async () => {
               // Mark as skipped and move to next
-              if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-              }
               await onUpdateItem(item.item_id, { state: "SKIPPED" });
               if (currentIndex < totalItems - 1) {
                 onNavigateToIndex(currentIndex + 1);
@@ -772,100 +637,15 @@ export function ToolRenderer({
           </Button>
           <Button
             onClick={async () => {
-              // Log assessments to trace via MLflow API
-              if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-              }
-              
-              // Get trace ID from item
-              const traceId = item.source?.trace_id;
-              if (!traceId) {
-                console.error('No trace ID found in item');
-                return;
-              }
-
-              try {
-                // Get the schema names that are relevant to this review app
-                const relevantSchemaNames = new Set(reviewApp?.labeling_schemas?.map(schema => schema.name) || []);
-                
-                // Convert each label to MLflow assessment, but ONLY for relevant schemas
-                const apiLabels = convertLabelsToApiFormat(labels);
-                
-                // Track success count for feedback
-                let successCount = 0;
-                let totalCount = 0;
-                
-                // Log all assessments in parallel (only relevant ones)
-                const assessmentPromises = Object.entries(apiLabels).map(async ([schemaName, labelData]) => {
-                  // Only process assessments that belong to this review app's schemas
-                  if (!relevantSchemaNames.has(schemaName)) {
-                    console.log(`[SUBMIT] Skipping assessment '${schemaName}' - not relevant to current review app schemas`);
-                    return;
-                  }
-                  
-                  if (labelData.value !== undefined && labelData.value !== null && labelData.value !== "") {
-                    totalCount++;
-                    // Find the schema to determine if it's FEEDBACK or EXPECTATION
-                    const schema = reviewApp?.labeling_schemas?.find(s => s.name === schemaName);
-                    const schemaType = schema?.type || 'FEEDBACK';
-                    
-                    try {
-                      if (schemaType === 'FEEDBACK') {
-                        // Log as feedback using React Query mutation
-                        await logFeedbackMutation.mutateAsync({
-                          traceId,
-                          feedbackKey: schemaName,
-                          feedbackValue: labelData.value,
-                          feedbackComment: labelData.comment
-                        });
-                        successCount++;
-                      } else {
-                        // Log as expectation using React Query mutation
-                        await logExpectationMutation.mutateAsync({
-                          traceId,
-                          expectationKey: schemaName,
-                          expectationValue: labelData.value,
-                          expectationComment: labelData.comment
-                        });
-                        successCount++;
-                      }
-                    } catch (error) {
-                      // Individual assessment failed, but continue with others
-                      console.error(`Failed to log assessment for ${schemaName}:`, error);
-                    }
-                  }
-                });
-                
-                // Wait for all assessments to be logged
-                await Promise.all(assessmentPromises);
-                
-                // Show appropriate feedback based on success
-                if (successCount === totalCount && totalCount > 0) {
-                  toast.success('All feedback saved successfully');
-                } else if (successCount > 0) {
-                  toast.warning(`Saved ${successCount} of ${totalCount} feedback items`);
-                } else if (totalCount > 0) {
-                  toast.error('Failed to save feedback. Please try again.');
-                }
-                
-                // Mark item as completed (without labels)
-                await onUpdateItem(item.item_id, { state: "COMPLETED" });
-                
-                // Move to next item
-                if (currentIndex < totalItems - 1) {
-                  onNavigateToIndex(currentIndex + 1);
-                }
-              } catch (error) {
-                console.error('Failed to submit assessments:', error);
-                toast.error('An unexpected error occurred. Moving to next item.');
-                // Still mark as completed even if some assessments failed
-                await onUpdateItem(item.item_id, { state: "COMPLETED" });
-                if (currentIndex < totalItems - 1) {
-                  onNavigateToIndex(currentIndex + 1);
-                }
+              // Assessments are already saved via auto-save
+              // Just mark as completed and move to next
+              await onUpdateItem(item.item_id, { state: "COMPLETED" });
+              toast.success('Review completed');
+              if (currentIndex < totalItems - 1) {
+                onNavigateToIndex(currentIndex + 1);
               }
             }}
-            disabled={isSubmitting || Object.keys(labels).length === 0 || logFeedbackMutation.isPending || logExpectationMutation.isPending}
+            disabled={isSubmitting || assessments.size === 0}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Submit & Next

@@ -48,6 +48,7 @@ export const queryKeys = {
   experiments: {
     detail: (id: string) => ["experiments", id] as const,
     summary: (id: string) => ["experiments", id, "summary"] as const,
+    analysisStatus: (id: string) => ["experiments", id, "analysis", "status"] as const,
   },
 
   runs: {
@@ -225,9 +226,15 @@ export function useDeleteLabelingSession() {
 
 // Labeling Items
 export function useLabelingItems(reviewAppId: string, sessionId: string, enabled = true) {
+  // Debug logging to track which components are calling this hook
+  console.log(`[HOOK-DEBUG] useLabelingItems called for session ${sessionId.slice(0, 8)} with enabled: ${enabled}`);
+  
   return useQuery({
     queryKey: queryKeys.labelingItems.list(reviewAppId, sessionId),
-    queryFn: () => apiClient.api.listLabelingItems({ reviewAppId, sessionId }),
+    queryFn: () => {
+      console.log(`[API-DEBUG] Making API call for session ${sessionId.slice(0, 8)}`);
+      return apiClient.api.listLabelingItems({ reviewAppId, sessionId });
+    },
     enabled: enabled && !!reviewAppId && !!sessionId,
   });
 }
@@ -289,11 +296,12 @@ export function useSearchTraces(params: any, enabled = true) {
   });
 }
 
-export function useTrace(traceId: string, runId?: string, enabled = true) {
+export function useTrace(traceId: string, enabled = true) {
   return useQuery({
-    queryKey: runId ? [...queryKeys.traces.detail(traceId), runId] : queryKeys.traces.detail(traceId),
-    queryFn: () => apiClient.api.getTrace({ traceId, runId }),
+    queryKey: queryKeys.traces.detail(traceId),
+    queryFn: () => apiClient.api.getTrace({ traceId }),
     enabled: enabled && !!traceId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - match prefetch staleTime
   });
 }
 
@@ -457,6 +465,44 @@ export function useTriggerSessionAnalysis() {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.analysisStatus(variables.reviewAppId, variables.sessionId),
+      });
+    },
+  });
+}
+
+// Experiment Analysis hooks
+export function useExperimentAnalysisStatus(experimentId: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.experiments.analysisStatus(experimentId),
+    queryFn: () => apiClient.api.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId),
+    enabled: enabled && !!experimentId,
+    refetchInterval: 3000, // Poll every 3 seconds by default
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useTriggerExperimentAnalysis() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ experimentId, focus = 'comprehensive', traceSampleSize = 50, modelEndpoint = 'databricks-claude-sonnet-4' }: {
+      experimentId: string;
+      focus?: string;
+      traceSampleSize?: number;
+      modelEndpoint?: string;
+    }) => apiClient.api.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
+      experiment_id: experimentId,
+      focus,
+      trace_sample_size: traceSampleSize,
+      model_endpoint: modelEndpoint,
+    }),
+    onSuccess: (data, variables) => {
+      // Invalidate related queries
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.experiments.analysisStatus(variables.experimentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.experiments.summary(variables.experimentId),
       });
     },
   });

@@ -1178,6 +1178,13 @@ export function DeveloperDashboard() {
   );
 }
 
+// Global state to throttle lazy loading - prevent too many simultaneous requests
+const globalLazyLoadState = {
+  currentlyLoading: new Set<string>(),
+  maxConcurrent: 1, // Only allow 1 concurrent request to be ultra-conservative
+  queue: [] as { sessionId: string; trigger: () => void }[],
+};
+
 // Helper component to show progress for each labeling session
 function SessionProgress({
   reviewAppId,
@@ -1190,47 +1197,134 @@ function SessionProgress({
   reviewApp: any;
   workspaceUrl?: string;
 }) {
-  const [isInView, setIsInView] = useState(false);
   const [shouldFetch, setShouldFetch] = useState(false);
   const [selectedTraceForModal, setSelectedTraceForModal] = useState<string | null>(null);
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-
-  // Set up intersection observer for lazy loading - trigger when session comes into view
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  
+  // Debug logging for state changes
   useEffect(() => {
-    if (!cardRef.current) return;
+    console.log(`[LAZY-LOAD-STATE] Session ${sessionId.slice(0, 8)} shouldFetch changed to: ${shouldFetch}`);
+  }, [shouldFetch, sessionId]);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && !shouldFetch) {
-          // Only trigger once when coming into view
-          setIsInView(true);
-          setShouldFetch(true);
-          // Stop observing once we've loaded
-          observer.disconnect();
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '100px' // Start loading 100px before the element comes into view
+  // Set up intersection observer for lazy loading - trigger when session progress section comes into view
+  useEffect(() => {
+    // Don't set up observer if we already fetched or don't have required IDs
+    if (shouldFetch || !reviewAppId || !sessionId || !cardRef.current) {
+      return;
+    }
+
+    // Small delay to ensure DOM is fully rendered before setting up observer
+    const timeoutId = setTimeout(() => {
+      if (!cardRef.current || shouldFetch) return;
+      
+      console.log(`[LAZY-LOAD] Setting up intersection observer for session ${sessionId.slice(0, 8)}`);
+      
+      // Clean up existing observer
+      if (observerRef.current) {
+        observerRef.current.disconnect();
       }
-    );
 
-    observer.observe(cardRef.current);
+      // Create new observer with VERY strict settings to prevent early triggering
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} intersection: ${entry.isIntersecting}, ratio: ${entry.intersectionRatio}, boundingRect top: ${entry.boundingClientRect.top}`);
+          
+          // MUCH stricter visibility check - require at least 25% visible AND not too close to top
+          if (entry.isIntersecting && 
+              entry.intersectionRatio >= 0.25 && 
+              entry.boundingClientRect.top > 0) { // Ensure it's not at the very top
+            console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} came into view - STRICT check passed`);
+            
+            // Throttling logic - prevent too many simultaneous requests
+            const triggerFetch = () => {
+              console.log(`[LAZY-LOAD] ✅ Triggering fetch for session ${sessionId.slice(0, 8)}`);
+              globalLazyLoadState.currentlyLoading.add(sessionId);
+              setShouldFetch(true);
+              
+              // Disconnect observer immediately after triggering
+              if (observerRef.current) {
+                observerRef.current.disconnect();
+                observerRef.current = null;
+              }
+            };
+
+            // Check if we can load immediately or need to queue
+            if (globalLazyLoadState.currentlyLoading.size < globalLazyLoadState.maxConcurrent) {
+              triggerFetch();
+            } else {
+              console.log(`[LAZY-LOAD] 📋 Queuing session ${sessionId.slice(0, 8)} (${globalLazyLoadState.currentlyLoading.size} already loading)`);
+              globalLazyLoadState.queue.push({ sessionId, trigger: triggerFetch });
+            }
+          } else {
+            console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} - visibility check FAILED (ratio: ${entry.intersectionRatio}, top: ${entry.boundingClientRect.top})`);
+          }
+        },
+        { 
+          threshold: [0.25], // Require 25% of element to be visible
+          rootMargin: '-50px' // Require element to be well within viewport
+        }
+      );
+
+      observerRef.current.observe(cardRef.current);
+    }, 250); // Longer delay to ensure layout is stable
 
     return () => {
-      observer.disconnect();
+      clearTimeout(timeoutId);
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
     };
-  }, [sessionId, shouldFetch]);
+  }, [sessionId, reviewAppId, shouldFetch]);
+
+  // Early return if already fetched to prevent unnecessary renders
+  const hasAlreadyFetched = shouldFetch;
   
   // Only fetch when explicitly enabled AND required fields are present
-  const enableQuery = shouldFetch && reviewAppId && sessionId;
+  const enableQuery = shouldFetch && !!reviewAppId && !!sessionId;
+  
+  // Debug logging for query enablement
+  useEffect(() => {
+    console.log(`[LAZY-LOAD-QUERY] Session ${sessionId.slice(0, 8)} enableQuery: ${enableQuery} (shouldFetch: ${shouldFetch}, hasIds: ${!!reviewAppId && !!sessionId})`);
+  }, [enableQuery, shouldFetch, reviewAppId, sessionId]);
+  
   const { data: itemsData, isLoading } = useLabelingItems(
     reviewAppId,
     sessionId,
     enableQuery
   );
+
+  // Handle queue processing and cleanup when request completes
+  useEffect(() => {
+    if (!isLoading && shouldFetch && globalLazyLoadState.currentlyLoading.has(sessionId)) {
+      // Request completed, remove from loading set
+      globalLazyLoadState.currentlyLoading.delete(sessionId);
+      console.log(`[LAZY-LOAD] Session ${sessionId.slice(0, 8)} completed loading, ${globalLazyLoadState.currentlyLoading.size} still loading`);
+      
+      // Process queue if there are waiting requests
+      if (globalLazyLoadState.queue.length > 0 && 
+          globalLazyLoadState.currentlyLoading.size < globalLazyLoadState.maxConcurrent) {
+        const next = globalLazyLoadState.queue.shift();
+        if (next) {
+          console.log(`[LAZY-LOAD] 🚀 Processing queued session ${next.sessionId.slice(0, 8)} (queue length: ${globalLazyLoadState.queue.length})`);
+          next.trigger();
+        }
+      } else if (globalLazyLoadState.queue.length > 0) {
+        console.log(`[LAZY-LOAD] ⏸️ Queue has ${globalLazyLoadState.queue.length} items but ${globalLazyLoadState.currentlyLoading.size} still loading`);
+      }
+    }
+  }, [isLoading, shouldFetch, sessionId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      globalLazyLoadState.currentlyLoading.delete(sessionId);
+      globalLazyLoadState.queue = globalLazyLoadState.queue.filter(q => q.sessionId !== sessionId);
+    };
+  }, [sessionId]);
 
   const items = itemsData?.items || [];
   const completedCount = items.filter((i) => i.state === "COMPLETED").length;
@@ -1242,23 +1336,23 @@ function SessionProgress({
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Progress</span>
           <span className="text-sm">
-            {!isInView ? (
-              <span className="text-muted-foreground">Loading...</span>
+            {!shouldFetch ? (
+              <span className="text-muted-foreground">Scroll to load...</span>
             ) : (
               `${completedCount} / ${items.length} completed`
             )}
           </span>
         </div>
         <Progress 
-          value={!isInView ? 0 : progressPercentage} 
+          value={!shouldFetch ? 0 : progressPercentage} 
           className="h-2" 
         />
 
         {/* Always show table */}
         <div className="mt-4">
-          {!isInView ? (
+          {!shouldFetch ? (
             <div className="border rounded-lg p-8 text-center text-muted-foreground">
-              <div className="text-sm">Items will load when scrolled into view</div>
+              <div className="text-sm animate-pulse">Loading items...</div>
             </div>
           ) : isLoading ? (
             <div className="border rounded-lg p-8 text-center text-muted-foreground">
@@ -1328,10 +1422,11 @@ function AddTracesButton({
   const queryClient = useQueryClient();
 
   // Get current items to check which traces are already in session
+  // Only fetch when the modal is open - don't fetch eagerly for all sessions
   const { data: itemsData } = useLabelingItems(
     reviewAppId,
     sessionId,
-    !!reviewAppId && !!sessionId
+    isOpen && !!reviewAppId && !!sessionId
   );
   const existingTraceIds = useMemo(() => {
     return new Set((itemsData?.items || []).map((item) => item.source?.trace_id).filter(Boolean));

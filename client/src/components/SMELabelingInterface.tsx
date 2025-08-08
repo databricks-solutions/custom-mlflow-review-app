@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
-import { TraceData } from "@/types/renderers";
+import { TraceData, Assessment } from "@/types/renderers";
 
 interface SMELabelingInterfaceProps {
   sessionId: string;
@@ -27,7 +27,7 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
-  const [labels, setLabels] = useState<Record<string, any>>({});
+  const [assessments, setAssessments] = useState<Map<string, Assessment>>(new Map());
 
   // Data fetching - use current review app instead of taking it as a prop
   const { data: reviewApp, isLoading: isLoadingReviewApp } = useCurrentReviewApp();
@@ -46,22 +46,31 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
 
   const { data: traceSummary, isLoading: isLoadingTrace } = useTrace(
     (currentItem?.source && 'trace_id' in currentItem.source ? currentItem.source.trace_id : null) || "",
-    undefined, // Don't pass run_id - fetch trace directly
     !!(currentItem?.source && 'trace_id' in currentItem.source ? currentItem.source.trace_id : null)
   );
 
   const updateItemMutation = useUpdateLabelingItem();
 
-  // Prefetch next item's trace data
+  // Prefetch next item's trace data - only after current item has loaded
   useEffect(() => {
-    if (nextItem?.source?.trace_id) {
+    // Only prefetch if:
+    // 1. Current trace has finished loading
+    // 2. Next item exists and has a trace_id
+    // 3. We have a valid trace summary for current item
+    if (
+      !isLoadingTrace && 
+      traceSummary && 
+      nextItem?.source?.trace_id &&
+      'trace_id' in nextItem.source
+    ) {
+      console.log(`[PREFETCH] Starting prefetch for next trace: ${nextItem.source.trace_id}`);
       queryClient.prefetchQuery({
         queryKey: queryKeys.traces.detail(nextItem.source.trace_id),
         queryFn: () => apiClient.api.getTrace({ traceId: nextItem.source.trace_id }),
         staleTime: 5 * 60 * 1000, // 5 minutes
       });
     }
-  }, [currentItemIndex, nextItem?.source?.trace_id, queryClient]);
+  }, [isLoadingTrace, traceSummary, nextItem?.source?.trace_id, queryClient]);
 
   // Get renderer name from MLflow run tags
   const rendererQuery = useRendererName(
@@ -74,22 +83,79 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
   const RendererComponent = getRendererComponent(rendererName);
 
   // Pass the update mutation to the renderer for auto-save
-  const handleUpdateItem = (itemId: string, updates: { state?: string; labels?: Record<string, any>; comment?: string }) => {
+  const handleUpdateItem = (itemId: string, updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }) => {
     if (!reviewApp?.review_app_id) {
       throw new Error("Review app ID not available");
     }
+    // Only include basic fields that are supported by Databricks API
+    const itemData: Record<string, any> = {};
+    const updateFields: string[] = [];
+    
+    if (updates.state !== undefined) {
+      itemData.state = updates.state;
+      updateFields.push("state");
+    }
+    
+    if (updates.comment !== undefined) {
+      itemData.comment = updates.comment;
+      updateFields.push("comment");
+    }
+    
+    // Note: assessments are handled separately via MLflow API calls
+    // They are not sent as part of the item update
+    
     return updateItemMutation.mutateAsync({
       reviewAppId: reviewApp.review_app_id,
       sessionId,
       itemId,
-      item: updates,
-      updateMask: Object.keys(updates).join(","),
+      item: itemData,
+      updateMask: updateFields.join(","),
     });
   };
 
   const handleNavigateToIndex = (index: number) => {
     setCurrentItemIndex(index);
-    setLabels({});
+    setAssessments(new Map());
+  };
+
+  const handlePrevious = () => {
+    if (currentItemIndex > 0) {
+      handleNavigateToIndex(currentItemIndex - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentItemIndex < items.length - 1) {
+      handleNavigateToIndex(currentItemIndex + 1);
+    }
+  };
+
+  const handleNextUnreviewed = () => {
+    // Find next item that is not completed or skipped
+    for (let i = currentItemIndex + 1; i < items.length; i++) {
+      if (items[i].state !== "COMPLETED" && items[i].state !== "SKIPPED") {
+        handleNavigateToIndex(i);
+        return;
+      }
+    }
+    // If no unreviewed items found after current, look from beginning
+    for (let i = 0; i < currentItemIndex; i++) {
+      if (items[i].state !== "COMPLETED" && items[i].state !== "SKIPPED") {
+        handleNavigateToIndex(i);
+        return;
+      }
+    }
+  };
+
+  const hasUnreviewedItems = items.some(item => 
+    item.state !== "COMPLETED" && item.state !== "SKIPPED"
+  );
+
+  const getCompletionPercentage = () => {
+    const completedItems = items.filter(item => 
+      item.state === "COMPLETED" || item.state === "SKIPPED"
+    ).length;
+    return Math.round((completedItems / items.length) * 100);
   };
 
   if (isLoadingItems || isLoadingTrace || isLoadingReviewApp) {
@@ -152,23 +218,66 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
             Item {currentItemIndex + 1} of {items.length}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {items.map((item, idx) => (
-            <div
-              key={idx}
-              className={`w-2 h-2 rounded-full cursor-pointer ${
-                item.state === "COMPLETED"
-                  ? "bg-green-500"
-                  : item.state === "SKIPPED"
-                    ? "bg-yellow-500"
-                    : idx === currentItemIndex
-                      ? "bg-blue-500"
-                      : "bg-gray-300"
-              }`}
-              onClick={() => setCurrentItemIndex(idx)}
-              title={`Item ${idx + 1} - ${item.state}`}
-            />
-          ))}
+        <div className="flex items-center gap-4">
+          {/* Progress percentage and dots */}
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-light text-muted-foreground">
+              {getCompletionPercentage()}%
+            </h3>
+            <div className="flex items-center gap-1">
+              {items.map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`w-2 h-2 rounded-full cursor-pointer ${
+                    item.state === "COMPLETED"
+                      ? "bg-green-500"
+                      : item.state === "SKIPPED"
+                        ? "bg-yellow-500"
+                        : idx === currentItemIndex
+                          ? "bg-blue-500"
+                          : "bg-gray-300"
+                  }`}
+                  onClick={() => setCurrentItemIndex(idx)}
+                  title={`Item ${idx + 1} - ${item.state}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Navigation buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrevious}
+              disabled={currentItemIndex === 0}
+              className="p-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNext}
+              disabled={currentItemIndex === items.length - 1}
+              className="p-2"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {hasUnreviewedItems && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextUnreviewed}
+                className="flex items-center gap-2"
+              >
+                Next unreviewed
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -180,8 +289,8 @@ export function SMELabelingInterface({ sessionId, hideNavigation = false }: SMEL
         session={session!}
         currentIndex={currentItemIndex}
         totalItems={items.length}
-        labels={labels}
-        onLabelsChange={setLabels}
+        assessments={assessments}
+        onAssessmentsChange={setAssessments}
         onUpdateItem={handleUpdateItem}
         onNavigateToIndex={handleNavigateToIndex}
         isLoading={isLoadingTrace}

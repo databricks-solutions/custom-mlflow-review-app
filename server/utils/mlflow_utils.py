@@ -637,7 +637,7 @@ def get_trace_data(trace_id: str) -> Dict[str, Any]:
 
 
 def log_feedback(
-  trace_id: str, key: str, value: Any, username: str, comment: Optional[str] = None
+  trace_id: str, key: str, value: Any, username: str, rationale: Optional[str] = None
 ) -> Dict[str, Any]:
   """Log feedback on a trace.
 
@@ -646,7 +646,7 @@ def log_feedback(
       key: The feedback key
       value: The feedback value (can be str, int, float, bool, or dict)
       username: The username of the person providing feedback
-      comment: Optional comment about the feedback
+      rationale: Optional rationale about the feedback
 
   Returns:
       Dictionary containing operation result
@@ -654,25 +654,70 @@ def log_feedback(
   _ensure_mlflow_initialized()
 
   try:
+    # Prepare metadata with rationale as workaround for MLflow bug
+    metadata = {'rationale': rationale} if rationale else None
+    
     # Log feedback using MLflow with user identity
-    mlflow.log_feedback(
+    # Note: rationale parameter doesn't work in MLflow 3.1.1, using metadata instead
+    assessment = mlflow.log_feedback(
       trace_id=trace_id,
       name=key,
       value=value,
       source=AssessmentSource(source_type='human', source_id=username),
-      rationale=comment,
+      metadata=metadata,
     )
 
     return {
       'success': True,
       'message': f'Feedback logged successfully for trace {trace_id} by user {username}',
+      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else None,
     }
   except Exception as e:
     raise Exception(f'Failed to log feedback: {str(e)}')
 
 
+def update_feedback(
+  trace_id: str, assessment_id: str, value: Any, username: str, rationale: Optional[str] = None
+) -> Dict[str, Any]:
+  """Update existing feedback on a trace.
+
+  Args:
+      trace_id: The trace ID
+      assessment_id: The assessment ID to update
+      value: The feedback value (can be str, int, float, bool, or dict)
+      username: The username of the person providing feedback
+      rationale: Optional rationale about the feedback
+
+  Returns:
+      Dictionary containing operation result
+  """
+  _ensure_mlflow_initialized()
+
+  try:
+    # Prepare metadata with rationale as workaround for MLflow bug
+    metadata = {'rationale': rationale} if rationale else None
+    
+    # Update feedback using MLflow with user identity
+    assessment = mlflow.override_feedback(
+      trace_id=trace_id,
+      assessment_id=assessment_id,
+      value=value,
+      source=AssessmentSource(source_type='human', source_id=username),
+      metadata=metadata,
+      rationale=rationale,  # Try both - MLflow might fix this in future versions
+    )
+
+    return {
+      'success': True,
+      'message': f'Feedback updated successfully for trace {trace_id} by user {username}',
+      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else assessment_id,
+    }
+  except Exception as e:
+    raise Exception(f'Failed to update feedback: {str(e)}')
+
+
 def log_expectation(
-  trace_id: str, key: str, value: Any, username: str, comment: Optional[str] = None
+  trace_id: str, key: str, value: Any, username: str, rationale: Optional[str] = None
 ) -> Dict[str, Any]:
   """Log expectation on a trace.
 
@@ -681,7 +726,7 @@ def log_expectation(
       key: The expectation key
       value: The expectation value (can be str, int, float, bool, or dict)
       username: The username of the person providing expectation
-      comment: Optional comment about the expectation
+      rationale: Optional rationale about the expectation
 
   Returns:
       Dictionary containing operation result
@@ -689,11 +734,12 @@ def log_expectation(
   _ensure_mlflow_initialized()
 
   try:
-    # Prepare metadata if comment is provided
-    metadata = {'comment': comment} if comment else None
-
+    # Prepare metadata with rationale as workaround for MLflow bug
+    metadata = {'rationale': rationale} if rationale else None
+    
     # Log expectation using MLflow with user identity
-    mlflow.log_expectation(
+    # Note: rationale parameter doesn't work in MLflow 3.1.1, using metadata instead
+    assessment = mlflow.log_expectation(
       trace_id=trace_id,
       name=key,
       value=value,
@@ -704,6 +750,58 @@ def log_expectation(
     return {
       'success': True,
       'message': f'Expectation logged successfully for trace {trace_id} by user {username}',
+      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else None,
     }
   except Exception as e:
     raise Exception(f'Failed to log expectation: {str(e)}')
+
+
+def update_expectation(
+  trace_id: str, assessment_id: str, value: Any, username: str, rationale: Optional[str] = None
+) -> Dict[str, Any]:
+  """Update existing expectation on a trace.
+
+  Args:
+      trace_id: The trace ID
+      assessment_id: The assessment ID to update
+      value: The expectation value (can be str, int, float, bool, or dict)
+      username: The username of the person providing expectation
+      rationale: Optional rationale about the expectation
+
+  Returns:
+      Dictionary containing operation result
+  """
+  _ensure_mlflow_initialized()
+
+  try:
+    # For expectations, we need to use update_assessment instead of override_feedback
+    # First get the current assessment to preserve the name
+    current = mlflow.get_assessment(trace_id=trace_id, assessment_id=assessment_id)
+    
+    # Create updated assessment
+    from mlflow.entities import Assessment
+    
+    # Prepare metadata with rationale as workaround for MLflow bug
+    metadata = {'rationale': rationale} if rationale else None
+    
+    updated_assessment = Assessment(
+      name=current.name,
+      value=value,
+      source=AssessmentSource(source_type='human', source_id=username),
+      metadata=metadata,
+    )
+    
+    # Update the assessment
+    assessment = mlflow.update_assessment(
+      trace_id=trace_id,
+      assessment_id=assessment_id,
+      assessment=updated_assessment,
+    )
+
+    return {
+      'success': True,
+      'message': f'Expectation updated successfully for trace {trace_id} by user {username}',
+      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else assessment_id,
+    }
+  except Exception as e:
+    raise Exception(f'Failed to update expectation: {str(e)}')

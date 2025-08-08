@@ -27,6 +27,10 @@ import type { server__routers__review__labeling_sessions__AnalysisStatus } from 
 import type { server__routers__review__labeling_sessions__TriggerAnalysisRequest } from '../models/server__routers__review__labeling_sessions__TriggerAnalysisRequest';
 import type { Trace } from '../models/Trace';
 import type { TraceAnalysisResponse } from '../models/TraceAnalysisResponse';
+import type { UpdateExpectationRequest } from '../models/UpdateExpectationRequest';
+import type { UpdateExpectationResponse } from '../models/UpdateExpectationResponse';
+import type { UpdateFeedbackRequest } from '../models/UpdateFeedbackRequest';
+import type { UpdateFeedbackResponse } from '../models/UpdateFeedbackResponse';
 import type { UpdateRunRequest } from '../models/UpdateRunRequest';
 import type { UserInfo } from '../models/UserInfo';
 import type { UserWorkspaceInfo } from '../models/UserWorkspaceInfo';
@@ -460,6 +464,38 @@ export class ApiService {
         });
     }
     /**
+     * Update Trace Feedback
+     * Update existing feedback on a trace.
+     *
+     * Args:
+     * trace_id: The trace ID to update feedback for
+     * request: The update request containing assessment_id, value, and optional rationale
+     *
+     * Returns:
+     * UpdateFeedbackResponse indicating success or failure
+     * @param traceId
+     * @param requestBody
+     * @returns UpdateFeedbackResponse Successful Response
+     * @throws ApiError
+     */
+    public static updateTraceFeedbackApiMlflowTracesTraceIdFeedbackPatch(
+        traceId: string,
+        requestBody: UpdateFeedbackRequest,
+    ): CancelablePromise<UpdateFeedbackResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/mlflow/traces/{trace_id}/feedback',
+            path: {
+                'trace_id': traceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Log Trace Expectation
      * Log expectation on a trace.
      *
@@ -480,6 +516,38 @@ export class ApiService {
     ): CancelablePromise<LogExpectationResponse> {
         return __request(OpenAPI, {
             method: 'POST',
+            url: '/api/mlflow/traces/{trace_id}/expectation',
+            path: {
+                'trace_id': traceId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Trace Expectation
+     * Update existing expectation on a trace.
+     *
+     * Args:
+     * trace_id: The trace ID to update expectation for
+     * request: The update request containing assessment_id, value, and optional rationale
+     *
+     * Returns:
+     * UpdateExpectationResponse indicating success or failure
+     * @param traceId
+     * @param requestBody
+     * @returns UpdateExpectationResponse Successful Response
+     * @throws ApiError
+     */
+    public static updateTraceExpectationApiMlflowTracesTraceIdExpectationPatch(
+        traceId: string,
+        requestBody: UpdateExpectationRequest,
+    ): CancelablePromise<UpdateExpectationResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
             url: '/api/mlflow/traces/{trace_id}/expectation',
             path: {
                 'trace_id': traceId,

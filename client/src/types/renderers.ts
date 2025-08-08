@@ -1,5 +1,12 @@
 // Types for custom renderer system
 
+import { Assessment as BaseAssessment } from "@/fastapi_client/models/Assessment";
+
+// Extend Assessment to include ID for tracking updates
+export interface Assessment extends BaseAssessment {
+  assessment_id?: string;
+}
+
 export interface TraceData {
   info: {
     trace_id: string;
@@ -69,11 +76,11 @@ export interface ItemRendererProps {
   totalItems: number;
   
   // State management
-  labels: Record<string, any>;
-  onLabelsChange: (labels: Record<string, any>) => void;
+  assessments: Map<string, Assessment>;
+  onAssessmentsChange: (assessments: Map<string, Assessment>) => void;
   
   // Actions - updated to include auto-save capability
-  onUpdateItem: (itemId: string, updates: { state?: string; labels?: Record<string, any>; comment?: string }) => Promise<any>;
+  onUpdateItem: (itemId: string, updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }) => Promise<any>;
   onNavigateToIndex: (index: number) => void;
   
   // UI state

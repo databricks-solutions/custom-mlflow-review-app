@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Request to log expectation on a trace.
+ * Request to update existing expectation on a trace.
  */
-export type LogExpectationRequest = {
-    expectation_key: string;
+export type UpdateExpectationRequest = {
+    assessment_id: string;
     expectation_value: (string | number | boolean | Record<string, any>);
     rationale?: (string | null);
 };

@@ -82,6 +82,7 @@ class Assessment(BaseModel):
 
   name: str
   value: Union[float, int, str, bool, List[str], Dict[str, Any]]
+  rationale: Optional[str] = None
   metadata: Optional[Dict[str, Any]] = None
   source: Optional[Union[str, Dict[str, Any]]] = None
 

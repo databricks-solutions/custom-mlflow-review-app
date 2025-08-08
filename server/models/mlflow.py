@@ -78,7 +78,7 @@ class LogFeedbackRequest(BaseModel):
 
   feedback_key: str
   feedback_value: Union[str, int, float, bool, List[Union[str, int, float, bool]]]
-  feedback_comment: Optional[str] = None
+  rationale: Optional[str] = None
 
 
 class LogExpectationRequest(BaseModel):
@@ -88,7 +88,7 @@ class LogExpectationRequest(BaseModel):
   expectation_value: Union[
     str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]
   ]
-  expectation_comment: Optional[str] = None
+  rationale: Optional[str] = None
 
 
 class LogFeedbackResponse(BaseModel):
@@ -96,6 +96,7 @@ class LogFeedbackResponse(BaseModel):
 
   success: bool
   message: Optional[str] = None
+  assessment_id: Optional[str] = None
 
 
 class LogExpectationResponse(BaseModel):
@@ -103,3 +104,38 @@ class LogExpectationResponse(BaseModel):
 
   success: bool
   message: Optional[str] = None
+  assessment_id: Optional[str] = None
+
+
+class UpdateFeedbackRequest(BaseModel):
+  """Request to update existing feedback on a trace."""
+
+  assessment_id: str
+  feedback_value: Union[str, int, float, bool, List[Union[str, int, float, bool]]]
+  rationale: Optional[str] = None
+
+
+class UpdateExpectationRequest(BaseModel):
+  """Request to update existing expectation on a trace."""
+
+  assessment_id: str
+  expectation_value: Union[
+    str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]
+  ]
+  rationale: Optional[str] = None
+
+
+class UpdateFeedbackResponse(BaseModel):
+  """Response from updating feedback."""
+
+  success: bool
+  message: Optional[str] = None
+  assessment_id: Optional[str] = None
+
+
+class UpdateExpectationResponse(BaseModel):
+  """Response from updating expectation."""
+
+  success: bool
+  message: Optional[str] = None
+  assessment_id: Optional[str] = None

@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Response from logging feedback.
+ * Response from updating expectation.
  */
-export type LogFeedbackResponse = {
+export type UpdateExpectationResponse = {
     success: boolean;
     message?: (string | null);
     assessment_id?: (string | null);

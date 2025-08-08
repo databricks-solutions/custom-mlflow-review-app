@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { Markdown } from "@/components/ui/markdown";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,11 +34,11 @@ import {
   Check,
   ExternalLink,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CoreService, ReviewAppsService } from "@/fastapi_client";
+import { useQueryClient } from "@tanstack/react-query";
+import { ReviewAppsService } from "@/fastapi_client";
 import { SchemaPreview } from "./SchemaPreview";
 import { toast } from "sonner";
-import { useCurrentReviewApp } from "@/hooks/api-hooks";
+import { useCurrentReviewApp, useExperimentAnalysisStatus, useTriggerExperimentAnalysis } from "@/hooks/api-hooks";
 
 interface Schema {
   key: string;
@@ -90,41 +88,29 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   // Get current review app to check existing schemas
   const { data: reviewApp } = useCurrentReviewApp();
 
-  // Mutation to trigger analysis
-  const triggerAnalysisMutation = useMutation({
-    mutationFn: async () => {
-      return await CoreService.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
-        experiment_id: experimentId,
-        focus: "comprehensive",
-        trace_sample_size: 50,
-        model_endpoint: "databricks-claude-sonnet-4",
-      });
-    },
-    onSuccess: () => {
-      // Start polling for status
-      setTimeout(() => checkAnalysisStatus(), 2000);
-    },
-  });
+  // Use the new hooks for experiment analysis
+  const triggerAnalysisMutation = useTriggerExperimentAnalysis();
 
-  // Query for analysis status
-  const { data: analysisStatus, refetch: refetchStatus } = useQuery({
-    queryKey: ["analysis-status", experimentId],
-    queryFn: async () => {
-      return await CoreService.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId);
-    },
-    enabled: false, // Only fetch when explicitly called
-  });
+  // Start with checking if analysis is already running
+  const { data: analysisStatus } = useExperimentAnalysisStatus(
+    experimentId, 
+    true // Always enabled to check status
+  );
 
-  const checkAnalysisStatus = async () => {
-    const result = await refetchStatus();
-    if (result.data?.status === "running" || result.data?.status === "pending") {
-      // Continue polling
-      setTimeout(() => checkAnalysisStatus(), 3000);
-    } else if (result.data?.status === "completed") {
-      // Refresh the summary
+  // Handle analysis status changes and show appropriate messages
+  React.useEffect(() => {
+    if (!analysisStatus) return;
+
+    console.log(`[ANALYSIS-STATUS] Status: ${analysisStatus.status}`);
+
+    if (analysisStatus.status === "completed") {
+      // Refresh the summary to get new results
       queryClient.invalidateQueries({ queryKey: ["experiment-summary", experimentId] });
+      toast.success("Analysis completed successfully!");
+    } else if (analysisStatus.status === "failed") {
+      toast.error(`Analysis failed: ${analysisStatus.message || "Unknown error"}`);
     }
-  };
+  }, [analysisStatus, queryClient, experimentId]);
 
   const toggleIssue = (index: number) => {
     const newExpanded = new Set(expandedIssues);
@@ -212,14 +198,19 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
         </CardHeader>
         <CardContent>
           <Button
-            onClick={() => triggerAnalysisMutation.mutate()}
+            onClick={() => triggerAnalysisMutation.mutate({ experimentId })}
             disabled={triggerAnalysisMutation.isPending || analysisStatus?.status === "running"}
             className="gap-2"
           >
-            {triggerAnalysisMutation.isPending || analysisStatus?.status === "running" ? (
+            {triggerAnalysisMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {analysisStatus?.status === "running" ? "Analysis Running..." : "Starting Analysis..."}
+                Starting Analysis...
+              </>
+            ) : (analysisStatus?.status === "running") ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analysis Running...
               </>
             ) : (
               <>
@@ -229,7 +220,11 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
             )}
           </Button>
           {analysisStatus?.message && (
-            <p className="mt-2 text-sm text-muted-foreground">{analysisStatus.message}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {analysisStatus.status === "running" || analysisStatus.status === "pending" 
+                ? "Analysis is in progress. This may take several minutes..." 
+                : analysisStatus.message}
+            </p>
           )}
         </CardContent>
       </Card>
@@ -254,11 +249,16 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => triggerAnalysisMutation.mutate()}
+                onClick={() => triggerAnalysisMutation.mutate({ experimentId })}
                 disabled={triggerAnalysisMutation.isPending || analysisStatus?.status === "running"}
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Re-run Analysis
+                {triggerAnalysisMutation.isPending || analysisStatus?.status === "running" ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                {triggerAnalysisMutation.isPending ? "Starting..." : 
+                 (analysisStatus?.status === "running") ? "Running..." : "Re-run Analysis"}
               </Button>
             </div>
           </CardHeader>
@@ -306,31 +306,11 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
         <TabsContent value="report">
           <Card>
             <CardContent className="p-6">
-              <div className="prose prose-slate prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 dark:prose-p:text-gray-300">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  components={{
-                    h1: ({ children }) => (
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-                        {children}
-                      </h1>
-                    ),
-                    h2: ({ children }) => (
-                      <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-3">
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-4 mb-2">
-                        {children}
-                      </h3>
-                    ),
-                  }}
-                >
-                  {experimentSummary.content}
-                </ReactMarkdown>
-              </div>
+              <Markdown 
+                content={experimentSummary.content}
+                variant="large"
+                className="text-foreground"
+              />
             </CardContent>
           </Card>
         </TabsContent>

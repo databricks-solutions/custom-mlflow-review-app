@@ -8,5 +8,6 @@
 export type LogExpectationResponse = {
     success: boolean;
     message?: (string | null);
+    assessment_id?: (string | null);
 };
 

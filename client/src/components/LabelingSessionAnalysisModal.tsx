@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { Markdown } from "@/components/ui/markdown";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +27,11 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { useSessionAnalysis, useAnalysisStatus, useTriggerSessionAnalysis } from "@/hooks/api-hooks";
+import {
+  useSessionAnalysis,
+  useAnalysisStatus,
+  useTriggerSessionAnalysis,
+} from "@/hooks/api-hooks";
 import { toast } from "sonner";
 
 interface LabelingSessionAnalysisModalProps {
@@ -58,7 +60,7 @@ interface AnalysisData {
 
 interface AnalysisStatus {
   session_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'not_found';
+  status: "pending" | "running" | "completed" | "failed" | "not_found";
   message?: string;
   run_id?: string;
   report_path?: string;
@@ -83,27 +85,44 @@ export function LabelingSessionAnalysisModal({
     refetch: refetchAnalysis,
   } = useSessionAnalysis(reviewAppId, sessionId, isOpen);
 
-  const {
-    data: statusData,
-    refetch: refetchStatus,
-  } = useAnalysisStatus(reviewAppId, sessionId, isOpen && isPolling);
+  const { data: statusData, refetch: refetchStatus } = useAnalysisStatus(
+    reviewAppId,
+    sessionId,
+    isOpen && isPolling
+  );
 
   const triggerAnalysisMutation = useTriggerSessionAnalysis();
 
   // Smart polling management
   useEffect(() => {
     let pollInterval: NodeJS.Timeout | null = null;
-    
-    if (isPolling && statusData) {
-      if (statusData.status === 'completed') {
+
+    if (isPolling) {
+      // Check if analysis is completed via status API
+      if (statusData?.status === "completed") {
         setIsPolling(false);
         refetchAnalysis();
-        toast.success('Analysis completed successfully!');
-      } else if (statusData.status === 'failed') {
+        toast.success("Analysis completed successfully!");
+      } 
+      // Check if analysis failed
+      else if (statusData?.status === "failed") {
         setIsPolling(false);
         toast.error(`Analysis failed: ${statusData.message}`);
-      } else if (statusData.status === 'running' || statusData.status === 'pending') {
-        // Continue polling
+      }
+      // Fallback: If analysis data is available but status isn't "completed", stop polling
+      else if (analysisData?.has_analysis && !isLoadingAnalysis) {
+        console.log("Analysis data available, stopping polling as fallback");
+        setIsPolling(false);
+        toast.success("Analysis completed successfully!");
+      }
+      // Continue polling if still running/pending
+      else if (statusData && (statusData.status === "running" || statusData.status === "pending")) {
+        pollInterval = setTimeout(() => {
+          refetchStatus();
+        }, 2000);
+      }
+      // Stop polling if no status data after reasonable time (prevent infinite polling)
+      else if (!statusData) {
         pollInterval = setTimeout(() => {
           refetchStatus();
         }, 2000);
@@ -115,41 +134,53 @@ export function LabelingSessionAnalysisModal({
         clearTimeout(pollInterval);
       }
     };
-  }, [isPolling, statusData, refetchAnalysis, refetchStatus]);
+  }, [isPolling, statusData, analysisData, isLoadingAnalysis, refetchAnalysis, refetchStatus]);
 
   // Check if there's already a running analysis when modal opens
   useEffect(() => {
-    if (isOpen && statusData && (statusData.status === 'running' || statusData.status === 'pending')) {
+    if (
+      isOpen &&
+      statusData &&
+      (statusData.status === "running" || statusData.status === "pending")
+    ) {
       setIsPolling(true);
     }
   }, [isOpen, statusData]);
 
   const handleTriggerAnalysis = () => {
-    triggerAnalysisMutation.mutate({
-      reviewAppId,
-      sessionId,
-      includeAiInsights: true,
-      modelEndpoint: 'databricks-claude-sonnet-4',
-    }, {
-      onSuccess: () => {
-        setIsPolling(true);
-        toast.success('Analysis started! This may take a few minutes...');
+    triggerAnalysisMutation.mutate(
+      {
+        reviewAppId,
+        sessionId,
+        includeAiInsights: true,
+        modelEndpoint: "databricks-claude-sonnet-4",
       },
-      onError: (error: any) => {
-        toast.error(`Failed to trigger analysis: ${error.message}`);
-      },
-    });
+      {
+        onSuccess: () => {
+          setIsPolling(true);
+          // Immediately refetch status to start polling cycle
+          refetchStatus();
+          toast.success("Analysis started! This may take a few minutes...");
+        },
+        onError: (error: any) => {
+          toast.error(`Failed to trigger analysis: ${error.message}`);
+        },
+      }
+    );
   };
 
-  const isRunning = statusData?.status === 'running' || statusData?.status === 'pending' || triggerAnalysisMutation.isPending;
+  const isRunning =
+    statusData?.status === "running" ||
+    statusData?.status === "pending" ||
+    triggerAnalysisMutation.isPending;
 
   // Status icon helper
   const getStatusIcon = () => {
-    if (statusData?.status === 'running' || triggerAnalysisMutation.isPending) {
+    if (isRunning) {
       return <Loader2 className="h-4 w-4 animate-spin" />;
-    } else if (statusData?.status === 'completed') {
+    } else if (statusData?.status === "completed" || analysisData?.has_analysis) {
       return <CheckCircle className="h-4 w-4 text-green-600" />;
-    } else if (statusData?.status === 'failed') {
+    } else if (statusData?.status === "failed") {
       return <XCircle className="h-4 w-4 text-red-600" />;
     }
     return null;
@@ -157,43 +188,44 @@ export function LabelingSessionAnalysisModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+      <DialogContent
+        className="max-w-6xl h-[90vh] flex flex-col"
+        hideCloseButton
+      >
+        <DialogHeader className="space-y-4 pb-4">
+          {/* Title row */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <BarChart3 className="h-5 w-5 shrink-0" />
                 Session Analysis
                 {getStatusIcon()}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="mt-1">
                 Analysis for "{sessionName}"
-                {statusData?.status && statusData.status !== 'not_found' && (
+                {statusData?.status && statusData.status !== "not_found" && (
                   <Badge variant="outline" className="ml-2">
-                    {statusData.status.replace('_', ' ')}
+                    {statusData.status.replace("_", " ")}
                   </Badge>
                 )}
               </DialogDescription>
             </div>
-            
+
             {/* Action buttons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {workspaceUrl && mlflowRunId && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    window.open(
-                      `${workspaceUrl}/ml/experiments/runs/${mlflowRunId}`,
-                      '_blank'
-                    );
+                    window.open(`${workspaceUrl}/ml/experiments/runs/${mlflowRunId}`, "_blank");
                   }}
                 >
                   <ExternalLink className="h-4 w-4 mr-1" />
                   MLflow Run
                 </Button>
               )}
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -203,41 +235,35 @@ export function LabelingSessionAnalysisModal({
                 {isRunning ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                    {statusData?.status === 'running' ? 'Computing...' : 'Computing...'}
+                    Computing...
                   </>
                 ) : (
                   <>
                     <Play className="h-4 w-4 mr-1" />
-                    {analysisData?.has_analysis ? 'Re-run Analysis' : 'Run Analysis'}
+                    {analysisData?.has_analysis ? "Re-run Analysis" : "Run Analysis"}
                   </>
                 )}
               </Button>
             </div>
           </div>
-          
-          {/* Status indicators */}
-          {analysisData?.metadata && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-              <div className="flex items-center gap-1">
-                <FileText className="h-4 w-4" />
-                {analysisData.metadata.completed_assessments || 0} assessments analyzed
-              </div>
-              {analysisData.metadata.analysis_timestamp && (
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {new Date(analysisData.metadata.analysis_timestamp).toLocaleString()}
-                </div>
-              )}
-              {analysisData.metadata.discovery_method && (
-                <Badge variant="outline" className="text-xs">
-                  {analysisData.metadata.discovery_method}
-                </Badge>
-              )}
-            </div>
-          )}
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto min-h-0 relative">
+          {/* Loading overlay when analysis is running */}
+          {isRunning && analysisData?.has_analysis && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+              <div className="bg-card p-6 rounded-lg shadow-lg border flex flex-col items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">Analyzing Session</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {statusData?.message || "This may take a few minutes..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {isLoadingAnalysis ? (
             <div className="space-y-4 p-4">
               <Skeleton className="h-6 w-1/3" />
@@ -249,7 +275,7 @@ export function LabelingSessionAnalysisModal({
             <Alert className="m-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Failed to load analysis: {(analysisError as any)?.message || 'Unknown error'}
+                Failed to load analysis: {(analysisError as any)?.message || "Unknown error"}
               </AlertDescription>
             </Alert>
           ) : !analysisData?.has_analysis ? (
@@ -257,8 +283,8 @@ export function LabelingSessionAnalysisModal({
               <Brain className="h-16 w-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Analysis Available</h3>
               <p className="text-muted-foreground mb-6 max-w-md">
-                {analysisData?.message || 
-                 'Generate insights from SME assessments by running an analysis. This will analyze labeling patterns, identify critical issues, and provide actionable recommendations.'}
+                {analysisData?.message ||
+                  "Generate insights from SME assessments by running an analysis. This will analyze labeling patterns, identify critical issues, and provide actionable recommendations."}
               </p>
               <Button onClick={handleTriggerAnalysis} disabled={isRunning}>
                 {isRunning ? (
@@ -273,42 +299,43 @@ export function LabelingSessionAnalysisModal({
                   </>
                 )}
               </Button>
-              
+
               {isRunning && statusData?.message && (
                 <Alert className="mt-4 max-w-md">
                   <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    {statusData.message}
-                  </AlertDescription>
+                  <AlertDescription>{statusData.message}</AlertDescription>
                 </Alert>
               )}
             </div>
           ) : (
-            <ScrollArea className="h-full">
-              <div className="p-6">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                  className="prose prose-sm max-w-none dark:prose-invert
-                    prose-headings:scroll-m-20 prose-headings:tracking-tight
-                    prose-h1:text-2xl prose-h1:font-bold
-                    prose-h2:text-xl prose-h2:font-semibold prose-h2:border-b prose-h2:pb-2
-                    prose-h3:text-lg prose-h3:font-medium
-                    prose-p:leading-7 prose-p:mb-4
-                    prose-ul:my-4 prose-li:my-1
-                    prose-blockquote:border-l-4 prose-blockquote:border-border prose-blockquote:pl-4 prose-blockquote:italic
-                    prose-code:relative prose-code:rounded prose-code:bg-muted prose-code:px-[0.3rem] prose-code:py-[0.2rem] prose-code:font-mono prose-code:text-sm
-                    prose-pre:overflow-x-auto prose-pre:rounded-lg prose-pre:border prose-pre:bg-muted prose-pre:p-4
-                    prose-table:w-full prose-table:border-collapse prose-table:border prose-table:border-border
-                    prose-th:border prose-th:border-border prose-th:bg-muted/50 prose-th:px-4 prose-th:py-2 prose-th:text-left prose-th:font-medium
-                    prose-td:border prose-td:border-border prose-td:px-4 prose-td:py-2
-                    prose-strong:font-semibold
-                    prose-em:italic"
-                >
-                  {analysisData.content}
-                </ReactMarkdown>
-              </div>
-            </ScrollArea>
+            <div className="px-6 py-4">
+                {/* Analysis metadata header - simplified */}
+                {analysisData?.metadata && (
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground pb-4 mb-4 border-b">
+                    {analysisData.metadata.completed_assessments !== undefined && (
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        <span>
+                          {analysisData.metadata.completed_assessments} labeled traces analyzed
+                        </span>
+                      </div>
+                    )}
+                    {analysisData.metadata.total_traces_analyzed && (
+                      <div className="flex items-center gap-1">
+                        <BarChart3 className="h-4 w-4" />
+                        <span>{analysisData.metadata.total_traces_analyzed} total traces in session</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Analysis report content */}
+                <Markdown
+                  content={analysisData.content}
+                  variant="default"
+                  className="text-foreground"
+                />
+            </div>
           )}
         </div>
 

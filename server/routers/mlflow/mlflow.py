@@ -20,6 +20,10 @@ from server.models.mlflow import (
   SearchRunsRequest,
   SearchRunsResponse,
   UpdateRunRequest,
+  UpdateFeedbackRequest,
+  UpdateFeedbackResponse,
+  UpdateExpectationRequest,
+  UpdateExpectationResponse,
 )
 from server.models.traces import (
   LinkTracesToRunRequest,
@@ -51,6 +55,12 @@ from server.utils.mlflow_utils import (
 )
 from server.utils.mlflow_utils import (
   log_feedback as mlflow_log_feedback,
+)
+from server.utils.mlflow_utils import (
+  update_feedback as mlflow_update_feedback,
+)
+from server.utils.mlflow_utils import (
+  update_expectation as mlflow_update_expectation,
 )
 from server.utils.mlflow_utils import (
   search_runs as mlflow_search_runs,
@@ -356,7 +366,7 @@ async def log_trace_feedback(trace_id: str, request: LogFeedbackRequest) -> LogF
       key=request.feedback_key,
       value=request.feedback_value,
       username=username,
-      comment=request.feedback_comment,
+      rationale=request.rationale,
     )
     return LogFeedbackResponse(**result)
   except Exception as e:
@@ -393,10 +403,82 @@ async def log_trace_expectation(
       key=request.expectation_key,
       value=request.expectation_value,
       username=username,
-      comment=request.expectation_comment,
+      rationale=request.rationale,
     )
     return LogExpectationResponse(**result)
   except Exception as e:
     raise MLflowError(
       f'Failed to log expectation for trace {trace_id}: {str(e)}', operation='log_expectation'
+    )
+
+
+@router.patch('/traces/{trace_id}/feedback', response_model=UpdateFeedbackResponse)
+async def update_trace_feedback(trace_id: str, request: UpdateFeedbackRequest) -> UpdateFeedbackResponse:
+  """Update existing feedback on a trace.
+
+  Args:
+      trace_id: The trace ID to update feedback for
+      request: The update request containing assessment_id, value, and optional rationale
+
+  Returns:
+      UpdateFeedbackResponse indicating success or failure
+  """
+  try:
+    # Get username from user_utils for now (will eventually come from middleware)
+    from server.utils.user_utils import user_utils
+
+    try:
+      username = user_utils.get_username()
+    except Exception:
+      # Fallback to 'unknown' if we can't get username
+      username = 'unknown'
+
+    result = mlflow_update_feedback(
+      trace_id=trace_id,
+      assessment_id=request.assessment_id,
+      value=request.feedback_value,
+      username=username,
+      rationale=request.rationale,
+    )
+    return UpdateFeedbackResponse(**result)
+  except Exception as e:
+    raise MLflowError(
+      f'Failed to update feedback for trace {trace_id}: {str(e)}', operation='update_feedback'
+    )
+
+
+@router.patch('/traces/{trace_id}/expectation', response_model=UpdateExpectationResponse)
+async def update_trace_expectation(
+  trace_id: str, request: UpdateExpectationRequest
+) -> UpdateExpectationResponse:
+  """Update existing expectation on a trace.
+
+  Args:
+      trace_id: The trace ID to update expectation for
+      request: The update request containing assessment_id, value, and optional rationale
+
+  Returns:
+      UpdateExpectationResponse indicating success or failure
+  """
+  try:
+    # Get username from user_utils for now (will eventually come from middleware)
+    from server.utils.user_utils import user_utils
+
+    try:
+      username = user_utils.get_username()
+    except Exception:
+      # Fallback to 'unknown' if we can't get username
+      username = 'unknown'
+
+    result = mlflow_update_expectation(
+      trace_id=trace_id,
+      assessment_id=request.assessment_id,
+      value=request.expectation_value,
+      username=username,
+      rationale=request.rationale,
+    )
+    return UpdateExpectationResponse(**result)
+  except Exception as e:
+    raise MLflowError(
+      f'Failed to update expectation for trace {trace_id}: {str(e)}', operation='update_expectation'
     )
