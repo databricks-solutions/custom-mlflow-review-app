@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SMELabelingInterface } from "@/components/SMELabelingInterface";
-import { CompactRendererSelector } from "@/components/CompactRendererSelector";
+import { RendererSelector } from "@/components/RendererSelector";
 import { LoadingState } from "@/components/LoadingState";
 import { NoSessionSelected } from "@/components/NoSessionSelected";
 import {
@@ -52,7 +52,7 @@ export function PreviewPage() {
         {/* Compact Renderer Selector on the same line */}
         <div className="ml-6">
           {session?.mlflow_run_id && (
-            <CompactRendererSelector 
+            <RendererSelector 
               runId={session.mlflow_run_id} 
               sessionName={session.name}
             />

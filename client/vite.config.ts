@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@databricks/design-system', 'react-intl', 'json-bigint', 'lodash', 'cookie', 'qs', 'hoist-non-react-statics', '@emotion/react', '@emotion/cache']
+    include: ['react-intl', 'json-bigint', 'lodash', 'cookie', 'qs', 'hoist-non-react-statics']
   },
   define: {
     global: 'globalThis',

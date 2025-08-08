@@ -28,7 +28,8 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { toast } from "sonner";
 import { useLogFeedbackMutation, useLogExpectationMutation } from "@/hooks/shared-hooks";
-import { alignSchemaToAssessment } from "@/utils/assessment-utils";
+import { useCurrentUser } from "@/hooks/api-hooks";
+import { combineSchemaWithAssessments, filterByType, isSchemaCompleted } from "@/utils/schema-assessment-utils";
 
 // Constants for span type filtering
 const CONVERSATIONAL_SPAN_TYPES = ["CHAT_MODEL", "TOOL", "AGENT", "LLM", "USER", "ASSISTANT"];
@@ -40,8 +41,8 @@ export function DefaultItemRenderer({
   session,
   currentIndex,
   totalItems,
-  labels,
-  onLabelsChange,
+  assessments,
+  onAssessmentsChange,
   onUpdateItem,
   onNavigateToIndex,
   isLoading,
@@ -49,57 +50,62 @@ export function DefaultItemRenderer({
 }: ItemRendererProps) {
   // Auto-save refs
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedLabelsRef = useRef<string>("");
-  const previousLabelsRef = useRef<Record<string, any>>({});
+  const lastSavedAssessmentsRef = useRef<Map<string, Assessment>>(new Map());
 
   // React Query mutations for logging assessments
   const logFeedbackMutation = useLogFeedbackMutation();
   const logExpectationMutation = useLogExpectationMutation();
+  
+  // Combine schemas with assessments from trace data
+  const schemasWithAssessments = combineSchemaWithAssessments(
+    reviewApp?.labeling_schemas || [],
+    traceData?.info?.assessments as Assessment[] | undefined
+  );
+  
+  // Separate feedback and expectation schemas
+  const feedbackSchemas = filterByType(schemasWithAssessments, 'FEEDBACK');
+  const expectationSchemas = filterByType(schemasWithAssessments, 'EXPECTATION');
 
-  // Helper function to convert flat labels to API format
-  const convertLabelsToApiFormat = (flatLabels: Record<string, any>) => {
-    const apiLabels: Record<string, any> = {};
-
-    // Convert flat structure to nested structure expected by API
-    Object.keys(flatLabels).forEach((key) => {
-      if (key.endsWith("_comment")) {
-        // Skip comment fields - they'll be handled with their parent
-        return;
-      }
-
-      const commentKey = `${key}_comment`;
-      const value = flatLabels[key];
-      const rationale = flatLabels[commentKey];
-
-      // Save if there's either a value OR a rationale (not both required)
-      if (
-        (value !== undefined && value !== null && value !== "") ||
-        (rationale && rationale !== "")
-      ) {
-        apiLabels[key] = {
-          value: value || null, // Use null for empty values when only rationale exists
-          ...(rationale ? { rationale: rationale } : {}),
-        };
-      }
-    });
-
-    return apiLabels;
+  // Helper function to handle assessment changes
+  const handleAssessmentChange = (schemaName: string, value: any, rationale?: string) => {
+    const newAssessments = new Map(assessments);
+    const assessment: Assessment = {
+      name: schemaName,
+      value,
+      rationale,
+      timestamp: new Date().toISOString(),
+      user: currentUser?.email || 'unknown'
+    };
+    newAssessments.set(schemaName, assessment);
+    onAssessmentsChange(newAssessments);
   };
 
-  // Auto-save functionality - save to MLflow when labels change
-  const handleLabelsChange = useCallback(
-    async (newLabels: Record<string, any>) => {
-      onLabelsChange(newLabels);
+  // Get current user
+  const { data: currentUser } = useCurrentUser();
+  
+  // Auto-save functionality - save to MLflow when assessments change
+  useEffect(() => {
+    const saveAssessments = async () => {
 
+      // Only proceed if assessments have changed
+      const hasChanges = Array.from(assessments.entries()).some(([key, assessment]) => {
+        const lastSaved = lastSavedAssessmentsRef.current.get(key);
+        return !lastSaved || 
+               lastSaved.value !== assessment.value || 
+               lastSaved.rationale !== assessment.rationale;
+      });
+      
+      if (!hasChanges) return;
+      
       // Clear any existing timeout to debounce the save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
 
-      // Set a new timeout to save after 2 seconds of no changes
+      // Set a new timeout to save after 2 seconds of no changes  
       saveTimeoutRef.current = setTimeout(async () => {
         try {
-          console.log("[AUTO-SAVE] Starting auto-save for labels:", newLabels);
+          console.log("[AUTO-SAVE] Starting auto-save for assessments");
 
           // Get trace ID from item
           const traceId = item.source?.trace_id;
@@ -108,30 +114,23 @@ export function DefaultItemRenderer({
             return;
           }
 
-          // Get the schema names that are relevant to this review app
-          const relevantSchemaNames = new Set(
-            reviewApp?.labeling_schemas?.map((schema) => schema.name) || []
-          );
-
-          // Convert labels to API format and save each assessment, but ONLY for relevant schemas
-          const apiLabels = convertLabelsToApiFormat(newLabels);
           let savedCount = 0;
 
-          for (const [schemaName, labelData] of Object.entries(apiLabels)) {
-            // Only save assessments that belong to this review app's schemas
-            if (!relevantSchemaNames.has(schemaName)) {
-              console.log(
-                `[AUTO-SAVE] Skipping assessment '${schemaName}' - not relevant to current review app schemas`
-              );
+          for (const [schemaName, assessment] of assessments.entries()) {
+            // Skip if assessment hasn't changed
+            const lastSaved = lastSavedAssessmentsRef.current.get(schemaName);
+            if (lastSaved && 
+                lastSaved.value === assessment.value && 
+                lastSaved.rationale === assessment.rationale) {
               continue;
             }
-
+            
             // Save if there's either a value OR a rationale
             if (
-              (labelData.value !== undefined &&
-                labelData.value !== null &&
-                labelData.value !== "") ||
-              (labelData.rationale && labelData.rationale !== "")
+              (assessment.value !== undefined &&
+                assessment.value !== null &&
+                assessment.value !== "") ||
+              (assessment.rationale && assessment.rationale !== "")
             ) {
               try {
                 // Find the schema to determine if it's FEEDBACK or EXPECTATION
@@ -142,20 +141,20 @@ export function DefaultItemRenderer({
                   await logFeedbackMutation.mutateAsync({
                     traceId,
                     feedbackKey: schemaName,
-                    feedbackValue: labelData.value,
-                    rationale: labelData.rationale,
+                    feedbackValue: assessment.value,
+                    rationale: assessment.rationale,
                   });
                 } else {
                   await logExpectationMutation.mutateAsync({
                     traceId,
                     expectationKey: schemaName,
-                    expectationValue: labelData.value,
-                    rationale: labelData.rationale,
+                    expectationValue: assessment.value,
+                    rationale: assessment.rationale,
                   });
                 }
                 savedCount++;
                 console.log(
-                  `[AUTO-SAVE] Saved ${schemaName}: ${labelData.value || "rationale-only"} with rationale: ${labelData.rationale || "none"}`
+                  `[AUTO-SAVE] Saved ${schemaName}: ${assessment.value || "rationale-only"} with rationale: ${assessment.rationale || "none"}`
                 );
               } catch (error) {
                 console.error(`[AUTO-SAVE] Failed to save ${schemaName}:`, error);
@@ -165,6 +164,8 @@ export function DefaultItemRenderer({
 
           if (savedCount > 0) {
             console.log(`[AUTO-SAVE] Successfully auto-saved ${savedCount} assessments`);
+            // Update last saved reference
+            lastSavedAssessmentsRef.current = new Map(assessments);
             // Show subtle feedback that auto-save worked
             toast.success(`Auto-saved ${savedCount} assessment${savedCount > 1 ? "s" : ""}`, {
               duration: 2000,
@@ -174,16 +175,10 @@ export function DefaultItemRenderer({
           console.error("[AUTO-SAVE] Auto-save failed:", error);
         }
       }, 2000); // Auto-save after 2 seconds of no changes
-    },
-    [
-      onLabelsChange,
-      item.source?.trace_id,
-      reviewApp?.labeling_schemas,
-      logFeedbackMutation,
-      logExpectationMutation,
-      convertLabelsToApiFormat,
-    ]
-  );
+    };
+    
+    saveAssessments();
+  }, [assessments, item.source?.trace_id, reviewApp?.labeling_schemas, logFeedbackMutation, logExpectationMutation]);
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -195,9 +190,6 @@ export function DefaultItemRenderer({
   }, []);
 
 
-  // Load existing assessments from trace data when item changes
-  useEffect(() => {
-    const loadExistingLabels = () => {
       console.log(
         "DEBUG: Loading assessments for schemas:",
         reviewApp?.labeling_schemas?.map((s) => s.name)

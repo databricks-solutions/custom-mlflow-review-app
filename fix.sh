@@ -32,6 +32,12 @@ npm run lint 2>/dev/null || {
         echo "TypeScript compiler not available, skipping TypeScript type checking"
     }
 }
+
+# Check for unused files, dependencies, and exports with knip
+echo "Checking for unused code with knip..."
+npx knip --no-exit-code 2>/dev/null || {
+    echo "Knip not available, skipping unused code check"
+}
 cd ..
 
 echo "✅ Code formatting complete!"
