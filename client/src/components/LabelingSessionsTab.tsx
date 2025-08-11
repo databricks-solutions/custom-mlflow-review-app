@@ -828,7 +828,7 @@ function AddTracesButton({
   const {
     data: tracesData,
     isLoading: isLoadingTraces,
-    refetch: searchTracesQuery,
+    refetch: refetchTraces,
   } = useSearchTraces(
     {
       experiment_ids: experimentId ? [experimentId] : [],
@@ -840,14 +840,14 @@ function AddTracesButton({
   );
 
   // Manual search function
-  const searchTraces = async (append = false) => {
+  const performSearch = async (append = false) => {
     if (!append) {
       setHasSearched(true);
       setAllTraces([]);
       setNextPageToken(null);
     }
     
-    const result = await searchTracesQuery();
+    const result = await refetchTraces();
     if (result.data?.traces) {
       if (append) {
         setAllTraces(prev => [...prev, ...result.data.traces]);
@@ -868,7 +868,7 @@ function AddTracesButton({
     try {
       // In a real implementation, this would use the page token
       // For now, we'll just fetch the same query again as a demonstration
-      const result = await searchTracesQuery();
+      const result = await refetchTraces();
       if (result.data?.traces) {
         setAllTraces(prev => [...prev, ...result.data.traces]);
         setNextPageToken(result.data.traces.length === 50 ? "has_more" : null);
@@ -914,7 +914,8 @@ function AddTracesButton({
         queryKey: queryKeys.labelingItems.list(reviewAppId, sessionId),
       });
       setSelectedTraces(new Set());
-      searchTraces(false);
+      // Don't clear the traces, just refresh to update the "already added" status
+      // The useEffect for itemsData will handle updating the existingTraceIds
       toast.success(
         `Successfully linked ${traceIds.length} trace${traceIds.length !== 1 ? "s" : ""} to the session`
       );
@@ -930,13 +931,15 @@ function AddTracesButton({
     }
   };
 
-  // Reset state when modal opens
+  // Reset state when modal opens and fetch initial data
   useEffect(() => {
     if (isOpen) {
       setSelectedTraces(new Set());
       setAllTraces([]);
       setHasSearched(false);
       setNextPageToken(null);
+      // Automatically fetch the first page when modal opens
+      performSearch(false);
     }
   }, [isOpen]);
 
@@ -960,9 +963,9 @@ function AddTracesButton({
                 placeholder="Enter filter (e.g., attributes.status = 'SUCCESS')"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchTraces()}
+                onKeyDown={(e) => e.key === "Enter" && performSearch(false)}
               />
-              <Button onClick={() => searchTraces()}>Search</Button>
+              <Button onClick={() => performSearch(false)}>Search</Button>
             </div>
 
             {/* Traces table */}
