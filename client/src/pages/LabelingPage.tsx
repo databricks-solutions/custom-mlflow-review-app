@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, User } from "lucide-react";
+import { ChevronRight, User, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   useCurrentUser,
@@ -117,12 +117,9 @@ export function LabelingPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-light">Hi, {firstName}</h2>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4" />
-              {userInfo?.userName}
-            </div>
             {userRole?.is_developer && (
               <Button variant="outline" onClick={() => navigate("/dev")}>
+                <Wrench className="h-4 w-4 mr-2" />
                 Developer Dashboard
               </Button>
             )}

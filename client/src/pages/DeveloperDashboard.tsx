@@ -9,6 +9,7 @@ import { TraceExplorer } from "@/components/TraceExplorer";
 import { LabelingSchemasPage } from "./LabelingSchemasPage";
 import { LabelingSessionsTab } from "@/components/LabelingSessionsTab";
 import { ExperimentAnalysis } from "@/components/ExperimentAnalysis";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   ArrowLeft,
   Users,
@@ -83,15 +84,27 @@ export function DeveloperDashboard() {
             <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{reviewApp.name}</h1>
-              <p className="text-muted-foreground">{reviewApp.description || "Review App Dashboard"}</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="p-0 h-auto text-2xl font-bold text-foreground hover:text-foreground"
+                    onClick={() => navigate('/dev')}
+                  >
+                    Developer Dashboard
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           
-          {/* Info section */}
-          <div className="text-right space-y-2">
-            {EXPERIMENT_ID && (
+          {/* Info section with theme toggle */}
+          <div className="flex items-start gap-4">
+            <ThemeToggle />
+            <div className="text-right space-y-2">
+              {EXPERIMENT_ID && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Experiment:</span>
                 <TooltipProvider>
@@ -145,6 +158,7 @@ export function DeveloperDashboard() {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
 
