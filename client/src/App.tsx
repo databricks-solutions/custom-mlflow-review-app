@@ -39,6 +39,7 @@ function App() {
             }
           />
           <Route path="/review-app/:reviewAppId" element={<ReviewAppPage />} />
+          <Route path="/review/:sessionId" element={<ReviewAppPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

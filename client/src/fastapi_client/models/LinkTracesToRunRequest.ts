@@ -6,6 +6,7 @@
  * Request to link traces to a run.
  */
 export type LinkTracesToRunRequest = {
-  run_id: string;
-  trace_ids: Array<string>;
+    run_id: string;
+    trace_ids: Array<string>;
 };
+

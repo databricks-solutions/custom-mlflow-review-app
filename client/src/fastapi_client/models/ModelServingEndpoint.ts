@@ -6,6 +6,7 @@
  * Model serving endpoint configuration.
  */
 export type ModelServingEndpoint = {
-  endpoint_name: string;
-  served_entity_name: string;
+    endpoint_name: string;
+    served_entity_name: string;
 };
+

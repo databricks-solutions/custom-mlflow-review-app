@@ -9,9 +9,9 @@
  */
 
 import { toast } from "sonner";
+import { ReviewApp, LabelingSession, LabelingItem, JsonValue } from "@/types/renderers";
 import {
-  ConfigurationService,
-  UserService,
+  CoreService,
   ReviewAppsService,
   LabelingSessionsService,
   LabelingItemsService,
@@ -27,7 +27,7 @@ interface ApiError {
   error: {
     message: string;
     code: string;
-    details: Record<string, any>;
+    details: Record<string, unknown>;
   };
   request_id: string;
   status_code: number;
@@ -119,23 +119,21 @@ class ApiClientWrapper {
   // Provide access to individual services
   get api() {
     return {
-      // Configuration endpoints
-      getConfig: () => ConfigurationService.getConfigApiConfigGet(),
-      getExperimentId: () => ConfigurationService.getExperimentIdApiConfigExperimentIdGet(),
-
-      // User endpoints
-      getCurrentUser: () => UserService.getCurrentUserApiUserMeGet(),
-      getUserWorkspace: () => UserService.getUserWorkspaceInfoApiUserMeWorkspaceGet(),
+      // Manifest endpoint (unified config, user, and workspace info)
+      getManifest: () => CoreService.getAppManifestApiManifestGet(),
 
       // Review Apps endpoints
       listReviewApps: (params?: { filter?: string; pageSize?: number }) =>
         ReviewAppsService.listReviewAppsApiReviewAppsGet(params?.filter, params?.pageSize),
-      getCurrentReviewApp: () => ReviewAppsService.getCurrentReviewAppApiReviewAppsCurrentGet(),
       getReviewApp: (params: { reviewAppId: string }) =>
         ReviewAppsService.getReviewAppApiReviewAppsReviewAppIdGet(params.reviewAppId),
-      createReviewApp: (params: { reviewApp: any }) =>
+      createReviewApp: (params: { reviewApp: Partial<ReviewApp> }) =>
         ReviewAppsService.createReviewAppApiReviewAppsPost(params.reviewApp),
-      updateReviewApp: (params: { reviewAppId: string; reviewApp: any; updateMask: string }) =>
+      updateReviewApp: (params: {
+        reviewAppId: string;
+        reviewApp: Partial<ReviewApp>;
+        updateMask: string;
+      }) =>
         ReviewAppsService.updateReviewAppApiReviewAppsReviewAppIdPatch(
           params.reviewAppId,
           params.reviewApp,
@@ -152,7 +150,7 @@ class ApiClientWrapper {
           params.reviewAppId,
           params.sessionId
         ),
-      createLabelingSession: (params: { reviewAppId: string; session: any }) =>
+      createLabelingSession: (params: { reviewAppId: string; session: Partial<LabelingSession> }) =>
         LabelingSessionsService.createLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsPost(
           params.reviewAppId,
           params.session
@@ -160,7 +158,7 @@ class ApiClientWrapper {
       updateLabelingSession: (params: {
         reviewAppId: string;
         sessionId: string;
-        session: any;
+        session: Partial<LabelingSession>;
         updateMask: string;
       }) =>
         LabelingSessionsService.updateLabelingSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdPatch(
@@ -185,7 +183,7 @@ class ApiClientWrapper {
         reviewAppId: string;
         sessionId: string;
         itemId: string;
-        item: any;
+        item: Partial<LabelingItem>;
         updateMask: string;
       }) =>
         LabelingItemsService.updateItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdPatch(
@@ -203,7 +201,8 @@ class ApiClientWrapper {
         ),
 
       // MLflow endpoints
-      searchTraces: (params: any) => MLflowService.searchTracesApiMlflowSearchTracesPost(params),
+      searchTraces: (params: Record<string, unknown>) =>
+        MLflowService.searchTracesApiMlflowSearchTracesPost(params),
       getTrace: (params: { traceId: string; runId?: string }) =>
         MLflowService.getTraceApiMlflowTracesTraceIdGet(params.traceId, params.runId),
       getTraceMetadata: (params: { traceId: string }) =>
@@ -221,12 +220,68 @@ class ApiClientWrapper {
           params.sessionId,
           { mlflow_run_id: params.mlflow_run_id, trace_ids: params.trace_ids }
         ),
-      getExperiment: (params: { experimentId: string }) =>
-        MLflowService.getExperimentApiMlflowExperimentsExperimentIdGet(params.experimentId),
       getRun: (params: { runId: string }) =>
         MLflowService.getRunApiMlflowRunsRunIdGet(params.runId),
-      createRun: (params: any) => MLflowService.createRunApiMlflowRunsPost(params),
-      updateRun: (params: any) => MLflowService.updateRunApiMlflowRunsUpdatePost(params),
+      createRun: (params: Record<string, unknown>) =>
+        MLflowService.createRunApiMlflowRunsPost(params),
+      updateRun: (params: Record<string, unknown>) =>
+        MLflowService.updateRunApiMlflowRunsUpdatePost(params),
+
+      // MLflow Feedback and Expectation endpoints
+      logTraceFeedback: (params: {
+        traceId: string;
+        name: string;
+        value: JsonValue;
+        rationale?: string;
+      }) =>
+        MLflowService.logTraceFeedbackApiMlflowTracesTraceIdFeedbackPost(params.traceId, {
+          assessment: {
+            name: params.name,
+            value: params.value,
+            rationale: params.rationale,
+          },
+        }),
+      updateTraceFeedback: (params: {
+        traceId: string;
+        assessment_id: string;
+        value: JsonValue;
+        rationale?: string;
+      }) =>
+        MLflowService.updateTraceFeedbackApiMlflowTracesTraceIdFeedbackPatch(params.traceId, {
+          assessment_id: params.assessment_id,
+          assessment: {
+            name: '', // Name not needed for updates as it's tied to assessment_id
+            value: params.value,
+            rationale: params.rationale,
+          },
+        }),
+      logTraceExpectation: (params: {
+        traceId: string;
+        name: string;
+        value: JsonValue;
+        rationale?: string;
+      }) =>
+        MLflowService.logTraceExpectationApiMlflowTracesTraceIdExpectationPost(params.traceId, {
+          assessment: {
+            name: params.name,
+            value: params.value,
+            rationale: params.rationale,
+          },
+        }),
+      updateTraceExpectation: (params: {
+        traceId: string;
+        assessment_id: string;
+        value: JsonValue;
+        rationale?: string;
+      }) =>
+        MLflowService.updateTraceExpectationApiMlflowTracesTraceIdExpectationPatch(params.traceId, {
+          assessment_id: params.assessment_id,
+          assessment: {
+            name: '', // Name not needed for updates as it's tied to assessment_id
+            value: params.value,
+            rationale: params.rationale,
+          },
+        }),
 
       // Analysis endpoints
       getSessionAnalysis: (params: { reviewAppId: string; sessionId: string }) =>
@@ -253,6 +308,19 @@ class ApiClientWrapper {
             model_endpoint: params.model_endpoint ?? "databricks-claude-sonnet-4",
           }
         ),
+
+      // Experiment Analysis endpoints
+      getExperimentSummary: (experimentId: string) =>
+        ApiService.getExperimentSummaryApiExperimentSummaryExperimentIdGet(experimentId),
+      triggerAnalysisApiExperimentSummaryTriggerAnalysisPost: (params: {
+        experiment_id: string;
+        focus?: string;
+        trace_sample_size?: number;
+        model_endpoint?: string;
+      }) =>
+        ApiService.triggerAnalysisApiExperimentSummaryTriggerAnalysisPost(params),
+      getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet: (experimentId: string) =>
+        ApiService.getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet(experimentId),
     };
   }
 }

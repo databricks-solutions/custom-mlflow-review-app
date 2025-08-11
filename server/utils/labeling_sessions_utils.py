@@ -100,6 +100,7 @@ async def create_labeling_session(
       raise Exception(f'No experiment_id found for review app {review_app_id}')
 
     # Set experiment context
+    # Set experiment context for SDK operations
     mlflow.set_experiment(experiment_id=experiment_id)
 
     # Create labeling session using SDK
@@ -165,6 +166,7 @@ async def get_labeling_session(
       raise Exception(f'No experiment_id found for review app {review_app_id}')
 
     # Set experiment context
+    # Set experiment context for SDK operations
     mlflow.set_experiment(experiment_id=experiment_id)
 
     # Get all labeling sessions to find the specific one
@@ -280,6 +282,7 @@ async def _update_session_with_sdk(
       raise Exception(f'No experiment_id found for review app {review_app_id}')
 
     # Set experiment context for MLflow SDK
+    # Set experiment context for SDK operations
     mlflow.set_experiment(experiment_id=experiment_id)
 
     # Get all labeling sessions to find the one we want to update
@@ -363,6 +366,7 @@ async def delete_labeling_session(
       raise Exception(f'No experiment_id found for review app {review_app_id}')
 
     # Set experiment context
+    # Set experiment context for SDK operations
     mlflow.set_experiment(experiment_id=experiment_id)
 
     # Get all labeling sessions to find the one we want to delete

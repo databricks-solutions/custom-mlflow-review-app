@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,7 +14,7 @@ interface RendererSelectorProps {
   sessionName?: string;
 }
 
-export function RendererSelector({ runId, sessionName }: RendererSelectorProps) {
+export function RendererSelector({ runId, sessionName: _sessionName }: RendererSelectorProps) {
   const rendererQuery = useRendererName(runId, !!runId);
   const setRendererTag = useSetRendererTag();
 

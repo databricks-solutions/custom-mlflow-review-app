@@ -5,13 +5,7 @@ import argparse
 import asyncio
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.review_apps_utils import review_apps_utils
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 async def main():

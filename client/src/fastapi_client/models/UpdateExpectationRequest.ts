@@ -2,11 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { UpdateAssessmentData } from './UpdateAssessmentData';
 /**
  * Request to update existing expectation on a trace.
  */
 export type UpdateExpectationRequest = {
-  assessment_id: string;
-  expectation_value: string | number | boolean | Record<string, any>;
-  rationale?: string | null;
+    assessment_id: string;
+    assessment: UpdateAssessmentData;
 };
+

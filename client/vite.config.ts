@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react-intl', 'json-bigint', 'lodash', 'cookie', 'qs', 'hoist-non-react-statics']
+    include: ['react-intl', 'hoist-non-react-statics']
   },
   define: {
     global: 'globalThis',

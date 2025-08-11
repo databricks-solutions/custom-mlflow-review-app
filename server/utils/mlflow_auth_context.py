@@ -4,12 +4,7 @@ import os
 from contextlib import contextmanager
 from typing import Generator, Optional
 
-from dotenv import load_dotenv
-
 from server.utils.auth_context import AuthContext
-
-# Load environment variables
-load_dotenv()
 
 
 @contextmanager

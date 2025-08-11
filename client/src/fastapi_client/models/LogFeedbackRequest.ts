@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AssessmentData } from './AssessmentData';
 /**
  * Request to log feedback on a trace.
  */
 export type LogFeedbackRequest = {
-  feedback_key: string;
-  feedback_value: string | number | boolean;
-  rationale?: string | null;
+    assessment: AssessmentData;
 };
+

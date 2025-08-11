@@ -7,18 +7,12 @@ import inspect
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.labeling_sessions_utils import list_labeling_sessions
 from server.utils.review_apps_utils import review_apps_utils
 
 # Import analysis functions from analyze_labeling_results
 sys.path.append('.')
 from tools.analyze_labeling_results import analyze_session
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 async def main():

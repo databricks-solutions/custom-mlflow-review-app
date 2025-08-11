@@ -6,6 +6,7 @@
  * Request to trigger analysis of a labeling session.
  */
 export type server__routers__review__labeling_sessions__TriggerAnalysisRequest = {
-  include_ai_insights?: boolean;
-  model_endpoint?: string;
+    include_ai_insights?: boolean;
+    model_endpoint?: string;
 };
+

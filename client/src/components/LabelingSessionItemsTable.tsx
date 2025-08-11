@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,10 +11,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Edit } from "lucide-react";
+import { LabelingItem, ReviewApp, LabelingSchema } from "@/types/renderers";
 
 interface LabelingSessionItemsTableProps {
-  items: any[];
-  reviewApp: any;
+  items: LabelingItem[];
+  reviewApp: ReviewApp | null | undefined;
   reviewAppId: string;
   sessionId: string;
   onTraceClick?: (traceId: string) => void;
@@ -36,7 +36,7 @@ export function LabelingSessionItemsTable({
 }: LabelingSessionItemsTableProps) {
   const navigate = useNavigate();
 
-  const truncate = (text: string, maxLength: number = 100) => {
+  const truncate = (text: string, maxLength = 100) => {
     if (!text) return "-";
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";
@@ -60,12 +60,6 @@ export function LabelingSessionItemsTable({
             </span>
           </div>
           <Progress value={progressPercentage} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Completed: {completedCount}</span>
-            <span>In Progress: {inProgressCount}</span>
-            <span>Pending: {pendingCount}</span>
-            <span>Skipped: {skippedCount}</span>
-          </div>
         </div>
       )}
 
@@ -73,11 +67,11 @@ export function LabelingSessionItemsTable({
       <div className={`border rounded-lg overflow-x-auto ${maxHeight}`}>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/50">
               <TableHead>Status</TableHead>
               <TableHead>Request</TableHead>
               <TableHead>Response</TableHead>
-              {reviewApp?.labeling_schemas?.map((schema: any) => (
+              {reviewApp?.labeling_schemas?.map((schema: LabelingSchema) => (
                 <TableHead key={schema.name}>{schema.title || schema.name}</TableHead>
               ))}
               <TableHead>Comment</TableHead>
@@ -102,30 +96,65 @@ export function LabelingSessionItemsTable({
                     {item.state}
                   </Badge>
                 </TableCell>
-                <TableCell className="max-w-xs text-xs">
-                  <button
+                <TableCell className="max-w-xs text-xs align-top">
+                  <div
+                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left overflow-hidden max-h-12"
                     onClick={() => onTraceClick?.(item.source?.trace_id || "")}
-                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left truncate block w-full"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}
                     title={item.request_preview || ""}
                   >
-                    {truncate(item.request_preview || "-")}
-                  </button>
+                    {item.request_preview || "-"}
+                  </div>
                 </TableCell>
-                <TableCell
-                  className="max-w-xs truncate text-xs"
-                  title={item.response_preview || ""}
-                >
-                  {truncate(item.response_preview || "-")}
+                <TableCell className="max-w-xs text-xs align-top">
+                  <div
+                    className="overflow-hidden max-h-12"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                    title={item.response_preview || ""}
+                  >
+                    {item.response_preview || "-"}
+                  </div>
                 </TableCell>
-                {reviewApp?.labeling_schemas?.map((schema: any) => (
-                  <TableCell key={schema.name} className="text-sm">
-                    {item.labels?.[schema.name] !== undefined
-                      ? String(item.labels[schema.name]?.value || item.labels[schema.name])
-                      : "-"}
-                  </TableCell>
-                ))}
-                <TableCell className="max-w-xs truncate text-xs" title={item.comment || ""}>
-                  {item.comment || "-"}
+                {reviewApp?.labeling_schemas?.map((schema: LabelingSchema) => {
+                  const labelValue = item.labels?.[schema.name] !== undefined
+                    ? String(item.labels[schema.name]?.value || item.labels[schema.name])
+                    : "-";
+                  return (
+                    <TableCell key={schema.name} className="max-w-xs text-sm align-top">
+                      <div
+                        className="overflow-hidden max-h-12"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                        title={labelValue}
+                      >
+                        {labelValue}
+                      </div>
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="max-w-xs text-xs align-top">
+                  <div
+                    className="overflow-hidden max-h-12"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                    title={item.comment || ""}
+                  >
+                    {item.comment || "-"}
+                  </div>
                 </TableCell>
                 {showActions && (
                   <TableCell>

@@ -4,11 +4,6 @@
 import argparse
 import os
 
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv('.env.local')
-
 
 def get_labeling_schemas_link(experiment_id: str) -> str:
   """Generate a Databricks labeling schemas link.

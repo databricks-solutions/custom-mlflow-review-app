@@ -958,43 +958,43 @@ class DatabricksAppSetup:
 
     console.print('')
     console.print('📋 Fetching available model serving endpoints...')
-    
+
     try:
       # Use our list_model_endpoints tool to get available endpoints
       result = subprocess.run(
         ['uv', 'run', 'python', 'tools/list_model_endpoints.py', '--format', 'json'],
         capture_output=True,
         text=True,
-        cwd=Path(__file__).parent
+        cwd=Path(__file__).parent,
       )
-      
+
       if result.returncode != 0:
         console.print('⚠️  Could not fetch model endpoints. You can configure this manually later.')
         console.print(f'   Error: {result.stderr}')
         return True
-        
+
       endpoints_data = json.loads(result.stdout)
-      
+
       # Filter to only show READY endpoints
       ready_endpoints = [ep for ep in endpoints_data if ep.get('state') == 'READY']
-      
+
       if not ready_endpoints:
         console.print('❌ No ready model serving endpoints found in your workspace.')
         console.print('   You can create endpoints in Databricks and configure this later.')
         return True
-        
+
       console.print(f'✅ Found {len(ready_endpoints)} ready model serving endpoints')
       console.print('')
-      
+
       # Show endpoint options
       console.print('Available endpoints:')
-      
+
       # Group endpoints by type for better display
       databricks_endpoints = [ep for ep in ready_endpoints if ep['name'].startswith('databricks-')]
       user_endpoints = [ep for ep in ready_endpoints if not ep['name'].startswith('databricks-')]
-      
+
       options = []
-      
+
       if databricks_endpoints:
         console.print('\n🏢 Databricks Foundation Models:')
         for i, ep in enumerate(databricks_endpoints[:10]):  # Limit to top 10
@@ -1004,50 +1004,50 @@ class DatabricksAppSetup:
           if creator != 'N/A':
             console.print(f'      Creator: {creator}')
           options.append(ep)
-          
+
       if user_endpoints:
         console.print('\n👤 User/Custom Endpoints:')
-        for i, ep in enumerate(user_endpoints[:10]):  # Limit to top 10  
+        for i, ep in enumerate(user_endpoints[:10]):  # Limit to top 10
           name = ep['name']
           creator = ep.get('creator', 'N/A')
           console.print(f'  {len(options)+1}. {name}')
           if creator != 'N/A':
             console.print(f'      Creator: {creator}')
           options.append(ep)
-      
+
       console.print('')
       console.print('💡 Recommended: databricks-claude-sonnet-4 (powerful, fast AI analysis)')
       console.print('')
-      
+
       while True:
         try:
           choice = Prompt.ask(
             'Select an endpoint by number (or press Enter for databricks-claude-sonnet-4)',
-            default=''
+            default='',
           )
-          
+
           if not choice.strip():
             # Default to databricks-claude-sonnet-4
             selected_endpoint = 'databricks-claude-sonnet-4'
             break
-            
+
           choice_num = int(choice) - 1
           if 0 <= choice_num < len(options):
             selected_endpoint = options[choice_num]['name']
             break
           else:
             console.print(f'❌ Please select a number between 1 and {len(options)}')
-            
+
         except ValueError:
           console.print('❌ Please enter a valid number')
-      
+
       # Update .env file with selected endpoint
       env_file = Path('.env')
       if env_file.exists():
         # Read current .env content
         with open(env_file, 'r') as f:
           lines = f.readlines()
-          
+
         # Update or add MODEL_ENDPOINT
         updated = False
         for i, line in enumerate(lines):
@@ -1055,10 +1055,10 @@ class DatabricksAppSetup:
             lines[i] = f'MODEL_ENDPOINT={selected_endpoint}\n'
             updated = True
             break
-            
+
         if not updated:
           lines.append(f'MODEL_ENDPOINT={selected_endpoint}\n')
-          
+
         # Write back to .env
         with open(env_file, 'w') as f:
           f.writelines(lines)
@@ -1066,14 +1066,14 @@ class DatabricksAppSetup:
         # Create .env file
         with open(env_file, 'w') as f:
           f.write(f'MODEL_ENDPOINT={selected_endpoint}\n')
-      
+
       console.print('')
       console.print(f'✅ Model endpoint configured: {selected_endpoint}')
       console.print('   This will be used for AI analysis features.')
       console.print('')
-      
+
       return True
-      
+
     except subprocess.TimeoutExpired:
       console.print('⚠️  Timeout fetching endpoints. You can configure this manually later.')
       return True

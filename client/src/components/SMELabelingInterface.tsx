@@ -6,17 +6,19 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useCurrentReviewApp,
+  useAppManifest,
   useLabelingSession,
   useLabelingItems,
   useUpdateLabelingItem,
   useTrace,
   useRendererName,
+  useLabelSchemas,
   queryKeys,
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
-import { TraceData, Assessment } from "@/types/renderers";
+import { TraceData, Assessment, SchemaAssessments } from "@/types/renderers";
+import { combineSchemaWithAssessments, filterByType } from "@/utils/schema-assessment-utils";
 
 interface SMELabelingInterfaceProps {
   sessionId: string;
@@ -32,13 +34,16 @@ export function SMELabelingInterface({
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
   const [assessments, setAssessments] = useState<Map<string, Assessment>>(new Map());
 
-  // Data fetching - use current review app instead of taking it as a prop
-  const { data: reviewApp, isLoading: isLoadingReviewApp } = useCurrentReviewApp();
+  // Data fetching - get review app from manifest
+  const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
+  const reviewApp = manifest?.review_app;
   const { data: session } = useLabelingSession(
-    reviewApp?.review_app_id || "",
     sessionId,
-    !!reviewApp?.review_app_id && !!sessionId
+    !!sessionId
   );
+
+  // Fetch all available schemas to match with session references
+  const { data: allSchemas } = useLabelSchemas();
 
   // Load items immediately for SME mode
   const { data: itemsData, isLoading: isLoadingItems } = useLabelingItems(
@@ -97,7 +102,7 @@ export function SMELabelingInterface({
       throw new Error("Review app ID not available");
     }
     // Only include basic fields that are supported by Databricks API
-    const itemData: Record<string, any> = {};
+    const itemData: Record<string, string | undefined> = {};
     const updateFields: string[] = [];
 
     if (updates.state !== undefined) {
@@ -124,8 +129,40 @@ export function SMELabelingInterface({
 
   const handleNavigateToIndex = (index: number) => {
     setCurrentItemIndex(index);
-    setAssessments(new Map());
+    // Don't reset assessments here - let the useEffect handle loading from trace data
   };
+
+  // Load assessments from trace data when trace changes
+  useEffect(() => {
+    if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
+      const assessmentMap = new Map<string, Assessment>();
+      
+      console.log('[DEBUG] Loading assessments from trace:', traceSummary.info.assessments);
+      
+      // Group assessments by name and type, keeping only the latest one
+      const latestAssessments = new Map<string, Assessment>();
+      
+      for (const assessment of traceSummary.info.assessments) {
+        const key = `${assessment.name}_${assessment.type}`;
+        const existing = latestAssessments.get(key);
+        
+        // Keep the latest assessment (you could also compare timestamps if available)
+        if (!existing || (assessment.assessment_id && (!existing.assessment_id || assessment.assessment_id > existing.assessment_id))) {
+          latestAssessments.set(key, assessment);
+        }
+      }
+      
+      console.log('[DEBUG] Latest assessments:', Array.from(latestAssessments.entries()));
+      
+      // Now map by name only (since schema name is unique)
+      for (const assessment of latestAssessments.values()) {
+        assessmentMap.set(assessment.name, assessment);
+      }
+      
+      console.log('[DEBUG] Final assessment map:', Array.from(assessmentMap.entries()));
+      setAssessments(assessmentMap);
+    }
+  }, [traceSummary]);
 
   const handlePrevious = () => {
     if (currentItemIndex > 0) {
@@ -167,7 +204,7 @@ export function SMELabelingInterface({
     return Math.round((completedItems / items.length) * 100);
   };
 
-  if (isLoadingItems || isLoadingTrace || isLoadingReviewApp) {
+  if (isLoadingItems || isLoadingTrace || isLoadingManifest) {
     return <LoadingState />;
   }
 
@@ -211,100 +248,124 @@ export function SMELabelingInterface({
     spans: traceSummary.data?.spans || [],
   };
 
+  // Compute schema assessments from session schemas and trace assessments
+  const schemaAssessments: SchemaAssessments | undefined = session?.labeling_schemas && allSchemas ? (() => {
+    // Map session schema references to full schema objects
+    const sessionSchemas = session.labeling_schemas
+      .map(ref => allSchemas.find(schema => schema.name === ref.name))
+      .filter(Boolean) as any[];
+    
+    const combinedSchemas = combineSchemaWithAssessments(sessionSchemas, traceSummary.info.assessments);
+    
+    return {
+      feedback: filterByType(combinedSchemas, 'FEEDBACK'),
+      expectations: filterByType(combinedSchemas, 'EXPECTATION'),
+    };
+  })() : undefined;
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          {!hideNavigation && (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mb-2">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Sessions
-            </Button>
-          )}
-          <h1 className="text-2xl font-bold">{session?.name || "Labeling Session"}</h1>
-          <p className="text-muted-foreground">
-            Item {currentItemIndex + 1} of {items.length}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Progress percentage and dots */}
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-light text-muted-foreground">
-              {getCompletionPercentage()}%
-            </h3>
-            <div className="flex items-center gap-1">
-              {items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`w-2 h-2 rounded-full cursor-pointer ${
-                    item.state === "COMPLETED"
-                      ? "bg-green-500"
-                      : item.state === "SKIPPED"
-                        ? "bg-yellow-500"
-                        : idx === currentItemIndex
-                          ? "bg-blue-500"
-                          : "bg-gray-300"
-                  }`}
-                  onClick={() => setCurrentItemIndex(idx)}
-                  title={`Item ${idx + 1} - ${item.state}`}
-                />
-              ))}
+    <div className="h-screen flex flex-col">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 border-b bg-background p-6">
+        <div className="container mx-auto flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-4 mb-2">
+              {!hideNavigation && (
+                <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <h1 className="text-2xl font-bold">{session?.name || "Labeling Session"}</h1>
             </div>
           </div>
+          <div className="flex items-center gap-4">
+            {/* Progress percentage and dots */}
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-light text-muted-foreground">
+                {getCompletionPercentage()}%
+              </h3>
+              <div className="flex items-center gap-1">
+                {items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-2 h-2 rounded-full cursor-pointer ${
+                      idx === currentItemIndex
+                        ? "bg-blue-500"
+                        : item.state === "COMPLETED"
+                          ? "bg-green-500"
+                          : item.state === "SKIPPED"
+                            ? "bg-yellow-500"
+                            : "bg-gray-300"
+                    }`}
+                    onClick={() => setCurrentItemIndex(idx)}
+                    title={`Item ${idx + 1} - ${item.state}${idx === currentItemIndex ? " (current)" : ""}`}
+                  />
+                ))}
+              </div>
+            </div>
 
-          {/* Navigation buttons */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrevious}
-              disabled={currentItemIndex === 0}
-              className="p-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleNext}
-              disabled={currentItemIndex === items.length - 1}
-              className="p-2"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-
-            {hasUnreviewedItems && (
+            {/* Navigation buttons */}
+            <div className="flex items-center gap-3">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleNextUnreviewed}
-                className="flex items-center gap-2"
+                onClick={handlePrevious}
+                disabled={currentItemIndex === 0}
+                className="p-2"
               >
-                Next unreviewed
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNext}
+                disabled={currentItemIndex === items.length - 1}
+                className="p-2"
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            )}
+
+              <p className="text-xs text-muted-foreground">
+                {currentItemIndex + 1} of {items.length}
+              </p>
+
+              {hasUnreviewedItems && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextUnreviewed}
+                  className="flex items-center gap-2"
+                >
+                  Next unreviewed
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Render using custom renderer */}
-      <RendererComponent
-        item={currentItem}
-        traceData={traceData}
-        reviewApp={reviewApp}
-        session={session!}
-        currentIndex={currentItemIndex}
-        totalItems={items.length}
-        assessments={assessments}
-        onAssessmentsChange={setAssessments}
-        onUpdateItem={handleUpdateItem}
-        onNavigateToIndex={handleNavigateToIndex}
-        isLoading={isLoadingTrace}
-        isSubmitting={updateItemMutation.isPending}
-      />
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-auto">
+        <div className="container mx-auto p-6">
+          <RendererComponent
+            item={currentItem}
+            traceData={traceData}
+            reviewApp={reviewApp}
+            session={session!}
+            currentIndex={currentItemIndex}
+            totalItems={items.length}
+            assessments={assessments}
+            onAssessmentsChange={setAssessments}
+            onUpdateItem={handleUpdateItem}
+            onNavigateToIndex={handleNavigateToIndex}
+            isLoading={isLoadingTrace}
+            isSubmitting={updateItemMutation.isPending}
+            schemaAssessments={schemaAssessments}
+          />
+        </div>
+      </div>
     </div>
   );
 }

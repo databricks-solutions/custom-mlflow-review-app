@@ -80,8 +80,10 @@ class Span(BaseModel):
 class Assessment(BaseModel):
   """Assessment/evaluation of a trace."""
 
+  assessment_id: Optional[str] = None
   name: str
   value: Union[float, int, str, bool, List[str], Dict[str, Any]]
+  type: Optional[str] = None  # 'feedback' or 'expectation'
   rationale: Optional[str] = None
   metadata: Optional[Dict[str, Any]] = None
   source: Optional[Union[str, Dict[str, Any]]] = None

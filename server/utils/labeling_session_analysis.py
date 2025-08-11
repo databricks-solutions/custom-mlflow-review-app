@@ -10,13 +10,13 @@ import logging
 from collections import Counter, defaultdict
 from datetime import datetime
 from statistics import mean, median, stdev
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from .config import config
 from .labeling_items_utils import labeling_items_utils
 from .labeling_sessions_utils import get_labeling_session
 from .mlflow_artifact_utils import MLflowArtifactManager
-from .mlflow_utils import get_experiment, get_trace, search_traces
+from .mlflow_utils import get_trace
 from .model_serving_utils import ModelServingClient
 from .review_apps_utils import review_apps_utils
 
@@ -57,13 +57,15 @@ class SMEInsightDiscovery:
     )
 
     # Step 2: Analyze assessment patterns
-    assessment_patterns = await self._analyze_assessment_patterns(items, schemas, agent_understanding)
+    assessment_patterns = await self._analyze_assessment_patterns(
+      items, schemas, agent_understanding
+    )
 
     # Step 3: Analyze trace-specific label meanings
     trace_label_analysis = self._analyze_trace_label_meanings(
       items, schemas, traces, agent_understanding
     )
-    
+
     # Step 4: Discover critical issues from labels
     critical_issues = await self._discover_critical_issues(
       items, schemas, assessment_patterns, agent_understanding
@@ -109,7 +111,9 @@ class SMEInsightDiscovery:
           'label_type': schema.get('label_type'),
           'min': schema.get('min'),
           'max': schema.get('max'),
-          'categories': schema.get('categories') if schema.get('schema_type') == 'categorical' else None,
+          'categories': schema.get('categories')
+          if schema.get('schema_type') == 'categorical'
+          else None,
         }
       )
 
@@ -144,9 +148,9 @@ class SMEInsightDiscovery:
         """
 
     response = self.model_client.query_endpoint(
-      endpoint_name=self.model_client.default_endpoint, 
+      endpoint_name=self.model_client.default_endpoint,
       messages=[{'role': 'user', 'content': prompt}],
-      max_tokens=2000
+      max_tokens=2000,
     )
 
     # Extract content from the response structure
@@ -167,7 +171,7 @@ class SMEInsightDiscovery:
     # Aggregate labels by schema from completed items
     schema_labels = defaultdict(list)
     completed_items = []
-    
+
     for item in items:
       if item.get('state') == 'COMPLETED':
         completed_items.append(item)
@@ -180,7 +184,7 @@ class SMEInsightDiscovery:
     # Prepare pattern analysis data with full schema context
     pattern_data = {}
     all_schemas_info = []  # Include ALL schemas for context
-    
+
     for schema in schemas:
       schema_key = schema.get('key')
       schema_info = {
@@ -190,10 +194,12 @@ class SMEInsightDiscovery:
         'description': schema.get('description'),
         'min': schema.get('min'),
         'max': schema.get('max'),
-        'categories': schema.get('categories') if schema.get('schema_type') == 'categorical' else None,
+        'categories': schema.get('categories')
+        if schema.get('schema_type') == 'categorical'
+        else None,
       }
       all_schemas_info.append(schema_info)
-      
+
       if schema_key in schema_labels:
         labels = schema_labels[schema_key]
         pattern_data[schema_key] = {
@@ -203,13 +209,15 @@ class SMEInsightDiscovery:
           'total_labels': len(labels),
           'sample_labels': labels[:10],  # Sample for analysis
         }
-    
+
     # Analyze ALL items for comprehensive insights
     total_items = len(items)
     completed_count = len(completed_items)
-    
+
     # Always provide comprehensive analysis regardless of completion status
-    logger.info(f'Analyzing patterns from {total_items} total items ({completed_count} completed) for comprehensive insights')
+    logger.info(
+      f'Analyzing patterns from {total_items} total items ({completed_count} completed) for comprehensive insights'
+    )
 
     prompt = f"""
         ## Chain of Thought: Assessment Pattern Analysis
@@ -267,9 +275,9 @@ class SMEInsightDiscovery:
         """
 
     response = self.model_client.query_endpoint(
-      endpoint_name=self.model_client.default_endpoint, 
+      endpoint_name=self.model_client.default_endpoint,
       messages=[{'role': 'user', 'content': prompt}],
-      max_tokens=2000
+      max_tokens=2000,
     )
 
     try:
@@ -281,19 +289,21 @@ class SMEInsightDiscovery:
         content = str(response['predictions'][0])
       else:
         content = response.get('content', '{}')
-      
+
       # Extract JSON from markdown code blocks if present
       if '```json' in content:
         import re
+
         json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
       elif '```' in content:
         import re
+
         json_match = re.search(r'```\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
-      
+
       return json.loads(content)
     except json.JSONDecodeError:
       self.logger.error('Failed to parse assessment patterns')
@@ -309,12 +319,12 @@ class SMEInsightDiscovery:
     """Analyze what each SME label means in the context of its specific trace."""
     # Build a map of trace_id to trace data for quick lookup
     trace_map = {t.get('info', {}).get('trace_id'): t for t in traces}
-    
+
     # Collect ALL traces with their labeling status and context
     all_trace_analyses = []
     labeled_traces = []
     unlabeled_traces = []
-    
+
     # Process ALL items regardless of state
     for item in items:
       trace_id = item.get('source', {}).get('trace_id')
@@ -328,29 +338,33 @@ class SMEInsightDiscovery:
           'response': str(trace_data.get('data', {}).get('response', ''))[:500],
           'last_updated_by': item.get('last_updated_by', 'Unknown'),
         }
-        
+
         all_trace_analyses.append(trace_info)
-        
+
         # Separate labeled vs unlabeled for analysis
         # A completed item is labeled even if labels dict is empty
         if item.get('state') == 'COMPLETED':
           labeled_traces.append(trace_info)
         else:
           unlabeled_traces.append(trace_info)
-    
+
     # Also check for any traces not in items
     trace_ids_in_items = {item.get('source', {}).get('trace_id') for item in items}
-    unlinked_traces = [t for t in traces if t.get('info', {}).get('trace_id') not in trace_ids_in_items]
-    
-    self.logger.info(f'Analyzing {len(all_trace_analyses)} total traces: {len(labeled_traces)} labeled, {len(unlabeled_traces)} unlabeled, {len(unlinked_traces)} unlinked')
-    
+    unlinked_traces = [
+      t for t in traces if t.get('info', {}).get('trace_id') not in trace_ids_in_items
+    ]
+
+    self.logger.info(
+      f'Analyzing {len(all_trace_analyses)} total traces: {len(labeled_traces)} labeled, {len(unlabeled_traces)} unlabeled, {len(unlinked_traces)} unlinked'
+    )
+
     # Create schema lookup for easier interpretation
     schema_lookup = {s.get('key'): s for s in schemas}
-    
+
     # Prepare prompt for LLM to interpret ALL traces
     labeled_samples = labeled_traces[:10]  # Sample of labeled traces
     unlabeled_samples = unlabeled_traces[:5]  # Sample of unlabeled traces
-    
+
     prompt = f"""
     ## Comprehensive Trace Analysis - ALL Traces in Session
     
@@ -431,16 +445,18 @@ class SMEInsightDiscovery:
       }}
     }}
     """
-    
+
     try:
       response = self.model_client.query_endpoint(
-        endpoint_name=self.model_client.default_endpoint, 
+        endpoint_name=self.model_client.default_endpoint,
         messages=[{'role': 'user', 'content': prompt}],
-        max_tokens=4000
+        max_tokens=4000,
       )
-      
-      self.logger.info(f'Model response keys: {response.keys() if isinstance(response, dict) else "not a dict"}')
-      
+
+      self.logger.info(
+        f'Model response keys: {response.keys() if isinstance(response, dict) else "not a dict"}'
+      )
+
       # Extract content from the response structure
       content = ''
       if 'choices' in response and response['choices']:
@@ -449,43 +465,45 @@ class SMEInsightDiscovery:
         content = str(response['predictions'][0])
       else:
         content = response.get('content', '{}')
-      
+
       self.logger.info(f'Extracted content length: {len(content)}')
       if not content or content == '{}':
         self.logger.warning('No content extracted from model response')
         raise ValueError('Empty response from model')
-      
+
       # Extract JSON from markdown code blocks if present
       if '```json' in content:
         import re
+
         json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
           self.logger.debug('Extracted JSON from markdown code block')
       elif '```' in content:
         import re
+
         json_match = re.search(r'```\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
           self.logger.debug('Extracted content from code block')
-      
+
       self.logger.debug(f'Content to parse: {content[:500]}...')
       trace_analysis = json.loads(content)
-      
+
       # Add summary statistics
       trace_analysis['total_analyzed'] = len(all_trace_analyses)
       trace_analysis['labeled_count'] = len(labeled_traces)
       trace_analysis['unlabeled_count'] = len(unlabeled_traces)
-      
+
       return trace_analysis
-      
+
     except Exception as e:
       self.logger.error(f'Error analyzing trace label meanings: {e}')
       # Provide comprehensive basic analysis even if LLM fails
       label_keys = set()
       for lt in labeled_traces:
         label_keys.update(lt.get('labels', {}).keys())
-      
+
       return {
         'trace_analyses': [
           {
@@ -500,7 +518,7 @@ class SMEInsightDiscovery:
           'total_traces': len(all_trace_analyses),
           'labeled_count': len(labeled_traces),
           'unlabeled_count': len(unlabeled_traces),
-          'completion_rate': f"{round(len(labeled_traces) / len(all_trace_analyses) * 100 if all_trace_analyses else 0, 1)}%"
+          'completion_rate': f'{round(len(labeled_traces) / len(all_trace_analyses) * 100 if all_trace_analyses else 0, 1)}%',
         },
         'pattern_summary': f'Session contains {len(all_trace_analyses)} total traces: {len(labeled_traces)} labeled, {len(unlabeled_traces)} pending',
         'key_insights': [
@@ -523,12 +541,12 @@ class SMEInsightDiscovery:
     # Analyze ALL items for comprehensive issue discovery
     problematic_items = []
     all_trace_ids = []  # Collect all trace IDs for comprehensive analysis
-    
+
     for item in items:
       trace_id = item.get('source', {}).get('trace_id')
       if trace_id:
         all_trace_ids.append(trace_id)
-      
+
       # Only check for issues in completed items that have labels
       if item.get('state') == 'COMPLETED':
         labels = item.get('labels', {})
@@ -556,15 +574,15 @@ class SMEInsightDiscovery:
                 break
 
         if has_issue:
-          problematic_items.append(
-            {'trace_id': trace_id, 'labels': labels}
-          )
-    
-    logger.info(f'Analyzing ALL {len(all_trace_ids)} traces in session for comprehensive critical issue discovery')
+          problematic_items.append({'trace_id': trace_id, 'labels': labels})
+
+    logger.info(
+      f'Analyzing ALL {len(all_trace_ids)} traces in session for comprehensive critical issue discovery'
+    )
 
     completed_items = [i for i in items if i.get('state') == 'COMPLETED']
     completed_count = len(completed_items)
-    
+
     prompt = f"""
         ## Chain of Thought: Critical Issue Discovery
         
@@ -620,9 +638,9 @@ class SMEInsightDiscovery:
         """
 
     response = self.model_client.query_endpoint(
-      endpoint_name=self.model_client.default_endpoint, 
+      endpoint_name=self.model_client.default_endpoint,
       messages=[{'role': 'user', 'content': prompt}],
-      max_tokens=2000
+      max_tokens=2000,
     )
 
     try:
@@ -634,19 +652,21 @@ class SMEInsightDiscovery:
         content = str(response['predictions'][0])
       else:
         content = response.get('content', '{}')
-      
+
       # Extract JSON from markdown code blocks if present
       if '```json' in content:
         import re
+
         json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
       elif '```' in content:
         import re
+
         json_match = re.search(r'```\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
-      
+
       result = json.loads(content)
       return result.get('critical_issues', [])
     except json.JSONDecodeError:
@@ -662,7 +682,7 @@ class SMEInsightDiscovery:
   ) -> List[Dict[str, Any]]:
     """Generate actionable recommendations based on discoveries."""
     issue_count = len(critical_issues)
-    
+
     prompt = f"""
         ## Chain of Thought: Actionable Recommendations
         
@@ -708,9 +728,9 @@ class SMEInsightDiscovery:
         """
 
     response = self.model_client.query_endpoint(
-      endpoint_name=self.model_client.default_endpoint, 
+      endpoint_name=self.model_client.default_endpoint,
       messages=[{'role': 'user', 'content': prompt}],
-      max_tokens=2000
+      max_tokens=2000,
     )
 
     try:
@@ -722,19 +742,21 @@ class SMEInsightDiscovery:
         content = str(response['predictions'][0])
       else:
         content = response.get('content', '{}')
-      
+
       # Extract JSON from markdown code blocks if present
       if '```json' in content:
         import re
+
         json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
       elif '```' in content:
         import re
+
         json_match = re.search(r'```\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
-      
+
       result = json.loads(content)
       return result.get('recommendations', [])
     except json.JSONDecodeError:
@@ -795,15 +817,17 @@ class ActionableReportGenerator:
 
     return '\n\n'.join(report_sections)
 
-  def _generate_header(self, session_data: Dict[str, Any], metrics: Dict[str, Any], insights: Dict[str, Any] = None) -> str:
+  def _generate_header(
+    self, session_data: Dict[str, Any], metrics: Dict[str, Any], insights: Dict[str, Any] = None
+  ) -> str:
     """Generate report header."""
     session = session_data.get('session', {})
-    
+
     # Get label counts from trace analysis if available
     trace_analysis = insights.get('trace_label_analysis', {}) if insights else {}
     labeled_count = trace_analysis.get('labeled_count', metrics.get('completed', 0))
     total_count = trace_analysis.get('total_analyzed', metrics.get('total_items', 0))
-    
+
     return f"""# 🔬 Labeling Session Analysis Report
 
 **Session:** {session.get('name', 'Unknown')}  
@@ -821,13 +845,15 @@ class ActionableReportGenerator:
 ### Analysis Status
 
 {'Error generating insights. Running basic statistical analysis only.' if insights and 'error' in insights else 'Insights generation in progress.'}"""
-    
+
     critical_issues = insights.get('critical_issues', [])
     critical_count = len([i for i in critical_issues if i.get('severity') == 'critical'])
     high_count = len([i for i in critical_issues if i.get('severity') == 'high'])
 
-    summary_text = insights.get('agent_understanding', 'Analysis of agent behavior based on SME evaluations.')
-    
+    summary_text = insights.get(
+      'agent_understanding', 'Analysis of agent behavior based on SME evaluations.'
+    )
+
     # Add critical issues count if any exist
     if critical_count > 0 or high_count > 0:
       issue_summary = []
@@ -846,19 +872,19 @@ class ActionableReportGenerator:
   def _generate_trace_label_interpretations(self, insights: Dict[str, Any]) -> str:
     """Generate trace-specific label interpretations section."""
     trace_analysis = insights.get('trace_label_analysis', {})
-    
+
     if not trace_analysis:
       return ''
-    
+
     sections = ['## 🔍 Label Meanings in Context']
     sections.append('*Understanding what each label means based on the actual trace content*\n')
-    
+
     # Pattern summary
     pattern_summary = trace_analysis.get('pattern_summary')
     if pattern_summary:
       sections.append('### Pattern Summary')
       sections.append(f'{pattern_summary}\n')
-    
+
     # Label distribution meanings
     label_meanings = trace_analysis.get('label_distribution_meaning', {})
     if label_meanings:
@@ -872,7 +898,7 @@ class ActionableReportGenerator:
       if label_meanings.get('unlabeled_implications'):
         sections.append(f"- **Unlabeled Traces:** {label_meanings['unlabeled_implications']}")
       sections.append('')
-    
+
     # Key insights
     key_insights = trace_analysis.get('key_insights', [])
     if key_insights:
@@ -880,43 +906,43 @@ class ActionableReportGenerator:
       for insight in key_insights:
         sections.append(f'- {insight}')
       sections.append('')
-    
+
     # Individual trace analyses (show first 5 most interesting)
     trace_analyses = trace_analysis.get('trace_analyses', [])
     if trace_analyses:
       sections.append('### Detailed Trace Interpretations')
       sections.append('*Showing key examples of labeled and unlabeled traces*\n')
-      
+
       for i, trace in enumerate(trace_analyses[:5], 1):
         trace_id = trace.get('trace_id', 'Unknown')
         state = trace.get('state', 'Unknown')
         state_emoji = '✅' if state == 'COMPLETED' else '⏳'
-        
+
         sections.append(f"""#### {i}. Trace {trace_id[:8]}... {state_emoji} ({state})
 
 **Label Interpretation:**
 {trace.get('label_interpretation', 'No interpretation available')}
 """)
-        
+
         # Quality issues
         issues = trace.get('quality_issues', [])
         if issues:
           sections.append('**Quality Issues:**')
           for issue in issues:
             sections.append(f'- {issue}')
-        
+
         # Positive aspects
         positives = trace.get('positive_aspects', [])
         if positives:
           sections.append('\n**Positive Aspects:**')
           for positive in positives:
             sections.append(f'- {positive}')
-        
+
         # Key finding
         key_finding = trace.get('key_finding')
         if key_finding:
           sections.append(f'\n**Key Finding:** {key_finding}')
-        
+
         # Show actual labels if completed
         if state == 'COMPLETED' and 'labels' in trace:
           labels = trace.get('labels', {})
@@ -924,9 +950,9 @@ class ActionableReportGenerator:
             sections.append('\n**SME Labels:**')
             for key, value in labels.items():
               sections.append(f'- {key}: {value}')
-        
+
         sections.append('')
-    
+
     return '\n'.join(sections)
 
   def _generate_critical_issues(self, insights: Dict[str, Any]) -> str:
@@ -964,11 +990,11 @@ class ActionableReportGenerator:
 **Evidence from SME Labels:**""")
 
       for evidence in issue.get('evidence_from_labels', [])[:3]:
-        sections.append(f"- {evidence}")
+        sections.append(f'- {evidence}')
 
       if issue.get('affected_traces'):
         trace_count = len(issue.get('affected_traces', []))
-        sections.append(f"\n*Affects {trace_count} traces*")
+        sections.append(f'\n*Affects {trace_count} traces*')
 
     return '\n'.join(sections)
 
@@ -1138,7 +1164,7 @@ class LabelingSessionAnalyzer:
 
       # Get review app for schemas
       self.review_app = await review_apps_utils.get_review_app(review_app_id)
-      
+
       # Use session's labeling schemas if specified, otherwise use all review app schemas
       session_schemas = self.session.get('labeling_schemas', [])
       if session_schemas:
@@ -1146,7 +1172,9 @@ class LabelingSessionAnalyzer:
         review_app_schemas = self.review_app.get('labeling_schemas', [])
         schema_keys = {s.get('key') for s in session_schemas if s.get('key')}
         self.schemas = [s for s in review_app_schemas if s.get('key') in schema_keys]
-        self.logger.info(f'Using {len(self.schemas)} schemas specified in session from {len(review_app_schemas)} available')
+        self.logger.info(
+          f'Using {len(self.schemas)} schemas specified in session from {len(review_app_schemas)} available'
+        )
       else:
         # Use all schemas from review app
         self.schemas = self.review_app.get('labeling_schemas', [])
@@ -1355,7 +1383,9 @@ async def retrieve_experiment_report(experiment_id: str) -> Optional[str]:
     return None
 
 
-async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any]] = None, limit: int = 500) -> List[Dict[str, Any]]:
+async def load_session_traces(
+  session: Dict[str, Any], items: List[Dict[str, Any]] = None, limit: int = 500
+) -> List[Dict[str, Any]]:
   """Load traces specifically linked to this labeling session.
 
   This function loads ONLY the traces that are associated with the session's MLflow run,
@@ -1388,7 +1418,7 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
           if trace_id:
             session_trace_ids.add(trace_id)
       logger.info(f'Loading {len(session_trace_ids)} traces from session items only')
-      
+
       # Load only the specific traces from items
       traces = []
       for trace_id in session_trace_ids:
@@ -1411,21 +1441,22 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
         except Exception as e:
           logger.warning(f'Error loading trace {trace_id}: {e}')
       return traces
-    
+
     # Load traces linked to the session's MLflow run
     from mlflow.tracking import MlflowClient
+
     client = MlflowClient()
-    
+
     # Get the run to access linked traces
     try:
       run = client.get_run(mlflow_run_id)
-      
+
       # Get trace IDs from run tags (linked traces are stored in tags)
       linked_trace_ids = []
       for key, value in run.data.tags.items():
         if key.startswith('mlflow.linkedTraces.'):
           linked_trace_ids.append(value)
-      
+
       # Also collect trace IDs from session items
       session_trace_ids = set()
       if items:
@@ -1433,11 +1464,11 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
           trace_id = item.get('source', {}).get('trace_id')
           if trace_id:
             session_trace_ids.add(trace_id)
-      
+
       # Combine both sources
       all_trace_ids = set(linked_trace_ids) | session_trace_ids
       logger.info(f'Found {len(all_trace_ids)} traces linked to session (run: {mlflow_run_id})')
-      
+
       # Load each trace
       traces = []
       for trace_id in list(all_trace_ids)[:limit]:  # Respect limit
@@ -1459,10 +1490,10 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
           traces.append(trace_dict)
         except Exception as e:
           logger.warning(f'Error loading trace {trace_id}: {e}')
-      
+
       logger.info(f'Successfully loaded {len(traces)} traces for session analysis')
       return traces
-      
+
     except Exception as e:
       logger.error(f'Error loading traces for run {mlflow_run_id}: {e}')
       # Fall back to loading from items only
@@ -1472,7 +1503,7 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
           trace_id = item.get('source', {}).get('trace_id')
           if trace_id:
             session_trace_ids.add(trace_id)
-      
+
       traces = []
       for trace_id in session_trace_ids:
         try:
@@ -1493,7 +1524,7 @@ async def load_session_traces(session: Dict[str, Any], items: List[Dict[str, Any
           traces.append(trace_dict)
         except Exception as e:
           logger.warning(f'Error loading trace {trace_id}: {e}')
-      
+
       return traces
 
   except Exception as e:
@@ -1589,7 +1620,7 @@ async def analyze_labeling_session_complete(
           'completed_assessments': metrics.get('completed', 0),
           'total_traces_analyzed': len(traces),
           'discovery_method': 'error-fallback',
-        }
+        },
       }
       # Still generate a report with available data
       report_generator = ActionableReportGenerator()
@@ -1629,15 +1660,19 @@ async def analyze_labeling_session_complete(
           'total_items_analyzed': metrics.get('total_items', 0),
           'has_experiment_context': experiment_report is not None,
         }
-        
+
         # Add insights metadata if available
         if insights and 'metadata' in insights:
           combined_metadata.update(insights['metadata'])
         else:
           # Ensure we have the key fields even if insights failed
           combined_metadata['total_traces_analyzed'] = len(traces)
-          combined_metadata['discovery_method'] = 'statistical-only' if not insights else insights.get('metadata', {}).get('discovery_method', 'unknown')
-        
+          combined_metadata['discovery_method'] = (
+            'statistical-only'
+            if not insights
+            else insights.get('metadata', {}).get('discovery_method', 'unknown')
+          )
+
         analysis_data = {
           'metadata': combined_metadata,
           'statistics': statistics,

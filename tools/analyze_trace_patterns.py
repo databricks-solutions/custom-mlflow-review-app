@@ -5,13 +5,7 @@ import argparse
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.trace_analysis import analyze_trace_patterns
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def main():

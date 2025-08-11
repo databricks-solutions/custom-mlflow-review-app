@@ -5,14 +5,8 @@ import argparse
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.config import config
 from server.utils.mlflow_utils import _extract_request_response_preview, search_traces
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def _convert_traces_to_json_format(traces, include_spans: bool = False):

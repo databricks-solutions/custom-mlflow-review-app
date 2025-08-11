@@ -6,5 +6,6 @@
  * Reference to a labeling schema.
  */
 export type LabelingSchemaRef = {
-  name: string;
+    name: string;
 };
+

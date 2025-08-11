@@ -8,9 +8,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
+import { ReviewApp, LabelingSession, LabelingItem } from "@/types/renderers";
+import { SimplifiedApiService, type LabelingSchema } from "@/fastapi_client";
 
 // Query Keys Factory
 export const queryKeys = {
+  manifest: () => ["manifest"] as const,
   config: () => ["config"] as const,
   user: () => ["user"] as const,
   userRole: () => ["user", "role"] as const,
@@ -23,9 +26,8 @@ export const queryKeys = {
 
   labelingSessions: {
     all: () => ["labeling-sessions"] as const,
-    list: (reviewAppId: string) => ["labeling-sessions", reviewAppId] as const,
-    detail: (reviewAppId: string, sessionId: string) =>
-      ["labeling-sessions", reviewAppId, sessionId] as const,
+    list: () => ["labeling-sessions", "list"] as const,
+    detail: (sessionId: string) => ["labeling-sessions", sessionId] as const,
     analysis: (reviewAppId: string, sessionId: string) =>
       ["labeling-sessions", reviewAppId, sessionId, "analysis"] as const,
     analysisStatus: (reviewAppId: string, sessionId: string) =>
@@ -39,7 +41,7 @@ export const queryKeys = {
 
   traces: {
     all: () => ["traces"] as const,
-    search: (params: any) => ["traces", "search", params] as const,
+    search: (params: Record<string, unknown>) => ["traces", "search", params] as const,
     detail: (traceId: string) => ["traces", traceId] as const,
     detailWithRun: (traceId: string, runId: string) => ["traces", traceId, "run", runId] as const,
     metadata: (traceId: string) => ["traces", traceId, "metadata"] as const,
@@ -55,43 +57,67 @@ export const queryKeys = {
     detail: (id: string) => ["runs", id] as const,
   },
 
+  labelSchemas: {
+    all: () => ["label-schemas"] as const,
+    list: () => ["label-schemas", "list"] as const,
+  },
+
   renderers: {
     name: (runId: string) => ["renderers", "name", runId] as const,
   },
 };
 
-// Configuration
-export function useConfig() {
+// Unified Manifest (contains user, workspace, config, and review app info)
+export function useAppManifest() {
   return useQuery({
-    queryKey: queryKeys.config(),
-    queryFn: () => apiClient.api.getConfig(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
-
-// User
-export function useCurrentUser() {
-  return useQuery({
-    queryKey: queryKeys.user(),
-    queryFn: () => apiClient.api.getCurrentUser(),
-    retry: false, // Don't retry if auth fails
-  });
-}
-
-export function useUserRole() {
-  return useQuery({
-    queryKey: queryKeys.userRole(),
+    queryKey: queryKeys.manifest(),
     queryFn: async () => {
-      // Make a direct fetch call since the API client may not be generated yet
-      const response = await fetch("/api/auth/user-role");
+      const response = await fetch("/api/manifest");
       if (!response.ok) {
-        throw new Error("Failed to fetch user role");
+        throw new Error("Failed to fetch app manifest");
       }
       return response.json();
     },
     retry: false, // Don't retry if auth fails
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+}
+
+// Configuration (from manifest)
+export function useConfig() {
+  const { data: manifest, ...rest } = useAppManifest();
+  return {
+    data: manifest?.config,
+    ...rest
+  };
+}
+
+// User (from manifest)
+export function useCurrentUser() {
+  const { data: manifest, ...rest } = useAppManifest();
+  return {
+    data: manifest?.user,
+    ...rest
+  };
+}
+
+export function useUserRole() {
+  // Get user role from the manifest
+  const { data: manifest, ...rest } = useAppManifest();
+  
+  // Transform the user data to match the old user-role response format
+  // for backward compatibility
+  const roleData = manifest?.user ? {
+    username: manifest.user.userName,
+    role: manifest.user.role || 'sme',
+    is_developer: manifest.user.is_developer || false,
+    can_access_dev_pages: manifest.user.can_access_dev_pages || false,
+  } : undefined;
+  
+  return {
+    data: roleData,
+    ...rest
+  };
 }
 
 // Review Apps
@@ -101,27 +127,16 @@ export function useReviewApps(filter?: string) {
     queryFn: () =>
       apiClient.api.listReviewApps({
         filter,
-        pageSize: filter ? 10 : 500, // Use smaller page size when filtering since we expect 1 result
       }),
   });
 }
 
-export function useCurrentReviewApp() {
-  return useQuery({
-    queryKey: ["current-review-app"],
-    queryFn: async () => {
-      const result = await apiClient.api.getCurrentReviewApp();
-      return result;
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes since experiment:review_app is 1:1
-  });
-}
 
 export function useCreateReviewApp() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (reviewApp: any) => apiClient.api.createReviewApp({ reviewApp }),
+    mutationFn: (reviewApp: Partial<ReviewApp>) => apiClient.api.createReviewApp({ reviewApp }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.reviewApps.all() });
       toast.success("Review app created successfully");
@@ -139,7 +154,7 @@ export function useUpdateReviewApp() {
       updateMask,
     }: {
       reviewAppId: string;
-      reviewApp: any;
+      reviewApp: Partial<ReviewApp>;
       updateMask: string;
     }) => apiClient.api.updateReviewApp({ reviewAppId, reviewApp, updateMask }),
     onSuccess: (data, variables) => {
@@ -153,19 +168,19 @@ export function useUpdateReviewApp() {
 }
 
 // Labeling Sessions
-export function useLabelingSessions(reviewAppId: string, enabled = true) {
+export function useLabelingSessions(enabled = true) {
   return useQuery({
-    queryKey: queryKeys.labelingSessions.list(reviewAppId),
-    queryFn: () => apiClient.api.listLabelingSessions({ reviewAppId }),
-    enabled: enabled && !!reviewAppId,
+    queryKey: queryKeys.labelingSessions.list(),
+    queryFn: () => SimplifiedApiService.listLabelingSessionsApiLabelingSessionsGet(),
+    enabled,
   });
 }
 
-export function useLabelingSession(reviewAppId: string, sessionId: string, enabled = true) {
+export function useLabelingSession(sessionId: string, enabled = true) {
   return useQuery({
-    queryKey: queryKeys.labelingSessions.detail(reviewAppId, sessionId),
-    queryFn: () => apiClient.api.getLabelingSession({ reviewAppId, sessionId }),
-    enabled: enabled && !!reviewAppId && !!sessionId,
+    queryKey: queryKeys.labelingSessions.detail(sessionId),
+    queryFn: () => SimplifiedApiService.getLabelingSessionApiLabelingSessionsLabelingSessionIdGet(sessionId),
+    enabled: enabled && !!sessionId,
   });
 }
 
@@ -173,11 +188,11 @@ export function useCreateLabelingSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ reviewAppId, session }: { reviewAppId: string; session: any }) =>
-      apiClient.api.createLabelingSession({ reviewAppId, session }),
-    onSuccess: (data, variables) => {
+    mutationFn: (session: LabelingSession) => 
+      SimplifiedApiService.createLabelingSessionApiLabelingSessionsPost(session),
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.labelingSessions.list(variables.reviewAppId),
+        queryKey: queryKeys.labelingSessions.list(),
       });
       toast.success("Labeling session created successfully");
     },
@@ -189,20 +204,24 @@ export function useUpdateLabelingSession() {
 
   return useMutation({
     mutationFn: ({
-      reviewAppId,
       sessionId,
       session,
+      updateMask,
     }: {
-      reviewAppId: string;
       sessionId: string;
-      session: any;
-    }) => apiClient.api.updateLabelingSession({ reviewAppId, sessionId, session }),
+      session: LabelingSession;
+      updateMask: string;
+    }) => SimplifiedApiService.updateLabelingSessionApiLabelingSessionsLabelingSessionIdPatch(
+        sessionId, 
+        updateMask, 
+        session
+      ),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.labelingSessions.detail(variables.reviewAppId, variables.sessionId),
+        queryKey: queryKeys.labelingSessions.detail(variables.sessionId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.labelingSessions.list(variables.reviewAppId),
+        queryKey: queryKeys.labelingSessions.list(),
       });
       toast.success("Labeling session updated successfully");
     },
@@ -213,11 +232,11 @@ export function useDeleteLabelingSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ reviewAppId, sessionId }: { reviewAppId: string; sessionId: string }) =>
-      apiClient.api.deleteLabelingSession({ reviewAppId, sessionId }),
-    onSuccess: (data, variables) => {
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
+      SimplifiedApiService.deleteLabelingSessionApiLabelingSessionsLabelingSessionIdDelete(sessionId),
+    onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.labelingSessions.list(variables.reviewAppId),
+        queryKey: queryKeys.labelingSessions.list(),
       });
       toast.success("Labeling session deleted successfully");
     },
@@ -255,7 +274,7 @@ export function useUpdateLabelingItem() {
       reviewAppId: string;
       sessionId: string;
       itemId: string;
-      item: any;
+      item: Partial<LabelingItem>;
       updateMask: string;
     }) => apiClient.api.updateLabelingItem({ reviewAppId, sessionId, itemId, item, updateMask }),
     onSuccess: (data, variables) => {
@@ -290,7 +309,7 @@ export function useDeleteLabelingItem() {
 }
 
 // Traces
-export function useSearchTraces(params: any, enabled = true) {
+export function useSearchTraces(params: Record<string, unknown>, enabled = true) {
   return useQuery({
     queryKey: queryKeys.traces.search(params),
     queryFn: () => apiClient.api.searchTraces(params),
@@ -330,13 +349,6 @@ export function useLinkTracesToRun() {
 }
 
 // MLflow
-export function useExperiment(experimentId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.experiments.detail(experimentId),
-    queryFn: () => apiClient.api.getExperiment({ experimentId }),
-    enabled: enabled && !!experimentId,
-  });
-}
 
 export function useExperimentSummary(experimentId: string, enabled = true) {
   return useQuery({
@@ -368,7 +380,7 @@ export function useRendererName(runId: string, enabled = true) {
     queryFn: async () => {
       const runData = await apiClient.api.getRun({ runId });
       const rendererName = runData?.run?.data?.tags?.find(
-        (tag) => tag.key === "mlflow.customRenderer"
+        (tag: { key?: string; value?: string }) => tag.key === "mlflow.customRenderer"
       )?.value;
       return { rendererName, runData };
     },
@@ -393,7 +405,7 @@ export function useUpdateRun() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.runs.detail(variables.run_id) });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to update run: ${error.message}`);
     },
   });
@@ -420,10 +432,10 @@ export function useSetRendererTag() {
 }
 
 export function useCreateRun() {
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient(); // Not currently used
 
   return useMutation({
-    mutationFn: (runData: any) => apiClient.api.createRun(runData),
+    mutationFn: (runData: Record<string, unknown>) => apiClient.api.createRun(runData),
     onSuccess: () => {
       toast.success("Run created successfully");
     },
@@ -490,9 +502,13 @@ export function useExperimentAnalysisStatus(experimentId: string, enabled = true
   return useQuery({
     queryKey: queryKeys.experiments.analysisStatus(experimentId),
     queryFn: () =>
-      apiClient.api.getAnalysisStatusExperimentSummaryStatusExperimentIdGet(experimentId),
+      apiClient.api.getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet(experimentId),
     enabled: enabled && !!experimentId,
-    refetchInterval: 3000, // Poll every 3 seconds by default
+    refetchInterval: (query) => {
+      // Only poll if there's an active task running
+      const status = query.state.data?.status;
+      return status === 'running' || status === 'pending' ? 3000 : false;
+    },
     refetchIntervalInBackground: false,
   });
 }
@@ -512,7 +528,7 @@ export function useTriggerExperimentAnalysis() {
       traceSampleSize?: number;
       modelEndpoint?: string;
     }) =>
-      apiClient.api.triggerAnalysisExperimentSummaryTriggerAnalysisPost({
+      apiClient.api.triggerAnalysisApiExperimentSummaryTriggerAnalysisPost({
         experiment_id: experimentId,
         focus,
         trace_sample_size: traceSampleSize,
@@ -526,6 +542,241 @@ export function useTriggerExperimentAnalysis() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.experiments.summary(variables.experimentId),
       });
+    },
+  });
+}
+
+// MLflow Feedback and Expectation Mutations
+// These mutations are used to log and update feedback and expectations on traces
+
+/**
+ * Hook to log feedback on a trace
+ */
+export function useLogFeedbackMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      traceId,
+      name,
+      value,
+      rationale,
+    }: {
+      traceId: string;
+      name: string;
+      value: string | number | boolean | Array<string> | Record<string, unknown>;
+      rationale?: string;
+    }) =>
+      apiClient.api.logTraceFeedback({
+        traceId,
+        name,
+        value,
+        rationale,
+      }),
+    onSuccess: (data, variables) => {
+      // Invalidate trace-related queries to refresh feedback
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.metadata(variables.traceId),
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to log feedback:", error);
+      toast.error("Failed to save feedback");
+    },
+  });
+}
+
+/**
+ * Hook to update existing feedback on a trace
+ */
+export function useUpdateFeedbackMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      traceId,
+      assessmentId,
+      value,
+      rationale,
+    }: {
+      traceId: string;
+      assessmentId: string;
+      value: string | number | boolean | Array<string> | Record<string, unknown>;
+      rationale?: string;
+    }) =>
+      apiClient.api.updateTraceFeedback({
+        traceId,
+        assessment_id: assessmentId,
+        value,
+        rationale,
+      }),
+    onSuccess: (data, variables) => {
+      // Invalidate trace-related queries to refresh feedback
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.metadata(variables.traceId),
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update feedback:", error);
+      toast.error("Failed to update feedback");
+    },
+  });
+}
+
+/**
+ * Hook to log expectation on a trace
+ */
+export function useLogExpectationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      traceId,
+      name,
+      value,
+      rationale,
+    }: {
+      traceId: string;
+      name: string;
+      value: string | number | boolean | Array<string> | Record<string, unknown>;
+      rationale?: string;
+    }) =>
+      apiClient.api.logTraceExpectation({
+        traceId,
+        name,
+        value,
+        rationale,
+      }),
+    onSuccess: (data, variables) => {
+      // Invalidate trace-related queries to refresh expectations
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.metadata(variables.traceId),
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to log expectation:", error);
+      toast.error("Failed to save expectation");
+    },
+  });
+}
+
+/**
+ * Hook to update existing expectation on a trace
+ */
+export function useUpdateExpectationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      traceId,
+      assessmentId,
+      value,
+      rationale,
+    }: {
+      traceId: string;
+      assessmentId: string;
+      value: string | number | boolean | Array<string> | Record<string, unknown>;
+      rationale?: string;
+    }) =>
+      apiClient.api.updateTraceExpectation({
+        traceId,
+        assessment_id: assessmentId,
+        value,
+        rationale,
+      }),
+    onSuccess: (data, variables) => {
+      // Invalidate trace-related queries to refresh expectations
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.traces.metadata(variables.traceId),
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update expectation:", error);
+      toast.error("Failed to update expectation");
+    },
+  });
+}
+
+// Label Schemas
+export function useLabelSchemas(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.labelSchemas.list(),
+    queryFn: () => SimplifiedApiService.listLabelSchemasApiLabelSchemasGet(),
+    enabled,
+  });
+}
+
+export function useCreateLabelSchema() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (schema: LabelingSchema) => 
+      SimplifiedApiService.createLabelSchemaApiLabelSchemasPost(schema),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.labelSchemas.list(),
+      });
+      toast.success("Label schema created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to create schema: ${error.message}`);
+    },
+  });
+}
+
+export function useUpdateLabelSchema() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      schemaName,
+      schema,
+    }: {
+      schemaName: string;
+      schema: LabelingSchema;
+    }) => 
+      SimplifiedApiService.updateLabelSchemaApiLabelSchemasSchemaNamePatch(
+        schemaName,
+        schema
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.labelSchemas.list(),
+      });
+      toast.success("Label schema updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update schema: ${error.message}`);
+    },
+  });
+}
+
+export function useDeleteLabelSchema() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ schemaName }: { schemaName: string }) => 
+      SimplifiedApiService.deleteLabelSchemaApiLabelSchemasSchemaNameDelete(schemaName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.labelSchemas.list(),
+      });
+      toast.success("Label schema deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete schema: ${error.message}`);
     },
   });
 }

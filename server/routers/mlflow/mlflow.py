@@ -11,7 +11,6 @@ from fastapi import APIRouter, HTTPException
 from server.exceptions import MLflowError, NotFoundError
 from server.models.mlflow import (
   CreateRunRequest,
-  GetExperimentResponse,
   LinkTracesResponse,
   LogExpectationRequest,
   LogExpectationResponse,
@@ -19,11 +18,11 @@ from server.models.mlflow import (
   LogFeedbackResponse,
   SearchRunsRequest,
   SearchRunsResponse,
-  UpdateRunRequest,
-  UpdateFeedbackRequest,
-  UpdateFeedbackResponse,
   UpdateExpectationRequest,
   UpdateExpectationResponse,
+  UpdateFeedbackRequest,
+  UpdateFeedbackResponse,
+  UpdateRunRequest,
 )
 from server.models.traces import (
   LinkTracesToRunRequest,
@@ -34,9 +33,6 @@ from server.models.traces import (
 from server.utils.mlflow_utils import _extract_request_response_preview
 from server.utils.mlflow_utils import (
   create_run as mlflow_create_run,
-)
-from server.utils.mlflow_utils import (
-  get_experiment as mlflow_get_experiment,
 )
 from server.utils.mlflow_utils import (
   get_run as mlflow_get_run,
@@ -57,16 +53,16 @@ from server.utils.mlflow_utils import (
   log_feedback as mlflow_log_feedback,
 )
 from server.utils.mlflow_utils import (
-  update_feedback as mlflow_update_feedback,
+  search_runs as mlflow_search_runs,
+)
+from server.utils.mlflow_utils import (
+  search_traces as mlflow_search_traces,
 )
 from server.utils.mlflow_utils import (
   update_expectation as mlflow_update_expectation,
 )
 from server.utils.mlflow_utils import (
-  search_runs as mlflow_search_runs,
-)
-from server.utils.mlflow_utils import (
-  search_traces as mlflow_search_traces,
+  update_feedback as mlflow_update_feedback,
 )
 from server.utils.mlflow_utils import (
   update_run as mlflow_update_run,
@@ -96,14 +92,35 @@ def _convert_span(span):
 
 def _convert_assessment(assessment):
   """Convert MLflow assessment to API format."""
-  # Get assessment value from nested structure
+  import logging
+
+  logger = logging.getLogger(__name__)
+
+  # Get assessment value and type from nested structure
   value = None
+  assessment_type = None
+
+  # FIRST: Get assessment_id from the top-level assessment object (it's always there)
+  assessment_id = getattr(assessment, 'assessment_id', None)
+
+  # Check for feedback/expectation nested structure
   if hasattr(assessment, 'feedback') and assessment.feedback:
     value = getattr(assessment.feedback, 'value', None)
+    assessment_type = 'feedback'
   elif hasattr(assessment, 'expectation') and assessment.expectation:
     value = getattr(assessment.expectation, 'value', None)
+    assessment_type = 'expectation'
   elif hasattr(assessment, 'value'):
     value = assessment.value
+    # Try to infer type from the assessment itself
+    if hasattr(assessment, 'type'):
+      assessment_type = assessment.type
+    elif hasattr(assessment, '__class__'):
+      class_name = assessment.__class__.__name__.lower()
+      if 'feedback' in class_name:
+        assessment_type = 'feedback'
+      elif 'expectation' in class_name:
+        assessment_type = 'expectation'
 
   # Skip if no value
   if value is None:
@@ -112,11 +129,20 @@ def _convert_assessment(assessment):
   result = {
     'name': getattr(assessment, 'name', ''),
     'value': value,
+    'type': assessment_type,
+    'assessment_id': assessment_id,
   }
 
   # Add optional fields
   if hasattr(assessment, 'metadata') and assessment.metadata:
     result['metadata'] = assessment.metadata
+    # Check for rationale in metadata
+    if isinstance(assessment.metadata, dict) and 'rationale' in assessment.metadata:
+      result['rationale'] = assessment.metadata.get('rationale')
+
+  # Also check for rationale as a direct attribute
+  if not result.get('rationale') and hasattr(assessment, 'rationale'):
+    result['rationale'] = getattr(assessment, 'rationale', None)
 
   if hasattr(assessment, 'source') and assessment.source:
     source = assessment.source
@@ -199,13 +225,6 @@ async def search_traces(request: SearchTracesRequest) -> SearchTracesResponse:
     return SearchTracesResponse(**result)
   except Exception as e:
     raise MLflowError(str(e), operation='search_traces')
-
-
-@router.get('/experiments/{experiment_id}', response_model=GetExperimentResponse)
-async def get_experiment(experiment_id: str) -> GetExperimentResponse:
-  """Get experiment details by ID."""
-  result = mlflow_get_experiment(experiment_id)
-  return GetExperimentResponse(**result)
 
 
 @router.get('/runs/{run_id}')
@@ -363,10 +382,10 @@ async def log_trace_feedback(trace_id: str, request: LogFeedbackRequest) -> LogF
 
     result = mlflow_log_feedback(
       trace_id=trace_id,
-      key=request.feedback_key,
-      value=request.feedback_value,
+      key=request.assessment.name,
+      value=request.assessment.value,
       username=username,
-      rationale=request.rationale,
+      rationale=request.assessment.rationale,
     )
     return LogFeedbackResponse(**result)
   except Exception as e:
@@ -400,10 +419,10 @@ async def log_trace_expectation(
 
     result = mlflow_log_expectation(
       trace_id=trace_id,
-      key=request.expectation_key,
-      value=request.expectation_value,
+      key=request.assessment.name,
+      value=request.assessment.value,
       username=username,
-      rationale=request.rationale,
+      rationale=request.assessment.rationale,
     )
     return LogExpectationResponse(**result)
   except Exception as e:
@@ -413,7 +432,9 @@ async def log_trace_expectation(
 
 
 @router.patch('/traces/{trace_id}/feedback', response_model=UpdateFeedbackResponse)
-async def update_trace_feedback(trace_id: str, request: UpdateFeedbackRequest) -> UpdateFeedbackResponse:
+async def update_trace_feedback(
+  trace_id: str, request: UpdateFeedbackRequest
+) -> UpdateFeedbackResponse:
   """Update existing feedback on a trace.
 
   Args:
@@ -436,9 +457,10 @@ async def update_trace_feedback(trace_id: str, request: UpdateFeedbackRequest) -
     result = mlflow_update_feedback(
       trace_id=trace_id,
       assessment_id=request.assessment_id,
-      value=request.feedback_value,
+      value=request.assessment.value,
       username=username,
-      rationale=request.rationale,
+      rationale=request.assessment.rationale,
+      metadata=request.assessment.metadata,
     )
     return UpdateFeedbackResponse(**result)
   except Exception as e:
@@ -473,9 +495,10 @@ async def update_trace_expectation(
     result = mlflow_update_expectation(
       trace_id=trace_id,
       assessment_id=request.assessment_id,
-      value=request.expectation_value,
+      value=request.assessment.value,
       username=username,
-      rationale=request.rationale,
+      rationale=request.assessment.rationale,
+      metadata=request.assessment.metadata,
     )
     return UpdateExpectationResponse(**result)
   except Exception as e:

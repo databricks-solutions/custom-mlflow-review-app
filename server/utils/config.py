@@ -4,8 +4,6 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from dotenv import load_dotenv
-
 
 class AppConfig:
   """Singleton configuration loader for the MLflow Review App."""
@@ -29,11 +27,7 @@ class AppConfig:
     current_dir = Path(__file__).parent
     project_root = current_dir.parent.parent
 
-    # Load .env and .env.local files
-    env_files = [project_root / '.env', project_root / '.env.local']
-    for env_file in env_files:
-      if env_file.exists():
-        load_dotenv(env_file)
+    # Environment variables already loaded by server/__init__.py
 
     # Configuration is now loaded from environment variables
     self._config = {}

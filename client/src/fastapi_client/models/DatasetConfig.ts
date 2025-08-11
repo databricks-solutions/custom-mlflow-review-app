@@ -6,7 +6,8 @@
  * Dataset configuration for labeling session.
  */
 export type DatasetConfig = {
-  dataset_name?: string;
-  dataset_digest?: string;
-  filters?: null;
+    dataset_name?: string;
+    dataset_digest?: string;
+    filters?: null;
 };
+

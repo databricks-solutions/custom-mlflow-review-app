@@ -5,24 +5,48 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle, Circle } from "lucide-react";
-import { Assessment, LabelingSchema } from "@/types/renderers";
+import { Assessment, LabelingSchema, JsonValue } from "@/types/renderers";
+import { useSavingState } from "../../contexts/SavingStateContext";
+import {
+  useLogFeedbackMutation,
+  useLogExpectationMutation,
+  useUpdateFeedbackMutation,
+  useUpdateExpectationMutation,
+  useCurrentUser,
+} from "@/hooks/api-hooks";
 
 interface LabelSchemaFieldProps {
   schema: LabelingSchema;
   assessment?: Assessment;
-  onSave: (assessment: Assessment) => void;
+  traceId: string;
   readOnly?: boolean;
 }
 
 export function LabelSchemaField({
   schema,
   assessment,
-  onSave,
+  traceId,
   readOnly = false,
 }: LabelSchemaFieldProps) {
   // Local state for immediate UI updates
-  const [localValue, setLocalValue] = useState<any>(assessment?.value || "");
+  const [localValue, setLocalValue] = useState<JsonValue>(assessment?.value || "");
   const [localRationale, setLocalRationale] = useState<string>(assessment?.rationale || "");
+  const [localAssessmentId, setLocalAssessmentId] = useState<string | undefined>(
+    assessment?.assessment_id
+  );
+
+  // Get current user
+  const { data: currentUser } = useCurrentUser();
+  const currentUsername = currentUser?.emails?.[0] || currentUser?.userName || "unknown";
+
+  // Saving state
+  const { setSaving, setLastSaved } = useSavingState();
+
+  // Mutations
+  const logFeedbackMutation = useLogFeedbackMutation();
+  const logExpectationMutation = useLogExpectationMutation();
+  const updateFeedbackMutation = useUpdateFeedbackMutation();
+  const updateExpectationMutation = useUpdateExpectationMutation();
 
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,11 +55,97 @@ export function LabelSchemaField({
   useEffect(() => {
     setLocalValue(assessment?.value || "");
     setLocalRationale(assessment?.rationale || "");
+    // IMPORTANT: Preserve the assessment_id from existing assessments
+    setLocalAssessmentId(assessment?.assessment_id || null);
   }, [assessment]);
+
+  // Handle the actual save logic
+  const performSave = useCallback(
+    async (value: JsonValue, rationale: string) => {
+      // Skip if empty
+      if (
+        (value === undefined || value === null || value === "") &&
+        (!rationale || rationale === "")
+      ) {
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const schemaType = schema.type || "FEEDBACK";
+        let result: LogFeedbackResponse | LogExpectationResponse | UpdateFeedbackResponse | UpdateExpectationResponse | undefined;
+
+        // Simple logic: if we have an assessment_id, update; otherwise create
+        const hasExistingAssessment = !!localAssessmentId;
+
+        if (schemaType === "FEEDBACK") {
+          if (hasExistingAssessment) {
+            // UPDATE existing feedback
+            result = await updateFeedbackMutation.mutateAsync({
+              traceId,
+              assessmentId: localAssessmentId,
+              value: value as string | number | boolean | string[] | Record<string, unknown>,
+              rationale: rationale || undefined,
+            });
+          } else {
+            // CREATE new feedback
+            result = await logFeedbackMutation.mutateAsync({
+              traceId,
+              name: schema.name,
+              value: value as string | number | boolean | string[] | Record<string, unknown>,
+              rationale: rationale || undefined,
+            });
+          }
+        } else {
+          // EXPECTATION type
+          if (hasExistingAssessment) {
+            // UPDATE existing expectation
+            result = await updateExpectationMutation.mutateAsync({
+              traceId,
+              assessmentId: localAssessmentId,
+              value: value as string | number | boolean | string[] | Record<string, unknown>,
+              rationale: rationale || undefined,
+            });
+          } else {
+            // CREATE new expectation
+            result = await logExpectationMutation.mutateAsync({
+              traceId,
+              name: schema.name,
+              value: value as string | number | boolean | string[] | Record<string, unknown>,
+              rationale: rationale || undefined,
+            });
+          }
+        }
+
+        // Update local assessment ID if we created a new one
+        if (result && 'assessment_id' in result && result.assessment_id && !localAssessmentId) {
+          setLocalAssessmentId(result.assessment_id);
+        }
+
+        setLastSaved();
+      } catch (error) {
+        setSaving(false);
+        console.error(`Failed to save ${schema.title || schema.name}:`, error);
+      }
+    },
+    [
+      schema,
+      traceId,
+      localAssessmentId,
+      assessment,
+      currentUsername,
+      setSaving,
+      setLastSaved,
+      logFeedbackMutation,
+      logExpectationMutation,
+      updateFeedbackMutation,
+      updateExpectationMutation,
+    ]
+  );
 
   // Trigger save with debounce
   const triggerSave = useCallback(
-    (value: any, rationale: string) => {
+    (value: JsonValue, rationale: string) => {
       // Clear existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -43,19 +153,14 @@ export function LabelSchemaField({
 
       // Set new timeout for auto-save
       saveTimeoutRef.current = setTimeout(() => {
-        const newAssessment: Assessment = {
-          name: schema.name,
-          value: value || null,
-          rationale: rationale || null,
-        };
-        onSave(newAssessment);
-      }, 1500); // 1.5 second debounce
+        performSave(value, rationale);
+      }, 500); // 500ms debounce
     },
-    [schema.name, onSave]
+    [performSave]
   );
 
   // Handle value change
-  const handleValueChange = (newValue: any) => {
+  const handleValueChange = (newValue: JsonValue) => {
     setLocalValue(newValue);
     triggerSave(newValue, localRationale);
   };
@@ -112,7 +217,7 @@ export function LabelSchemaField({
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{schema.numeric.min_value}</span>
               <span className="font-medium text-foreground">
-                {localValue || schema.numeric.min_value}
+                {Number(localValue) || schema.numeric.min_value}
               </span>
               <span>{schema.numeric.max_value}</span>
             </div>
@@ -143,7 +248,7 @@ export function LabelSchemaField({
               id={schema.name}
               value={String(localValue)}
               onChange={(e) => handleValueChange(e.target.value)}
-              placeholder={schema.text.placeholder || "Enter your response..."}
+              placeholder="Enter your response..."
               rows={4}
               disabled={readOnly}
             />

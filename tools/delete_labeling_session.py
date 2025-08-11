@@ -5,18 +5,12 @@ import argparse
 import asyncio
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.labeling_sessions_utils import (
   delete_labeling_session,
   get_labeling_session,
   get_session_by_name,
   list_labeling_sessions,
 )
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 async def main():

@@ -73,22 +73,24 @@ class LinkTracesResponse(BaseModel):
   message: Optional[str] = None
 
 
+class AssessmentData(BaseModel):
+  """Common REST API assessment structure for feedback and expectations."""
+
+  name: str
+  value: Union[str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]]
+  rationale: Optional[str] = None
+
+
 class LogFeedbackRequest(BaseModel):
   """Request to log feedback on a trace."""
 
-  feedback_key: str
-  feedback_value: Union[str, int, float, bool, List[Union[str, int, float, bool]]]
-  rationale: Optional[str] = None
+  assessment: AssessmentData
 
 
 class LogExpectationRequest(BaseModel):
   """Request to log expectation on a trace."""
 
-  expectation_key: str
-  expectation_value: Union[
-    str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]
-  ]
-  rationale: Optional[str] = None
+  assessment: AssessmentData
 
 
 class LogFeedbackResponse(BaseModel):
@@ -107,22 +109,26 @@ class LogExpectationResponse(BaseModel):
   assessment_id: Optional[str] = None
 
 
+class UpdateAssessmentData(BaseModel):
+  """Simplified assessment structure for updates that doesn't require name."""
+
+  value: Union[str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]]
+  rationale: Optional[str] = None
+  metadata: Optional[Dict[str, Any]] = None
+
+
 class UpdateFeedbackRequest(BaseModel):
   """Request to update existing feedback on a trace."""
 
   assessment_id: str
-  feedback_value: Union[str, int, float, bool, List[Union[str, int, float, bool]]]
-  rationale: Optional[str] = None
+  assessment: UpdateAssessmentData
 
 
 class UpdateExpectationRequest(BaseModel):
   """Request to update existing expectation on a trace."""
 
   assessment_id: str
-  expectation_value: Union[
-    str, int, float, bool, List[Union[str, int, float, bool]], Dict[str, Any]
-  ]
-  rationale: Optional[str] = None
+  assessment: UpdateAssessmentData
 
 
 class UpdateFeedbackResponse(BaseModel):

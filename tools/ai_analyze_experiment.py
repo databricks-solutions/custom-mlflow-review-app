@@ -163,7 +163,8 @@ def print_analysis_result(result: dict, format_type: str):
     return
 
   # Print AI analysis with beautiful formatting
-  ai_analysis = result.get('ai_analysis', 'No analysis generated')
+  # The analysis content is in 'content' field, not 'ai_analysis'
+  ai_analysis = result.get('content') or result.get('ai_analysis', 'No analysis generated')
 
   print('\n📊 AI ANALYSIS REPORT')
   print('=' * 60)
@@ -175,9 +176,9 @@ def print_analysis_result(result: dict, format_type: str):
   print(
     f"   • Analysis Type: {result.get('analysis_type', 'Unknown')} ({result.get('focus', 'comprehensive')})"
   )
-  print(f"   • Traces Analyzed: {metadata.get('total_traces_analyzed', 0)}")
+  print(f"   • Traces Analyzed: {metadata.get('traces_analyzed', 0)}")
   print(f"   • Model Endpoint: {metadata.get('model_endpoint', 'Unknown')}")
-  print(f"   • Sample Size: {metadata.get('sample_size', 0)}")
+  print(f"   • Sample Size: {metadata.get('traces_analyzed', metadata.get('sample_size', 0))}")
 
   print('\n' + '=' * 60)
   print(ai_analysis)

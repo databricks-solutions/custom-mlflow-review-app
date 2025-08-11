@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from dotenv import load_dotenv
-
 
 def update_env_value(env_path: Path, key: str, value: str):
   """Update or add a value in .env file."""
@@ -56,9 +54,7 @@ def update_experiment_id(experiment_id: str) -> Dict[str, Any]:
     with open(env_path, 'w') as f:
       f.write('# MLflow Review App Configuration\n')
 
-  # Load current values
-  load_dotenv('.env')
-  load_dotenv('.env.local')
+  # Environment variables loaded by tools/__init__.py
   old_experiment_id = os.getenv('MLFLOW_EXPERIMENT_ID')
 
   try:

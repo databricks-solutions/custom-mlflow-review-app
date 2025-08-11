@@ -36,10 +36,12 @@ class UserService:
   def _get_workspace_info(self) -> dict:
     """Get workspace information with aggressive caching."""
     current_time = time.time()
-    
+
     # Check if cache is still valid
-    if (self._workspace_info_cache is not None and 
-        current_time - self._workspace_info_cache_time < self._workspace_cache_ttl):
+    if (
+      self._workspace_info_cache is not None
+      and current_time - self._workspace_info_cache_time < self._workspace_cache_ttl
+    ):
       return self._workspace_info_cache
 
     # Cache miss or expired - fetch fresh data
@@ -48,11 +50,11 @@ class UserService:
       'url': workspace_url,
       'deployment_name': workspace_url.split('//')[1].split('.')[0] if workspace_url else None,
     }
-    
+
     # Update cache
     self._workspace_info_cache = workspace_info
     self._workspace_info_cache_time = current_time
-    
+
     return workspace_info
 
   def get_user_workspace_info(self) -> dict:

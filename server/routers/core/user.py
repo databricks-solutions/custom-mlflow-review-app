@@ -4,13 +4,14 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from server.middleware import get_obo_user_info, has_user_token, is_obo_request
+from server.middleware.auth import get_username, is_user_developer
 from server.utils.user_utils import user_utils
 
 router = APIRouter()
 
 
 class UserInfo(BaseModel):
-  """Databricks user information with authentication details."""
+  """Databricks user information with authentication details and role."""
 
   userName: str
   displayName: str | None = None
@@ -19,6 +20,10 @@ class UserInfo(BaseModel):
   # Auth middleware properties
   is_obo: bool = False
   has_token: bool = False
+  # Role and permissions
+  role: str = 'sme'  # 'developer' or 'sme'
+  is_developer: bool = False
+  can_access_dev_pages: bool = False
 
 
 class UserWorkspaceInfo(BaseModel):
@@ -30,10 +35,15 @@ class UserWorkspaceInfo(BaseModel):
 
 @router.get('/me', response_model=UserInfo)
 def get_current_user(request: Request):
-  """Get current user information from Databricks with auth details."""
+  """Get current user information from Databricks with auth details and role."""
   try:
     is_obo = is_obo_request(request)
     obo_user_info = get_obo_user_info(request)
+
+    # Get role information
+    username = get_username(request)
+    is_dev = is_user_developer(request)
+    user_role = 'developer' if is_dev else 'sme'
 
     # Debug: Check if we have the x-forwarded-access-token header
     has_forwarded_token = bool(request.headers.get('x-forwarded-access-token'))
@@ -48,6 +58,10 @@ def get_current_user(request: Request):
         # Auth middleware properties
         is_obo=is_obo,
         has_token=has_user_token(request),
+        # Role and permissions
+        role=user_role,
+        is_developer=is_dev,
+        can_access_dev_pages=is_dev,
       )
     else:
       # Fall back to service principal info for non-OBO requests
@@ -60,6 +74,10 @@ def get_current_user(request: Request):
         # Auth middleware properties
         is_obo=has_forwarded_token,  # Override based on actual header presence
         has_token=has_user_token(request),
+        # Role and permissions
+        role=user_role,
+        is_developer=is_dev,
+        can_access_dev_pages=is_dev,
       )
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))

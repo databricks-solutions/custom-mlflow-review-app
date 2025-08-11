@@ -1,5 +1,4 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,21 +6,20 @@ import { SMELabelingInterface } from "@/components/SMELabelingInterface";
 import { RendererSelector } from "@/components/RendererSelector";
 import { LoadingState } from "@/components/LoadingState";
 import { NoSessionSelected } from "@/components/NoSessionSelected";
-import { useCurrentReviewApp, useLabelingSession } from "@/hooks/api-hooks";
-import { apiClient } from "@/lib/api-client";
+import { useAppManifest, useLabelingSession } from "@/hooks/api-hooks";
 
 export function PreviewPage() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  // Get the current review app (implicitly determined by server config)
-  const { data: reviewApp, isLoading: isLoadingReviewApp } = useCurrentReviewApp();
+  // Get the current review app from manifest
+  const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
+  const reviewApp = manifest?.review_app;
 
   // Get session data
   const { data: session } = useLabelingSession(
-    reviewApp?.review_app_id || "",
     sessionId || "",
-    !!reviewApp?.review_app_id && !!sessionId
+    !!sessionId
   );
 
   if (!sessionId) {
@@ -29,7 +27,7 @@ export function PreviewPage() {
   }
 
   // Wait for review app to load before showing preview
-  if (isLoadingReviewApp || !reviewApp) {
+  if (isLoadingManifest || !reviewApp) {
     return <LoadingState />;
   }
 

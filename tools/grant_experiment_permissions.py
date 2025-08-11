@@ -13,8 +13,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
-
 
 def load_env_local():
   """Load environment variables from .env.local file."""
@@ -39,8 +37,7 @@ def load_config_yaml() -> Dict[str, Any]:
   import os
 
   # Load from environment
-  load_dotenv('.env')
-  load_dotenv('.env.local')
+  # Environment variables loaded by tools/__init__.py
 
   # Get values from environment
   experiment_id = os.getenv('MLFLOW_EXPERIMENT_ID')

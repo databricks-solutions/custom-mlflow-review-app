@@ -11,12 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   BarChart3,
   Brain,
-  Clock,
   FileText,
   Play,
   RefreshCw,
@@ -44,7 +42,8 @@ interface LabelingSessionAnalysisModalProps {
   mlflowRunId?: string;
 }
 
-interface AnalysisData {
+// Interfaces for type checking - not exported
+/* interface _AnalysisData {
   has_analysis: boolean;
   content?: string;
   session_id: string;
@@ -56,15 +55,15 @@ interface AnalysisData {
     analysis_timestamp?: string;
   };
   message?: string;
-}
+} */
 
-interface AnalysisStatus {
+/* interface _AnalysisStatus {
   session_id: string;
   status: "pending" | "running" | "completed" | "failed" | "not_found";
   message?: string;
   run_id?: string;
   report_path?: string;
-}
+} */
 
 export function LabelingSessionAnalysisModal({
   isOpen,
@@ -162,7 +161,7 @@ export function LabelingSessionAnalysisModal({
           refetchStatus();
           toast.success("Analysis started! This may take a few minutes...");
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
           toast.error(`Failed to trigger analysis: ${error.message}`);
         },
       }
@@ -272,7 +271,7 @@ export function LabelingSessionAnalysisModal({
             <Alert className="m-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Failed to load analysis: {(analysisError as any)?.message || "Unknown error"}
+                Failed to load analysis: {(analysisError as Error)?.message || "Unknown error"}
               </AlertDescription>
             </Alert>
           ) : !analysisData?.has_analysis ? (

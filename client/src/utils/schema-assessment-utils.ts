@@ -38,8 +38,6 @@ export function combineSchemaWithAssessments(
           new Date(assessment.timestamp) > new Date(existing.timestamp))
       ) {
         assessmentMap.set(assessment.name, assessment);
-      } else if (!existing) {
-        assessmentMap.set(assessment.name, assessment);
       }
     });
   }

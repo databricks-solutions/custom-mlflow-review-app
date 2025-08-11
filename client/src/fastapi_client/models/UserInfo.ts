@@ -3,13 +3,17 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Databricks user information with authentication details.
+ * Databricks user information with authentication details and role.
  */
 export type UserInfo = {
-  userName: string;
-  displayName?: string | null;
-  active: boolean;
-  emails?: Array<string>;
-  is_obo?: boolean;
-  has_token?: boolean;
+    userName: string;
+    displayName?: (string | null);
+    active: boolean;
+    emails?: Array<string>;
+    is_obo?: boolean;
+    has_token?: boolean;
+    role?: string;
+    is_developer?: boolean;
+    can_access_dev_pages?: boolean;
 };
+

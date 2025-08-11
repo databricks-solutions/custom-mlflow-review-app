@@ -6,7 +6,8 @@
  * Source reference for a trace in a labeling session.
  */
 export type TraceSource = {
-  trace_id: string;
-  experiment_id?: string | null;
-  run_id?: string | null;
+    trace_id: string;
+    experiment_id?: (string | null);
+    run_id?: (string | null);
 };
+

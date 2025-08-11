@@ -9,10 +9,8 @@ from typing import Any, Dict, List, Optional
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import DatabricksError
 from databricks.sdk.service.serving import ChatMessage, ChatMessageRole
-from dotenv import load_dotenv
 
-# Load environment variables from .env.local
-load_dotenv('.env.local')
+# Environment variables loaded by server/__init__.py
 
 logger = logging.getLogger(__name__)
 

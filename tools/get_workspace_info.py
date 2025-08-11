@@ -6,13 +6,7 @@ import inspect
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.user_utils import user_utils
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def main():

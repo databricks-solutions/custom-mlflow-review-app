@@ -9,8 +9,6 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from dotenv import load_dotenv
-
 from .config import config
 from .experiment_analysis import ExperimentAnalyzer
 from .labeling_items_utils import labeling_items_utils
@@ -20,8 +18,7 @@ from .model_serving_utils import ModelServingClient
 from .review_apps_utils import review_apps_utils
 from .trace_analysis import analyze_trace_patterns
 
-# Load environment variables
-load_dotenv('.env.local')
+# Environment variables loaded by server/__init__.py
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +51,13 @@ class AIExperimentAnalyzer:
     """
     try:
       logger.info(f'Starting open-ended analysis of experiment {experiment_id}')
-      
+
       # Use the new modular analyzer
       analyzer = ExperimentAnalyzer(model_endpoint=self.model_endpoint)
       result = await analyzer.analyze_experiment(
-        experiment_id=experiment_id,
-        focus=analysis_focus,
-        trace_sample_size=trace_sample_size
+        experiment_id=experiment_id, focus=analysis_focus, trace_sample_size=trace_sample_size
       )
-      
+
       logger.info('Open-ended experiment analysis completed successfully')
       return result
 

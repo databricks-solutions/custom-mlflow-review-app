@@ -141,6 +141,7 @@ class ReviewAppsUtils:
 
       logger = logging.getLogger(__name__)
       logger.info(f'🧬 [MLFLOW GENAI] Setting experiment context: {experiment_id}')
+      # Set experiment context for SDK operations
       mlflow.set_experiment(experiment_id=experiment_id)
 
       # Get review app using SDK

@@ -10,7 +10,6 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
 
 # Add the server directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'server'))
@@ -99,7 +98,9 @@ Examples:
   parser.add_argument('--session-id', required=True, help='Labeling session ID')
   parser.add_argument('--no-ai', action='store_true', help='Skip AI-generated insights')
   parser.add_argument(
-    '--model', default=None, help='Model endpoint for AI insights (default: from MODEL_ENDPOINT env var)'
+    '--model',
+    default=None,
+    help='Model endpoint for AI insights (default: from MODEL_ENDPOINT env var)',
   )
   parser.add_argument('--format', choices=['text', 'json'], default='text', help='Output format')
 

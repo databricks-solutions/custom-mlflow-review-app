@@ -1,12 +1,11 @@
 """Experiment summary endpoints for AI-generated analysis stored in MLflow artifacts."""
 
-import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from mlflow.tracking import MlflowClient
 from pydantic import BaseModel
 
@@ -54,12 +53,14 @@ async def get_experiment_summary(experiment_id: str) -> dict:
     client = MlflowClient()
 
     # Find the metadata run for this experiment
-    filter_string = f"tags.`mlflow.runName` = 'experiment_metadata' AND tags.`experiment.id` = '{experiment_id}'"
+    filter_string = (
+      f"tags.`mlflow.runName` = 'experiment_metadata' AND tags.`experiment.id` = '{experiment_id}'"
+    )
     runs = client.search_runs(
       experiment_ids=[experiment_id],
       filter_string=filter_string,
       max_results=1,
-      order_by=["start_time DESC"],
+      order_by=['start_time DESC'],
     )
 
     if not runs:
@@ -94,7 +95,7 @@ async def get_experiment_summary(experiment_id: str) -> dict:
 
     # Get markdown report
     try:
-      markdown_path = f"analysis/experiment_summaries/{experiment_id}_summary.md"
+      markdown_path = f'analysis/experiment_summaries/{experiment_id}_summary.md'
       markdown_content = artifact_manager.download_analysis_report(run_id, markdown_path)
     except:
       markdown_content = None
@@ -105,7 +106,7 @@ async def get_experiment_summary(experiment_id: str) -> dict:
     metadata = {}
 
     try:
-      data_path = f"analysis/experiment_summaries/{experiment_id}_analysis_data.json"
+      data_path = f'analysis/experiment_summaries/{experiment_id}_analysis_data.json'
       json_content = artifact_manager.download_analysis_report(run_id, data_path)
       structured_data = json.loads(json_content)
 
@@ -113,44 +114,50 @@ async def get_experiment_summary(experiment_id: str) -> dict:
       metadata = structured_data.get('metadata', {})
 
       # Extract schemas with label types
-      if "raw_sme_analysis" in structured_data:
-        sme_analysis = structured_data["raw_sme_analysis"]
-        
-        if "schema_recommendations" in sme_analysis:
-          schemas = sme_analysis["schema_recommendations"].get("recommended_schemas", [])
+      if 'raw_sme_analysis' in structured_data:
+        sme_analysis = structured_data['raw_sme_analysis']
+
+        if 'schema_recommendations' in sme_analysis:
+          schemas = sme_analysis['schema_recommendations'].get('recommended_schemas', [])
           # Format schemas with label type information
           formatted_schemas = []
           for schema in schemas[:10]:  # Limit to top 10 schemas
-            formatted_schemas.append({
-              "key": schema.get("key"),
-              "name": schema.get("name"),
-              "label_type": schema.get("label_type", "NOT_SPECIFIED"),
-              "schema_type": schema.get("schema_type"),
-              "description": schema.get("description"),
-              "rationale": schema.get("rationale"),
-              "priority_score": schema.get("priority_score", 0),
-              "grounded_in_traces": schema.get("grounded_in_traces", [])[:3],  # Limit trace examples
-            })
+            formatted_schemas.append(
+              {
+                'key': schema.get('key'),
+                'name': schema.get('name'),
+                'label_type': schema.get('label_type', 'NOT_SPECIFIED'),
+                'schema_type': schema.get('schema_type'),
+                'description': schema.get('description'),
+                'rationale': schema.get('rationale'),
+                'priority_score': schema.get('priority_score', 0),
+                'grounded_in_traces': schema.get('grounded_in_traces', [])[
+                  :3
+                ],  # Limit trace examples
+              }
+            )
           schemas_with_label_types = formatted_schemas
 
         # Extract detected issues
-        if "issue_detection" in sme_analysis:
-          issues = sme_analysis["issue_detection"].get("detected_issues", [])
+        if 'issue_detection' in sme_analysis:
+          issues = sme_analysis['issue_detection'].get('detected_issues', [])
           # Format issues for UI
           formatted_issues = []
           for issue in issues[:5]:  # Limit to top 5 issues
-            formatted_issues.append({
-              "issue_type": issue.get("issue_type"),
-              "severity": issue.get("severity"),
-              "title": issue.get("title"),
-              "description": issue.get("description"),
-              "affected_traces": issue.get("affected_traces", 0),
-              "example_traces": issue.get("example_traces", [])[:3],
-              "problem_snippets": issue.get("problem_snippets", [])[:2],
-            })
+            formatted_issues.append(
+              {
+                'issue_type': issue.get('issue_type'),
+                'severity': issue.get('severity'),
+                'title': issue.get('title'),
+                'description': issue.get('description'),
+                'affected_traces': issue.get('affected_traces', 0),
+                'example_traces': issue.get('example_traces', [])[:3],
+                'problem_snippets': issue.get('problem_snippets', [])[:2],
+              }
+            )
           detected_issues = formatted_issues
     except Exception as e:
-      logger.warning(f"Could not retrieve structured data: {e}")
+      logger.warning(f'Could not retrieve structured data: {e}')
 
     return {
       'has_summary': True,
@@ -161,14 +168,14 @@ async def get_experiment_summary(experiment_id: str) -> dict:
       'schemas_with_label_types': schemas_with_label_types,
       'detected_issues': detected_issues,
       'metadata': {
-        'analysis_timestamp': run.data.tags.get("analysis.experiment_summary.timestamp"),
-        'model_endpoint': metadata.get("model_endpoint", "unknown"),
-        'traces_analyzed': metadata.get("total_traces_analyzed", 0),
-      }
+        'analysis_timestamp': run.data.tags.get('analysis.experiment_summary.timestamp'),
+        'model_endpoint': metadata.get('model_endpoint', 'unknown'),
+        'traces_analyzed': metadata.get('total_traces_analyzed', 0),
+      },
     }
 
   except Exception as e:
-    logger.error(f"Error retrieving experiment summary: {e}")
+    logger.error(f'Error retrieving experiment summary: {e}')
     # Fallback to local file system
     project_root = Path(__file__).parent.parent.parent.parent
     reports_dir = project_root / 'reports' / 'experiments'
@@ -194,14 +201,14 @@ async def get_experiment_summary(experiment_id: str) -> dict:
     }
 
 
-async def run_analysis_task(experiment_id: str, focus: str, trace_sample_size: int, model_endpoint: str):
+async def run_analysis_task(
+  experiment_id: str, focus: str, trace_sample_size: int, model_endpoint: str
+):
   """Background task to run AI analysis."""
   try:
     # Update status to running
     analysis_status_store[experiment_id] = AnalysisStatus(
-      experiment_id=experiment_id,
-      status='running',
-      message='Analysis in progress...'
+      experiment_id=experiment_id, status='running', message='Analysis in progress...'
     )
 
     # Run the analysis
@@ -215,28 +222,23 @@ async def run_analysis_task(experiment_id: str, focus: str, trace_sample_size: i
         experiment_id=experiment_id,
         status='completed',
         message='Analysis completed successfully',
-        run_id=result.get('metadata', {}).get('run_id')
+        run_id=result.get('metadata', {}).get('run_id'),
       )
     else:
       analysis_status_store[experiment_id] = AnalysisStatus(
-        experiment_id=experiment_id,
-        status='failed',
-        message=result.get('error', 'Analysis failed')
+        experiment_id=experiment_id, status='failed', message=result.get('error', 'Analysis failed')
       )
 
   except Exception as e:
-    logger.error(f"Analysis task failed: {e}")
+    logger.error(f'Analysis task failed: {e}')
     analysis_status_store[experiment_id] = AnalysisStatus(
-      experiment_id=experiment_id,
-      status='failed',
-      message=str(e)
+      experiment_id=experiment_id, status='failed', message=str(e)
     )
 
 
 @router.post('/trigger-analysis', response_model=AnalysisStatus)
 async def trigger_analysis(
-  request: TriggerAnalysisRequest,
-  background_tasks: BackgroundTasks
+  request: TriggerAnalysisRequest, background_tasks: BackgroundTasks
 ) -> AnalysisStatus:
   """Trigger AI analysis for an experiment.
 
@@ -257,9 +259,7 @@ async def trigger_analysis(
 
     # Initialize status
     analysis_status_store[request.experiment_id] = AnalysisStatus(
-      experiment_id=request.experiment_id,
-      status='pending',
-      message='Analysis queued'
+      experiment_id=request.experiment_id, status='pending', message='Analysis queued'
     )
 
     # Add background task
@@ -268,13 +268,13 @@ async def trigger_analysis(
       request.experiment_id,
       request.focus,
       request.trace_sample_size,
-      request.model_endpoint
+      request.model_endpoint,
     )
 
     return analysis_status_store[request.experiment_id]
 
   except Exception as e:
-    logger.error(f"Error triggering analysis: {e}")
+    logger.error(f'Error triggering analysis: {e}')
     raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -292,7 +292,7 @@ async def get_analysis_status(experiment_id: str) -> AnalysisStatus:
     return AnalysisStatus(
       experiment_id=experiment_id,
       status='not_found',
-      message='No analysis request found for this experiment'
+      message='No analysis request found for this experiment',
     )
 
   return analysis_status_store[experiment_id]

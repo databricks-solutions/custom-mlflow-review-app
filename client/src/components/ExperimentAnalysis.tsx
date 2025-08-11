@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -18,12 +17,9 @@ import {
 import {
   BookOpen,
   AlertCircle,
-  CheckCircle,
   XCircle,
   ChevronDown,
   ChevronUp,
-  Zap,
-  FileText,
   Tag,
   AlertTriangle,
   Loader2,
@@ -39,8 +35,9 @@ import { ReviewAppsService } from "@/fastapi_client";
 import { SchemaPreview } from "./SchemaPreview";
 import { toast } from "sonner";
 import {
-  useCurrentReviewApp,
+  useAppManifest,
   useExperimentAnalysisStatus,
+  useExperimentSummary,
   useTriggerExperimentAnalysis,
 } from "@/hooks/api-hooks";
 
@@ -74,15 +71,17 @@ interface Issue {
 
 interface ExperimentAnalysisProps {
   experimentId: string;
-  experimentSummary?: any;
-  isLoadingSummary: boolean;
 }
 
 export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   experimentId,
-  experimentSummary,
-  isLoadingSummary,
 }) => {
+  // Fetch experiment summary when component renders
+  const { data: experimentSummary, isLoading: isLoadingSummary } = useExperimentSummary(
+    experimentId,
+    !!experimentId
+  );
+
   const [expandedIssues, setExpandedIssues] = useState<Set<number>>(new Set());
   const [expandedSchemas, setExpandedSchemas] = useState<Set<number>>(new Set());
   const [savedSchemas, setSavedSchemas] = useState<Set<string>>(new Set());
@@ -90,7 +89,8 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   const queryClient = useQueryClient();
 
   // Get current review app to check existing schemas
-  const { data: reviewApp } = useCurrentReviewApp();
+  const { data: manifest } = useAppManifest();
+  const reviewApp = manifest?.review_app;
 
   // Use the new hooks for experiment analysis
   const triggerAnalysisMutation = useTriggerExperimentAnalysis();
@@ -262,10 +262,12 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
                 {triggerAnalysisMutation.isPending
-                  ? "Starting..."
+                  ? "Computing..."
                   : analysisStatus?.status === "running"
-                    ? "Running..."
-                    : "Re-run Analysis"}
+                    ? "Computing..."
+                    : analysisStatus?.status === "pending"
+                      ? "Computing..."
+                      : "Re-run Analysis"}
               </Button>
             </div>
           </CardHeader>
@@ -292,7 +294,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
 
       <Tabs defaultValue="report" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="report">Analysis Report</TabsTrigger>
+          <TabsTrigger value="report">Analysis</TabsTrigger>
           <TabsTrigger value="issues" className="gap-2">
             Quality Issues
             {issues.length > 0 && (
@@ -311,8 +313,8 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        {/* Analysis Report Tab */}
-        <TabsContent value="report">
+        {/* Analysis Report Tab with loading overlay */}
+        <TabsContent value="report" className="relative">
           <Card>
             <CardContent className="p-6">
               <Markdown
@@ -322,6 +324,22 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
               />
             </CardContent>
           </Card>
+          
+          {/* Loading overlay when analysis is running */}
+          {(triggerAnalysisMutation.isPending || analysisStatus?.status === "running" || analysisStatus?.status === "pending") && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="absolute inset-0 h-8 w-8 rounded-full bg-primary/20 animate-pulse" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium animate-pulse">Computing Analysis...</p>
+                  <p className="text-xs text-muted-foreground">This may take several minutes</p>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* Quality Issues Tab */}
@@ -445,7 +463,7 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
               schemas.map((schema: Schema, index: number) => {
                 const isSchemaAlreadySaved =
                   reviewApp?.labeling_schemas?.some(
-                    (existingSchema: any) => existingSchema.name === schema.key
+                    (existingSchema: { name?: string }) => existingSchema.name === schema.key
                   ) || savedSchemas.has(schema.key);
                 const isSaving = savingSchemas.has(schema.key);
 
@@ -491,15 +509,11 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
                       }),
                     };
 
-                    // Update review app with new schema
+                    // Create new schema via API
                     if (reviewApp?.review_app_id) {
-                      const updatedSchemas = [...(reviewApp.labeling_schemas || []), newSchema];
-                      await ReviewAppsService.updateReviewAppApiReviewAppsReviewAppIdPatch(
+                      await ReviewAppsService.createSchemaApiReviewAppsReviewAppIdSchemasPost(
                         reviewApp.review_app_id,
-                        {
-                          labeling_schemas: updatedSchemas,
-                        },
-                        "labeling_schemas"
+                        newSchema
                       );
 
                       setSavedSchemas(new Set([...savedSchemas, schema.key]));

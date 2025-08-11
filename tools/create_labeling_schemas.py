@@ -7,13 +7,7 @@ import json
 import sys
 from typing import Any, Dict, List
 
-from dotenv import load_dotenv
-
 from server.utils.review_apps_utils import review_apps_utils
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def create_numeric_schema(

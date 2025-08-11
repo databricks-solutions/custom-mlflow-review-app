@@ -6,13 +6,7 @@ import inspect
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.mlflow_utils import _extract_request_response_preview, get_trace
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def _convert_trace_to_json_format(trace):

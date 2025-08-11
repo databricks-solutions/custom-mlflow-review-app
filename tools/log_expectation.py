@@ -29,12 +29,15 @@ Examples:
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any, Union
 
-import requests
 from databricks.sdk import WorkspaceClient
 
-from server.utils.databricks_auth import get_databricks_headers
+# Add server directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "server"))
+
+from utils.mlflow_utils import log_expectation
 
 
 def parse_value(value_str: str) -> Union[str, int, float, bool, list, dict]:
@@ -48,34 +51,16 @@ def parse_value(value_str: str) -> Union[str, int, float, bool, list, dict]:
 
 
 def log_trace_expectation(
-  trace_id: str, expectation_key: str, expectation_value: Any, expectation_comment: str = None
+  trace_id: str, expectation_key: str, expectation_value: Any, expectation_comment: str = None, username: str = 'unknown'
 ) -> dict:
-  """Log expectation on a trace via the API endpoint."""
-  base_url = 'http://localhost:8000'
-
-  url = f'{base_url}/api/mlflow/traces/{trace_id}/expectation'
-
-  headers = get_databricks_headers()
-  headers['Content-Type'] = 'application/json'
-
-  payload = {
-    'expectation_key': expectation_key,
-    'expectation_value': expectation_value,
-  }
-
-  if expectation_comment:
-    payload['expectation_comment'] = expectation_comment
-
-  response = requests.post(url, json=payload, headers=headers)
-
-  if response.status_code == 200:
-    return response.json()
-  else:
-    try:
-      error_detail = response.json()
-      raise Exception(f'API Error: {error_detail}')
-    except (ValueError, KeyError):
-      raise Exception(f'HTTP {response.status_code}: {response.text}')
+  """Log expectation on a trace using direct MLflow utils."""
+  return log_expectation(
+    trace_id=trace_id,
+    key=expectation_key,
+    value=expectation_value,
+    username=username,
+    rationale=expectation_comment
+  )
 
 
 def main():
@@ -94,7 +79,7 @@ def main():
     'expectation_value',
     help='Expectation value (string, number, boolean, JSON array, or JSON object)',
   )
-  parser.add_argument('--comment', help='Optional comment/description for the expectation')
+  parser.add_argument('--rationale', help='Optional rationale for the expectation')
   parser.add_argument(
     '--dry-run', action='store_true', help='Show what would be logged without actually logging'
   )
@@ -118,8 +103,8 @@ def main():
     print(f'🎯 Logging expectation on trace: {args.trace_id}')
     print(f'📋 Expectation Key: {args.expectation_key}')
     print(f'📝 Expectation Value: {parsed_value} (type: {type(parsed_value).__name__})')
-    if args.comment:
-      print(f'💬 Comment: {args.comment}')
+    if args.rationale:
+      print(f'💬 Rationale: {args.rationale}')
 
     if args.dry_run:
       print('\n🔍 DRY RUN - No expectation will be logged')
@@ -130,7 +115,8 @@ def main():
       trace_id=args.trace_id,
       expectation_key=args.expectation_key,
       expectation_value=parsed_value,
-      expectation_comment=args.comment,
+      expectation_comment=args.rationale,
+      username=username,
     )
 
     print('\n✅ Successfully logged expectation!')

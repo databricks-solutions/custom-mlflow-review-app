@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { JsonValue } from "@/types/renderers";
 
 interface SchemaPreviewProps {
   schema: {
@@ -22,8 +23,8 @@ interface SchemaPreviewProps {
     max_length?: number;
     enable_comment?: boolean;
   };
-  value?: any;
-  onChange?: (value: any) => void;
+  value?: Record<string, JsonValue>;
+  onChange?: (value: Record<string, JsonValue>) => void;
   disabled?: boolean;
 }
 
@@ -36,7 +37,7 @@ export const SchemaPreview: React.FC<SchemaPreviewProps> = ({
   const [localValue, setLocalValue] = useState(value[schema.key] || "");
   const [comment, setComment] = useState(value[`${schema.key}_comment`] || "");
 
-  const handleValueChange = (newValue: any) => {
+  const handleValueChange = (newValue: JsonValue) => {
     setLocalValue(newValue);
     if (onChange) {
       onChange({

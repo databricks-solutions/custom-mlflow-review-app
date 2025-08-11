@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AssessmentData } from './AssessmentData';
 /**
  * Request to log expectation on a trace.
  */
 export type LogExpectationRequest = {
-  expectation_key: string;
-  expectation_value: string | number | boolean | Record<string, any>;
-  rationale?: string | null;
+    assessment: AssessmentData;
 };
+

@@ -5,4 +5,4 @@
 /**
  * Item state enum.
  */
-export type ItemState = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
+export type ItemState = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';

@@ -6,8 +6,9 @@
  * Request to create an MLflow run.
  */
 export type CreateRunRequest = {
-  experiment_id: string;
-  user_id?: string | null;
-  start_time?: number | null;
-  tags?: Record<string, string> | null;
+    experiment_id: string;
+    user_id?: (string | null);
+    start_time?: (number | null);
+    tags?: (Record<string, string> | null);
 };
+

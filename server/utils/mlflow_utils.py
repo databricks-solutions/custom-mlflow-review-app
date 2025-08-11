@@ -9,38 +9,8 @@ from typing import Any, Dict, List, Optional
 import mlflow
 from mlflow.entities import AssessmentSource
 
-from server.utils.config import get_config
 from server.utils.databricks_auth import get_mlflow_api_url
 from server.utils.proxy import fetch_databricks_sync
-
-# Global initialization flag
-_initialized = False
-
-
-def _ensure_mlflow_initialized():
-  """Ensure MLflow is initialized globally (lazy loading)."""
-  global _initialized
-  if _initialized:
-    return
-
-  logger = logging.getLogger(__name__)
-  start_time = time.time()
-
-  logger.info('🔧 [MLFLOW UTILS] Initializing MLflow...')
-
-  # Set default experiment context from config
-  try:
-    config = get_config()
-    experiment_id = config.get('experiment_id')
-    if experiment_id:
-      mlflow.set_experiment(experiment_id=experiment_id)
-  except Exception:
-    # Don't fail initialization if config is unavailable
-    pass
-
-  _initialized = True
-  init_time = time.time() - start_time
-  logger.info(f'✅ [MLFLOW UTILS] MLflow initialized in {init_time * 1000:.1f}ms')
 
 
 def _extract_request_response_preview(trace) -> tuple[Optional[str], Optional[str]]:
@@ -179,7 +149,7 @@ def search_traces(
   Returns:
       List of MLflow Trace objects (or empty list if no traces found)
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   logger = logging.getLogger(__name__)
   start_time = time.time()
@@ -247,7 +217,7 @@ def get_experiment(experiment_id: str):
   Returns:
       MLflow Experiment object with REST API compatible structure
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   logger = logging.getLogger(__name__)
   start_time = time.time()
@@ -284,24 +254,24 @@ def get_experiment(experiment_id: str):
 
 def _serialize_run_io(run_io_obj):
   """Safely serialize MLflow RunInputs/RunOutputs objects.
-  
+
   Args:
       run_io_obj: MLflow RunInputs or RunOutputs object or None
-      
+
   Returns:
       Serializable dictionary or empty dict if None/error
   """
   if run_io_obj is None:
     return {}
-    
+
   try:
     # Try to convert to dict if it has a to_dict method
     if hasattr(run_io_obj, 'to_dict'):
       return run_io_obj.to_dict()
-    
+
     # Try to access common attributes for RunInputs/RunOutputs
     result = {}
-    
+
     # For RunInputs
     if hasattr(run_io_obj, 'dataset_inputs'):
       try:
@@ -311,15 +281,17 @@ def _serialize_run_io(run_io_obj):
             dataset_inputs.append(dataset_input.to_dict())
           else:
             # Manually extract common attributes
-            dataset_inputs.append({
-              'dataset': getattr(dataset_input, 'dataset', {}),
-              'tags': getattr(dataset_input, 'tags', []),
-            })
+            dataset_inputs.append(
+              {
+                'dataset': getattr(dataset_input, 'dataset', {}),
+                'tags': getattr(dataset_input, 'tags', []),
+              }
+            )
         result['dataset_inputs'] = dataset_inputs
       except Exception as e:
         logging.getLogger(__name__).warning(f'⚠️ Could not serialize dataset_inputs: {str(e)}')
         result['dataset_inputs'] = []
-    
+
     # Add any other attributes that might be present
     for attr_name in ['tags', 'metadata', 'properties']:
       if hasattr(run_io_obj, attr_name):
@@ -337,9 +309,9 @@ def _serialize_run_io(run_io_obj):
               result[attr_name] = str(attr_value)
         except Exception as e:
           logging.getLogger(__name__).warning(f'⚠️ Could not serialize {attr_name}: {str(e)}')
-          
+
     return result
-    
+
   except Exception as e:
     logging.getLogger(__name__).warning(f'⚠️ Could not serialize run I/O object: {str(e)}')
     return {}
@@ -354,7 +326,7 @@ def get_run(run_id: str):
   Returns:
       MLflow Run object with REST API compatible structure
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   logger = logging.getLogger(__name__)
   logger.info(f'🔍 [MLFLOW UTILS] Starting get_run for {run_id}')
@@ -432,7 +404,7 @@ def get_run(run_id: str):
         'outputs': _serialize_run_io(getattr(run, 'outputs', None)),
       }
     }
-    
+
     logger.info(f'✅ [MLFLOW UTILS] Successfully formatted run {run_id} response')
     return result
 
@@ -451,7 +423,7 @@ def create_run(data: Dict[str, Any]):
   Returns:
       Created run details
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   experiment_id = data.get('experiment_id')
   run_name = data.get('run_name')
@@ -475,7 +447,7 @@ def update_run(data: Dict[str, Any]):
   Returns:
       Success message
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   run_id = data.get('run_id')
   status = data.get('status')
@@ -502,7 +474,7 @@ def search_runs(data: Dict[str, Any]):
   Returns:
       Search results with runs
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   experiment_ids = data.get('experiment_ids', [])
   filter_string = data.get('filter', '')
@@ -558,7 +530,7 @@ def link_traces_to_run(run_id: str, trace_ids: List[str]) -> Dict[str, Any]:
   Returns:
       Dictionary containing link operation result
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   url = get_mlflow_api_url('/traces/link-to-run')
   data = {'run_id': run_id, 'trace_ids': trace_ids}
@@ -576,7 +548,7 @@ def get_trace(trace_id: str):
   Returns:
       MLflow Trace object
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   logger = logging.getLogger(__name__)
   start_time = time.time()
@@ -621,7 +593,7 @@ def get_trace_data(trace_id: str) -> Dict[str, Any]:
   Returns:
       Dictionary containing trace data
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   # Use MLflow SDK - get_trace already includes trace data
   trace = mlflow.get_trace(trace_id)
@@ -651,12 +623,12 @@ def log_feedback(
   Returns:
       Dictionary containing operation result
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   try:
     # Prepare metadata with rationale as workaround for MLflow bug
     metadata = {'rationale': rationale} if rationale else None
-    
+
     # Log feedback using MLflow with user identity
     # Note: rationale parameter doesn't work in MLflow 3.1.1, using metadata instead
     assessment = mlflow.log_feedback(
@@ -677,7 +649,12 @@ def log_feedback(
 
 
 def update_feedback(
-  trace_id: str, assessment_id: str, value: Any, username: str, rationale: Optional[str] = None
+  trace_id: str,
+  assessment_id: str,
+  value: Any,
+  username: str,
+  rationale: Optional[str] = None,
+  metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
   """Update existing feedback on a trace.
 
@@ -687,33 +664,20 @@ def update_feedback(
       value: The feedback value (can be str, int, float, bool, or dict)
       username: The username of the person providing feedback
       rationale: Optional rationale about the feedback
+      metadata: Optional metadata for the feedback
 
   Returns:
       Dictionary containing operation result
   """
-  _ensure_mlflow_initialized()
-
-  try:
-    # Prepare metadata with rationale as workaround for MLflow bug
-    metadata = {'rationale': rationale} if rationale else None
-    
-    # Update feedback using MLflow with user identity
-    assessment = mlflow.override_feedback(
-      trace_id=trace_id,
-      assessment_id=assessment_id,
-      value=value,
-      source=AssessmentSource(source_type='human', source_id=username),
-      metadata=metadata,
-      rationale=rationale,  # Try both - MLflow might fix this in future versions
-    )
-
-    return {
-      'success': True,
-      'message': f'Feedback updated successfully for trace {trace_id} by user {username}',
-      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else assessment_id,
-    }
-  except Exception as e:
-    raise Exception(f'Failed to update feedback: {str(e)}')
+  return _update_assessment(
+    trace_id=trace_id,
+    assessment_id=assessment_id,
+    new_value=value,
+    new_rationale=rationale,
+    new_metadata=metadata,
+    username=username,
+    assessment_type='feedback',
+  )
 
 
 def log_expectation(
@@ -731,12 +695,12 @@ def log_expectation(
   Returns:
       Dictionary containing operation result
   """
-  _ensure_mlflow_initialized()
+  # MLflow automatically uses MLFLOW_EXPERIMENT_ID from environment
 
   try:
     # Prepare metadata with rationale as workaround for MLflow bug
     metadata = {'rationale': rationale} if rationale else None
-    
+
     # Log expectation using MLflow with user identity
     # Note: rationale parameter doesn't work in MLflow 3.1.1, using metadata instead
     assessment = mlflow.log_expectation(
@@ -757,7 +721,12 @@ def log_expectation(
 
 
 def update_expectation(
-  trace_id: str, assessment_id: str, value: Any, username: str, rationale: Optional[str] = None
+  trace_id: str,
+  assessment_id: str,
+  value: Any,
+  username: str,
+  rationale: Optional[str] = None,
+  metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
   """Update existing expectation on a trace.
 
@@ -767,41 +736,81 @@ def update_expectation(
       value: The expectation value (can be str, int, float, bool, or dict)
       username: The username of the person providing expectation
       rationale: Optional rationale about the expectation
+      metadata: Optional metadata for the expectation
 
   Returns:
       Dictionary containing operation result
   """
-  _ensure_mlflow_initialized()
+  return _update_assessment(
+    trace_id=trace_id,
+    assessment_id=assessment_id,
+    new_value=value,
+    new_rationale=rationale,
+    new_metadata=metadata,
+    username=username,
+    assessment_type='expectation',
+  )
 
+
+def _update_assessment(
+  trace_id: str,
+  assessment_id: str,
+  new_value: Any,
+  new_rationale: Optional[str],
+  new_metadata: Optional[Dict[str, Any]],
+  username: str,
+  assessment_type: str,
+) -> Dict[str, Any]:
+  """Update an existing assessment on a trace.
+
+  Args:
+      trace_id: The trace ID
+      assessment_id: The assessment ID to update
+      new_value: The new assessment value
+      new_rationale: The new rationale
+      new_metadata: The new metadata
+      username: The username of the person updating
+      assessment_type: Either 'feedback' or 'expectation'
+
+  Returns:
+      Dictionary containing operation result
+  """
   try:
-    # For expectations, we need to use update_assessment instead of override_feedback
-    # First get the current assessment to preserve the name
-    current = mlflow.get_assessment(trace_id=trace_id, assessment_id=assessment_id)
-    
-    # Create updated assessment
-    from mlflow.entities import Assessment
-    
-    # Prepare metadata with rationale as workaround for MLflow bug
-    metadata = {'rationale': rationale} if rationale else None
-    
-    updated_assessment = Assessment(
-      name=current.name,
-      value=value,
-      source=AssessmentSource(source_type='human', source_id=username),
-      metadata=metadata,
-    )
-    
-    # Update the assessment
-    assessment = mlflow.update_assessment(
-      trace_id=trace_id,
-      assessment_id=assessment_id,
-      assessment=updated_assessment,
-    )
+    from mlflow.entities.assessment import Expectation, Feedback
+
+    # Create the appropriate value object directly (not wrapped in Assessment)
+    if assessment_type == 'feedback':
+      value_obj = Feedback(
+        name=None,  # Key: set to None to avoid MLflow name restriction
+        value=new_value,
+        rationale=new_rationale or '',
+        source=AssessmentSource(source_type='human', source_id=username),
+        metadata=new_metadata,
+      )
+    else:  # expectation
+      # Expectation doesn't take rationale directly, put it in metadata
+      expectation_metadata = new_metadata or {}
+      if new_rationale:
+        expectation_metadata['rationale'] = new_rationale
+
+      value_obj = Expectation(
+        name=None,  # Key: set to None to avoid MLflow name restriction
+        value=new_value,
+        source=AssessmentSource(source_type='human', source_id=username),
+        metadata=expectation_metadata,
+      )
+
+    # Update assessment using MLflow with the value object directly
+    updated_assessment = mlflow.update_assessment(trace_id, assessment_id, value_obj)
 
     return {
       'success': True,
-      'message': f'Expectation updated successfully for trace {trace_id} by user {username}',
-      'assessment_id': assessment.assessment_id if hasattr(assessment, 'assessment_id') else assessment_id,
+      'message': f'{assessment_type.title()} updated successfully for trace {trace_id} by user {username}',
+      'assessment_id': (
+        updated_assessment.assessment_id
+        if hasattr(updated_assessment, 'assessment_id')
+        else assessment_id
+      ),
     }
   except Exception as e:
-    raise Exception(f'Failed to update expectation: {str(e)}')
+    raise Exception(f'Failed to update {assessment_type}: {str(e)}')

@@ -2,11 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ModelServingEndpoint } from "./ModelServingEndpoint";
+import type { ModelServingEndpoint } from './ModelServingEndpoint';
 /**
  * Agent configuration for review app.
  */
 export type Agent = {
-  agent_name: string;
-  model_serving_endpoint?: ModelServingEndpoint | null;
+    agent_name: string;
+    model_serving_endpoint?: (ModelServingEndpoint | null);
 };
+

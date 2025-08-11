@@ -6,13 +6,7 @@ import inspect
 import json
 import sys
 
-from dotenv import load_dotenv
-
 from server.utils.labeling_sessions_utils import link_traces_to_session
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def main():

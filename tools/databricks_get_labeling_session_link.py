@@ -8,11 +8,6 @@ import subprocess
 import sys
 from urllib.parse import urlencode
 
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv('.env.local')
-
 
 def get_labeling_session_link(experiment_id: str, labeling_session_id: str) -> str:
   """Generate a Databricks labeling session link.

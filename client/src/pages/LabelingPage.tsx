@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,10 +6,10 @@ import { ChevronRight, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   useCurrentUser,
-  useCurrentReviewApp,
   useLabelingSessions,
   useLabelingItems,
   useUserRole,
+  useAppManifest,
 } from "@/hooks/api-hooks";
 
 // Helper component to show progress for each labeling session
@@ -60,20 +59,18 @@ function SessionProgress({ reviewAppId, sessionId }: { reviewAppId: string; sess
 export function LabelingPage() {
   const navigate = useNavigate();
 
+  // Get app manifest (contains review app info)
+  const { data: manifest } = useAppManifest();
+  const reviewApp = manifest?.review_app;
+
   // Get current user info
   const { data: userInfo } = useCurrentUser();
 
   // Get user role to determine if dev button should be shown
   const { data: userRole } = useUserRole();
 
-  // Get THE review app (server determines which one based on config)
-  const { data: reviewApp, isLoading: isLoadingReviewApps } = useCurrentReviewApp();
-
-  // Get labeling sessions if we have a review app
-  const { data: sessionsData, isLoading: isLoadingSessions } = useLabelingSessions(
-    reviewApp?.review_app_id || "",
-    !!reviewApp?.review_app_id
-  );
+  // Get labeling sessions (server determines review app based on config)
+  const { data: sessionsData, isLoading: isLoadingSessions } = useLabelingSessions();
 
   // Filter sessions assigned to current user
   const userSessions = sessionsData?.labeling_sessions?.filter((session) =>
@@ -84,7 +81,7 @@ export function LabelingPage() {
   const firstName =
     userInfo?.displayName?.split(" ")[0] || userInfo?.userName?.split("@")[0] || "there";
 
-  if (isLoadingReviewApps || isLoadingSessions) {
+  if (isLoadingSessions) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <Skeleton className="h-12 w-64" />
@@ -183,7 +180,7 @@ export function LabelingPage() {
                   <Button
                     onClick={() =>
                       navigate(
-                        `/review-app/${reviewApp.review_app_id}?session=${session.labeling_session_id}&mode=sme`
+                        `/review/${session.labeling_session_id}`
                       )
                     }
                     className="flex items-center gap-2"

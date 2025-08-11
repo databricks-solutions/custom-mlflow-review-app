@@ -10,12 +10,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import Dict
 
-from dotenv import load_dotenv
-
 from server.exceptions import ConfigurationError
-
-# Load environment variables
-load_dotenv('.env.local')
 
 
 class APIType(Enum):

@@ -9,8 +9,6 @@ from collections import Counter, defaultdict
 from statistics import mean, median, stdev
 from typing import Any, Dict, List, Optional
 
-from dotenv import load_dotenv
-
 from server.utils.labeling_items_utils import labeling_items_utils
 from server.utils.labeling_sessions_utils import (
   get_labeling_session,
@@ -19,10 +17,6 @@ from server.utils.labeling_sessions_utils import (
 )
 from server.utils.mlflow_utils import get_trace
 from server.utils.review_apps_utils import review_apps_utils
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 def analyze_categorical_schema(items: List[Dict[str, Any]], schema_name: str) -> Dict[str, Any]:

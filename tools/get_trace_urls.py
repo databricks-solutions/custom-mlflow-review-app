@@ -7,14 +7,8 @@ import json
 import sys
 from typing import Dict, List
 
-from dotenv import load_dotenv
-
 from server.utils.labeling_sessions_utils import get_labeling_session, list_labeling_sessions
 from server.utils.mlflow_utils import search_traces
-
-# Load environment variables
-load_dotenv()
-load_dotenv('.env.local')
 
 
 async def get_trace_urls_for_session(
@@ -37,10 +31,7 @@ async def get_trace_urls_for_session(
     import os
 
     import yaml
-    from dotenv import load_dotenv
-
-    load_dotenv('.env')
-    load_dotenv('.env.local')
+    # Environment variables loaded by tools/__init__.py
 
     experiment_id = os.getenv('MLFLOW_EXPERIMENT_ID')
 

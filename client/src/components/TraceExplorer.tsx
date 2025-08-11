@@ -1,41 +1,26 @@
 import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { ChatMessage } from "@/components/session-renderer/renderers/schemas/ChatMessage";
 import {
-  Clock,
-  MessageSquare,
   Bot,
   AlertCircle,
-  CheckCircle,
-  XCircle,
   Activity,
   Wrench,
   ChevronDown,
   ChevronRight,
   ExternalLink,
   User,
-  Copy,
   Search,
   Filter,
   MoreHorizontal,
-  Play,
-  Pause,
 } from "lucide-react";
-import {
-  ChatBubble,
-  ChatBubbleAvatar,
-  ChatBubbleMessage,
-  ChatBubbleTimestamp,
-  ChatMessageList,
-} from "@/components/ui/chat";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useTrace, useTraceMetadata } from "@/hooks/api-hooks";
+import { useTrace } from "@/hooks/api-hooks";
 
 interface TraceExplorerProps {
   traceId: string;
@@ -49,11 +34,11 @@ interface SpanData {
   start_time_ms: number;
   end_time_ms: number;
   status: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   events?: Array<{
     name: string;
     timestamp: number;
-    attributes: Record<string, any>;
+    attributes: Record<string, unknown>;
   }>;
 }
 
@@ -103,7 +88,7 @@ export const TraceExplorer: React.FC<TraceExplorerProps> = ({
           <p className="text-sm text-muted-foreground mt-1">Trace ID: {traceId}</p>
           {error && (
             <p className="text-xs text-muted-foreground mt-2">
-              Error: {(error as any)?.message || "Unknown error"}
+              Error: {(error as Error)?.message || "Unknown error"}
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-4">
@@ -123,7 +108,7 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
 }) => {
   const [activeTab, setActiveTab] = useState("summary");
   const [renderMode, setRenderMode] = useState("default"); // default is markdown
-  const [isInputsExpanded, setIsInputsExpanded] = useState(false);
+  // const [isInputsExpanded, setIsInputsExpanded] = useState(false); // Not currently used
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
 
   const spans = trace.data?.spans || [];
@@ -226,16 +211,17 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
     (rootSpan ? `${rootSpan.end_time_ms - rootSpan.start_time_ms}ms` : "Unknown");
 
   // Parse root span inputs for the expandable section
-  const parseRootInputs = () => {
-    if (!rootSpan?.attributes?.["mlflow.spanInputs"]) return null;
-    try {
-      return JSON.parse(rootSpan.attributes["mlflow.spanInputs"]);
-    } catch {
-      return rootSpan.attributes["mlflow.spanInputs"];
-    }
-  };
+  // Not currently used
+  // const parseRootInputs = () => {
+  //   if (!rootSpan?.attributes?.["mlflow.spanInputs"]) return null;
+  //   try {
+  //     return JSON.parse(rootSpan.attributes["mlflow.spanInputs"]);
+  //   } catch {
+  //     return rootSpan.attributes["mlflow.spanInputs"];
+  //   }
+  // };
 
-  const rootInputs = parseRootInputs();
+  // const rootInputs = parseRootInputs(); // Not currently used
 
   return (
     <div className="space-y-4">
@@ -314,13 +300,11 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                           )}
                         </pre>
                       ) : (
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          <ReactMarkdown>
-                            {conversation.find(
-                              (item) => item.type === "message" && item.role === "user"
-                            )?.content || ""}
-                          </ReactMarkdown>
-                        </div>
+                        <ChatMessage
+                          content={conversation.find(
+                            (item) => item.type === "message" && item.role === "user"
+                          )?.content || ""}
+                        />
                       )}
                     </div>
                   </div>
@@ -329,7 +313,7 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
 
               {/* Show only TOOL and LLM spans in chronological order */}
               <div className="ml-11 space-y-2">
-                {filteredSpansForSummary.map((span, index) => {
+                {filteredSpansForSummary.map((span, _index) => {
                   const spanId = `summary-${span.name}-${span.start_time_ms}`;
                   const isExpanded = expandedSpans.has(spanId);
                   const { input, output } = parseSpanData(span);
@@ -422,13 +406,11 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                           )}
                         </pre>
                       ) : (
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                          <ReactMarkdown>
-                            {conversation.find(
-                              (item) => item.type === "message" && item.role === "assistant"
-                            )?.content || ""}
-                          </ReactMarkdown>
-                        </div>
+                        <ChatMessage
+                          content={conversation.find(
+                            (item) => item.type === "message" && item.role === "assistant"
+                          )?.content || ""}
+                        />
                       )}
                     </div>
                   </div>
@@ -449,6 +431,8 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
   );
 };
 
+// Unused component - kept for potential future use
+/*
 const ToolSpanView: React.FC<{ span: SpanData }> = ({ span }) => {
   const toolName = span.name || "Unknown Tool";
   const duration = span.end_time_ms - span.start_time_ms;
@@ -504,7 +488,10 @@ const ToolSpanView: React.FC<{ span: SpanData }> = ({ span }) => {
     </div>
   );
 };
+*/
 
+// Unused component - kept for potential future use
+/*
 const SpanTimelineView: React.FC<{ span: SpanData; rootStartTime: number }> = ({
   span,
   rootStartTime,
@@ -553,6 +540,7 @@ const SpanTimelineView: React.FC<{ span: SpanData; rootStartTime: number }> = ({
     </div>
   );
 };
+*/
 
 // Helper function to parse conversation from all spans in chronological order
 function parseConversationFromSpans(spans: SpanData[]): Array<{
@@ -584,7 +572,7 @@ function parseConversationFromSpans(spans: SpanData[]): Array<{
 
         if (parsed.messages && Array.isArray(parsed.messages)) {
           // Find the last user message to show as the initial question
-          const userMessages = parsed.messages.filter((m: any) => m.role === "user");
+          const userMessages = parsed.messages.filter((m: { role?: string }) => m.role === "user");
           if (userMessages.length > 0) {
             conversation.push({
               type: "message",
@@ -687,7 +675,7 @@ const MLflowStyleTraceView: React.FC<{
     input?: string;
     output?: string;
   }>;
-}> = ({ spans, conversation }) => {
+}> = ({ spans, conversation: _conversation }) => {
   const [selectedSpan, setSelectedSpan] = useState<SpanData | null>(null);
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
@@ -757,7 +745,7 @@ const MLflowStyleTraceView: React.FC<{
     return <Activity className="h-4 w-4 text-gray-600" />;
   };
 
-  const renderSpanItem = (span: SpanData & { children: SpanData[] }, depth: number = 0) => {
+  const renderSpanItem = (span: SpanData & { children: SpanData[] }, depth = 0) => {
     const spanId = span.attributes?.["mlflow.span_id"] || `${span.name}-${span.start_time_ms}`;
     const isExpanded = expandedSpans.has(spanId);
     const isSelected =
@@ -1021,147 +1009,6 @@ const MLflowStyleTraceView: React.FC<{
           </div>
         )}
       </div>
-    </div>
-  );
-};
-
-// Legacy component for MLflow-style trace flow (keeping for backward compatibility)
-const TraceFlowView: React.FC<{ spans: SpanData[] }> = ({ spans }) => {
-  const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
-
-  const toggleSpan = (spanId: string) => {
-    const newExpanded = new Set(expandedSpans);
-    if (newExpanded.has(spanId)) {
-      newExpanded.delete(spanId);
-    } else {
-      newExpanded.add(spanId);
-    }
-    setExpandedSpans(newExpanded);
-  };
-
-  const formatDuration = (startTime: number, endTime: number) => {
-    if (!startTime || !endTime || isNaN(startTime) || isNaN(endTime)) {
-      return "0ms";
-    }
-    const duration = endTime - startTime;
-    if (isNaN(duration) || duration < 0) {
-      return "0ms";
-    }
-    if (duration < 1000) return `${Math.round(duration)}ms`;
-    return `${(duration / 1000).toFixed(2)}s`;
-  };
-
-  const getSpanIcon = (span: SpanData) => {
-    const type = span.span_type?.toLowerCase() || "";
-    const mlflowType = span.attributes?.["mlflow.spanType"]?.toLowerCase() || "";
-    const name = span.name?.toLowerCase() || "";
-
-    if (type === "tool" || mlflowType === "tool" || name.includes("tool")) {
-      return <Wrench className="h-4 w-4 text-red-600" />;
-    } else if (type === "llm" || type === "chat" || mlflowType === "llm" || mlflowType === "chat") {
-      return <Bot className="h-4 w-4 text-blue-600" />;
-    }
-    return <Activity className="h-4 w-4 text-gray-600" />;
-  };
-
-  const getSpanName = (span: SpanData) => {
-    if (span.span_type === "TOOL" || span.name?.toLowerCase().includes("tool")) {
-      return span.name || "Tool Call";
-    } else if (span.span_type === "LLM" || span.span_type === "CHAT") {
-      return "ChatDatabricks";
-    }
-    return span.name || "Unknown";
-  };
-
-  const parseSpanData = (span: SpanData) => {
-    let input = "";
-    let output = "";
-
-    try {
-      const inputAttr = span.attributes?.["mlflow.spanInputs"];
-      const outputAttr = span.attributes?.["mlflow.spanOutputs"];
-
-      if (inputAttr) {
-        const parsed = typeof inputAttr === "string" ? JSON.parse(inputAttr) : inputAttr;
-        input = typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
-      }
-
-      if (outputAttr) {
-        const parsed = typeof outputAttr === "string" ? JSON.parse(outputAttr) : outputAttr;
-        output = typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
-      }
-    } catch (e) {
-      // Ignore parsing errors
-    }
-
-    return { input, output };
-  };
-
-  return (
-    <div>
-      {spans.map((span, index) => {
-        const spanId = `${span.name}-${span.start_time_ms}`;
-        const isExpanded = expandedSpans.has(spanId);
-        const { input, output } = parseSpanData(span);
-        const duration = formatDuration(span.start_time_ms, span.end_time_ms);
-
-        return (
-          <Collapsible key={spanId} open={isExpanded} onOpenChange={() => toggleSpan(spanId)}>
-            <CollapsibleTrigger className="w-full">
-              <div
-                className={`flex items-center justify-between p-3 hover:bg-muted/50 ${
-                  index !== spans.length - 1 ? "border-b" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  {getSpanIcon(span)}
-                  <span className="font-medium text-sm">{getSpanName(span)}</span>
-                  <span className="text-xs text-muted-foreground">was called</span>
-                </div>
-                <div className="text-xs text-muted-foreground">{duration}</div>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="p-4 bg-muted/20 border-b">
-                {/* Show input if available */}
-                {input && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium">Inputs</span>
-                    </div>
-                    <div className="bg-background border rounded-lg p-3">
-                      <pre className="text-xs overflow-x-auto whitespace-pre-wrap">{input}</pre>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show output if available */}
-                {output && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-medium">Outputs</span>
-                    </div>
-                    <div className="bg-background border rounded-lg p-3">
-                      <pre className="text-xs overflow-x-auto whitespace-pre-wrap">{output}</pre>
-                    </div>
-                  </div>
-                )}
-
-                {!input && !output && (
-                  <div className="text-sm text-muted-foreground">
-                    No input/output data available for this span
-                  </div>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        );
-      })}
     </div>
   );
 };

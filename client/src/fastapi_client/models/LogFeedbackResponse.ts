@@ -6,7 +6,8 @@
  * Response from logging feedback.
  */
 export type LogFeedbackResponse = {
-  success: boolean;
-  message?: string | null;
-  assessment_id?: string | null;
+    success: boolean;
+    message?: (string | null);
+    assessment_id?: (string | null);
 };
+

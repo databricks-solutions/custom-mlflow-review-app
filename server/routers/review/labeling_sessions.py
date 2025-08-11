@@ -1,6 +1,5 @@
 """Labeling Sessions endpoints."""
 
-import asyncio
 import logging
 from typing import Any, Dict, Optional
 
@@ -14,6 +13,7 @@ from server.models.review_apps import (
   LinkTracesToSessionResponse,
   ListLabelingSessionsResponse,
 )
+from server.utils.labeling_session_analysis import analyze_labeling_session_complete
 from server.utils.labeling_sessions_utils import (
   create_labeling_session as utils_create_session,
 )
@@ -32,10 +32,8 @@ from server.utils.labeling_sessions_utils import (
 from server.utils.labeling_sessions_utils import (
   update_labeling_session as utils_update_session,
 )
-from server.utils.permissions import check_labeling_session_access
-from server.utils.labeling_session_analysis import analyze_labeling_session_complete
 from server.utils.mlflow_artifact_utils import MLflowArtifactManager
-from mlflow.tracking import MlflowClient
+from server.utils.permissions import check_labeling_session_access
 
 logger = logging.getLogger(__name__)
 
@@ -282,12 +280,14 @@ async def get_session_analysis(
 
   # Check access to the session
   session = await utils_get_session(review_app_id, labeling_session_id)
-  
+
   # Check permissions - developers can access all, SMEs only assigned sessions
   if not is_user_developer(request):
     assigned_users = session.get('assigned_users', [])
     if not check_labeling_session_access(username, assigned_users):
-      raise HTTPException(status_code=403, detail='Access denied. You are not assigned to this session.')
+      raise HTTPException(
+        status_code=403, detail='Access denied. You are not assigned to this session.'
+      )
 
   try:
     # Get the session's MLflow run ID
@@ -301,23 +301,22 @@ async def get_session_analysis(
 
     # Check for analysis artifacts
     artifact_manager = MLflowArtifactManager()
-    
+
     try:
       # Try to download the report
       report_content = artifact_manager.download_analysis_report(
-        run_id=mlflow_run_id,
-        artifact_path='analysis/session_summary/report.md'
+        run_id=mlflow_run_id, artifact_path='analysis/session_summary/report.md'
       )
-      
+
       # Try to get structured data
       structured_data = None
       metadata = None
       try:
         data_content = artifact_manager.download_analysis_report(
-          run_id=mlflow_run_id,
-          artifact_path='analysis/session_summary/data.json'
+          run_id=mlflow_run_id, artifact_path='analysis/session_summary/data.json'
         )
         import json
+
         structured_data = json.loads(data_content)
         metadata = structured_data.get('metadata', {})
       except:
@@ -331,8 +330,8 @@ async def get_session_analysis(
         'metadata': metadata,
         'message': None,
       }
-    
-    except Exception as e:
+
+    except Exception:
       # No analysis found
       return {
         'has_analysis': False,
@@ -343,23 +342,18 @@ async def get_session_analysis(
       }
 
   except Exception as e:
-    logger.error(f"Error retrieving session analysis: {e}")
+    logger.error(f'Error retrieving session analysis: {e}')
     raise HTTPException(status_code=500, detail=str(e))
 
 
 async def run_analysis_task(
-  review_app_id: str,
-  session_id: str,
-  include_ai: bool,
-  model_endpoint: str
+  review_app_id: str, session_id: str, include_ai: bool, model_endpoint: str
 ):
   """Background task to run session analysis."""
   try:
     # Update status to running
     analysis_status_store[session_id] = AnalysisStatus(
-      session_id=session_id,
-      status='running',
-      message='Analysis in progress...'
+      session_id=session_id, status='running', message='Analysis in progress...'
     )
 
     # Run the analysis
@@ -368,7 +362,7 @@ async def run_analysis_task(
       session_id=session_id,
       include_ai_insights=include_ai,
       model_endpoint=model_endpoint,
-      store_to_mlflow=True
+      store_to_mlflow=True,
     )
 
     # Update status based on result
@@ -379,21 +373,17 @@ async def run_analysis_task(
         status='completed',
         message='Analysis completed successfully',
         run_id=storage.get('run_id'),
-        report_path=storage.get('report_path')
+        report_path=storage.get('report_path'),
       )
     else:
       analysis_status_store[session_id] = AnalysisStatus(
-        session_id=session_id,
-        status='failed',
-        message=result.get('error', 'Analysis failed')
+        session_id=session_id, status='failed', message=result.get('error', 'Analysis failed')
       )
 
   except Exception as e:
-    logger.error(f"Analysis task failed: {e}")
+    logger.error(f'Analysis task failed: {e}')
     analysis_status_store[session_id] = AnalysisStatus(
-      session_id=session_id,
-      status='failed',
-      message=str(e)
+      session_id=session_id, status='failed', message=str(e)
     )
 
 
@@ -417,12 +407,14 @@ async def trigger_session_analysis(
 
   # Check access to the session
   session = await utils_get_session(review_app_id, labeling_session_id)
-  
+
   # Check permissions - developers can access all, SMEs only assigned sessions
   if not is_user_developer(request):
     assigned_users = session.get('assigned_users', [])
     if not check_labeling_session_access(username, assigned_users):
-      raise HTTPException(status_code=403, detail='Access denied. You are not assigned to this session.')
+      raise HTTPException(
+        status_code=403, detail='Access denied. You are not assigned to this session.'
+      )
 
   # Check if analysis is already running
   if labeling_session_id in analysis_status_store:
@@ -432,9 +424,7 @@ async def trigger_session_analysis(
 
   # Initialize status
   analysis_status_store[labeling_session_id] = AnalysisStatus(
-    session_id=labeling_session_id,
-    status='pending',
-    message='Analysis queued'
+    session_id=labeling_session_id, status='pending', message='Analysis queued'
   )
 
   # Add background task
@@ -443,7 +433,7 @@ async def trigger_session_analysis(
     review_app_id,
     labeling_session_id,
     analysis_request.include_ai_insights,
-    analysis_request.model_endpoint
+    analysis_request.model_endpoint,
   )
 
   return analysis_status_store[labeling_session_id]
@@ -465,18 +455,20 @@ async def get_analysis_status(
 
   # Check access to the session
   session = await utils_get_session(review_app_id, labeling_session_id)
-  
+
   # Check permissions - developers can access all, SMEs only assigned sessions
   if not is_user_developer(request):
     assigned_users = session.get('assigned_users', [])
     if not check_labeling_session_access(username, assigned_users):
-      raise HTTPException(status_code=403, detail='Access denied. You are not assigned to this session.')
+      raise HTTPException(
+        status_code=403, detail='Access denied. You are not assigned to this session.'
+      )
 
   if labeling_session_id not in analysis_status_store:
     return AnalysisStatus(
       session_id=labeling_session_id,
       status='not_found',
-      message='No analysis request found for this session'
+      message='No analysis request found for this session',
     )
 
   return analysis_status_store[labeling_session_id]
