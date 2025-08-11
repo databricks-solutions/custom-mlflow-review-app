@@ -33,6 +33,14 @@ export default {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
+  			},
   			muted: {
   				DEFAULT: 'hsl(var(--muted))',
   				foreground: 'hsl(var(--muted-foreground))'
@@ -49,6 +57,32 @@ export default {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			}
+  		},
+  		spacing: {
+  			// Du Bois spacing scale (8px base unit)
+  			'xs': '4px',
+  			'sm': '8px', 
+  			'md': '16px',
+  			'lg': '24px',
+  			'xl': '32px',
+  			'2xl': '40px',
+  		},
+  		fontSize: {
+  			// Du Bois typography scale
+  			'xs': ['12px', { lineHeight: '16px' }],
+  			'sm': ['13px', { lineHeight: '20px' }],  // Base font size
+  			'base': ['13px', { lineHeight: '20px' }],
+  			'md': ['13px', { lineHeight: '20px' }],
+  			'lg': ['18px', { lineHeight: '24px' }],
+  			'xl': ['22px', { lineHeight: '28px' }],
+  			'2xl': ['32px', { lineHeight: '40px' }],
+  		},
+  		fontWeight: {
+  			// Du Bois font weights
+  			normal: '400',
+  			medium: '500',
+  			semibold: '600',
+  			bold: '600',  // Du Bois uses 600 for bold
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

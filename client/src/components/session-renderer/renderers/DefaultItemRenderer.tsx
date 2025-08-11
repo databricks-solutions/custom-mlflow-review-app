@@ -47,6 +47,7 @@ function NavigationButtons({ onSkip, onSubmit, isSubmitting, hasAssessments }: N
         Skip
       </Button>
       <Button
+        variant="primary"
         onClick={onSubmit}
         disabled={isSubmitting || !hasAssessments}
       >

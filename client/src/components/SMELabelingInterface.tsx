@@ -13,6 +13,7 @@ import {
   useTrace,
   useRendererName,
   useLabelSchemas,
+  useCurrentUser,
   queryKeys,
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
@@ -41,6 +42,7 @@ export function SMELabelingInterface({
     sessionId,
     !!sessionId
   );
+  const { data: currentUser } = useCurrentUser();
 
   // Fetch all available schemas to match with session references
   const { data: allSchemas } = useLabelSchemas();
@@ -132,17 +134,49 @@ export function SMELabelingInterface({
     // Don't reset assessments here - let the useEffect handle loading from trace data
   };
 
+  // Function to check if an assessment belongs to the current user
+  const isCurrentUserAssessment = (assessment: Assessment): boolean => {
+    if (!currentUser?.userName && !currentUser?.emails?.[0]) {
+      return false; // No user info available
+    }
+
+    const userIdentifiers = [
+      currentUser.userName,
+      ...(currentUser.emails || [])
+    ].filter(Boolean);
+
+    if (!assessment.source) {
+      return false; // No source information
+    }
+
+    // Handle different source formats
+    let sourceString = '';
+    if (typeof assessment.source === 'string') {
+      sourceString = assessment.source;
+    } else if (typeof assessment.source === 'object' && assessment.source.source_id) {
+      sourceString = assessment.source.source_id;
+    }
+
+    // Check if any user identifier appears in the source
+    return userIdentifiers.some(identifier => 
+      identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
+    );
+  };
+
   // Load assessments from trace data when trace changes
   useEffect(() => {
     if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
       const assessmentMap = new Map<string, Assessment>();
       
-      console.log('[DEBUG] Loading assessments from trace:', traceSummary.info.assessments);
+      // Filter assessments to only include those created by the current user
+      const userAssessments = traceSummary.info.assessments.filter(assessment => {
+        return isCurrentUserAssessment(assessment);
+      });
       
-      // Group assessments by name and type, keeping only the latest one
+      // Group user assessments by name and type, keeping only the latest one
       const latestAssessments = new Map<string, Assessment>();
       
-      for (const assessment of traceSummary.info.assessments) {
+      for (const assessment of userAssessments) {
         const key = `${assessment.name}_${assessment.type}`;
         const existing = latestAssessments.get(key);
         
@@ -152,17 +186,13 @@ export function SMELabelingInterface({
         }
       }
       
-      console.log('[DEBUG] Latest assessments:', Array.from(latestAssessments.entries()));
-      
       // Now map by name only (since schema name is unique)
       for (const assessment of latestAssessments.values()) {
         assessmentMap.set(assessment.name, assessment);
       }
-      
-      console.log('[DEBUG] Final assessment map:', Array.from(assessmentMap.entries()));
       setAssessments(assessmentMap);
     }
-  }, [traceSummary]);
+  }, [traceSummary, currentUser]);
 
   const handlePrevious = () => {
     if (currentItemIndex > 0) {
@@ -248,14 +278,16 @@ export function SMELabelingInterface({
     spans: traceSummary.data?.spans || [],
   };
 
-  // Compute schema assessments from session schemas and trace assessments
+  // Compute schema assessments from session schemas and FILTERED assessments
   const schemaAssessments: SchemaAssessments | undefined = session?.labeling_schemas && allSchemas ? (() => {
     // Map session schema references to full schema objects
     const sessionSchemas = session.labeling_schemas
       .map(ref => allSchemas.find(schema => schema.name === ref.name))
       .filter(Boolean) as any[];
     
-    const combinedSchemas = combineSchemaWithAssessments(sessionSchemas, traceSummary.info.assessments);
+    // Use filtered assessments (only current user's assessments) instead of all assessments
+    const filteredAssessmentsArray = Array.from(assessments.values());
+    const combinedSchemas = combineSchemaWithAssessments(sessionSchemas, filteredAssessmentsArray);
     
     return {
       feedback: filterByType(combinedSchemas, 'FEEDBACK'),

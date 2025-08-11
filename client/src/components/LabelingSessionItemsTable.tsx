@@ -11,13 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Edit } from "lucide-react";
-import { LabelingItem, ReviewApp, LabelingSchema } from "@/types/renderers";
+import { LabelingItem, ReviewApp, LabelingSchema, LabelingSession } from "@/types/renderers";
 
 interface LabelingSessionItemsTableProps {
   items: LabelingItem[];
   reviewApp: ReviewApp | null | undefined;
   reviewAppId: string;
   sessionId: string;
+  session?: LabelingSession;
   onTraceClick?: (traceId: string) => void;
   showProgress?: boolean;
   maxHeight?: string;
@@ -29,6 +30,7 @@ export function LabelingSessionItemsTable({
   reviewApp,
   reviewAppId,
   sessionId,
+  session,
   onTraceClick,
   showProgress = true,
   maxHeight = "max-h-96",
@@ -71,7 +73,8 @@ export function LabelingSessionItemsTable({
               <TableHead>Status</TableHead>
               <TableHead>Request</TableHead>
               <TableHead>Response</TableHead>
-              {reviewApp?.labeling_schemas?.map((schema: LabelingSchema) => (
+              {/* Use session-specific schemas if available, otherwise use review app schemas */}
+              {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => (
                 <TableHead key={schema.name}>{schema.title || schema.name}</TableHead>
               ))}
               <TableHead>Comment</TableHead>
@@ -123,7 +126,8 @@ export function LabelingSessionItemsTable({
                     {item.response_preview || "-"}
                   </div>
                 </TableCell>
-                {reviewApp?.labeling_schemas?.map((schema: LabelingSchema) => {
+                {/* Use session-specific schemas if available, otherwise use review app schemas */}
+                {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => {
                   const labelValue = item.labels?.[schema.name] !== undefined
                     ? String(item.labels[schema.name]?.value || item.labels[schema.name])
                     : "-";

@@ -1,5 +1,6 @@
 """Unified manifest endpoint that returns all application state."""
 
+import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -60,6 +61,9 @@ router = APIRouter()
 async def get_app_manifest(request: Request):
   """Get complete application manifest including user, workspace, and config."""
   try:
+    # Check for test override email
+    test_obo_email = os.getenv('TEST_OBO_EMAIL')
+    
     # Get user information
     is_obo = is_obo_request(request)
     obo_user_info = get_obo_user_info(request)
@@ -72,8 +76,23 @@ async def get_app_manifest(request: Request):
     # Debug: Check if we have the x-forwarded-access-token header
     has_forwarded_token = bool(request.headers.get('x-forwarded-access-token'))
 
-    # Build user info
-    if is_obo and obo_user_info:
+    # Build user info with test override if defined
+    if test_obo_email:
+      # Use test override email
+      user_info = UserInfo(
+        userName=test_obo_email,
+        displayName=test_obo_email.split('@')[0].replace('.', ' ').title(),
+        active=True,
+        emails=[test_obo_email],
+        # Auth middleware properties
+        is_obo=True,
+        has_token=True,
+        # Role and permissions (test user gets developer access)
+        role='developer',
+        is_developer=True,
+        can_access_dev_pages=True,
+      )
+    elif is_obo and obo_user_info:
       user_info = UserInfo(
         userName=obo_user_info['userName'],
         displayName=obo_user_info['displayName'],

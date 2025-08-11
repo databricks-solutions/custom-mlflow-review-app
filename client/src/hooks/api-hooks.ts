@@ -188,8 +188,8 @@ export function useCreateLabelingSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (session: LabelingSession) => 
-      SimplifiedApiService.createLabelingSessionApiLabelingSessionsPost(session),
+    mutationFn: (params: { reviewAppId: string; session: LabelingSession }) => 
+      SimplifiedApiService.createLabelingSessionApiLabelingSessionsPost(params.session),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.list(),
@@ -245,15 +245,9 @@ export function useDeleteLabelingSession() {
 
 // Labeling Items
 export function useLabelingItems(reviewAppId: string, sessionId: string, enabled = true) {
-  // Debug logging to track which components are calling this hook
-  console.log(
-    `[HOOK-DEBUG] useLabelingItems called for session ${sessionId.slice(0, 8)} with enabled: ${enabled}`
-  );
-
   return useQuery({
     queryKey: queryKeys.labelingItems.list(reviewAppId, sessionId),
     queryFn: () => {
-      console.log(`[API-DEBUG] Making API call for session ${sessionId.slice(0, 8)}`);
       return apiClient.api.listLabelingItems({ reviewAppId, sessionId });
     },
     enabled: enabled && !!reviewAppId && !!sessionId,

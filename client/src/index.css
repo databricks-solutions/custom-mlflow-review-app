@@ -7,65 +7,242 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Du Bois Light Theme Colors */
+    /* Backgrounds */
+    --background: 0 0% 100%;  /* white */
+    --foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;  /* white */
+    --card-foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;  /* white */
+    --popover-foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Du Bois blue600 */
+    --primary: 210 65.5% 42.4%;  /* blue600 #2272B4 */
+    --primary-foreground: 0 0% 100%;  /* white */
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    /* Secondary - Du Bois grey backgrounds */
+    --secondary: 220 14.3% 95.9%;  /* grey100 #E8ECF0 */
+    --secondary-foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted - Du Bois grey backgrounds */
+    --muted: 215 22.2% 96.5%;  /* grey050 #F6F7F9 */
+    --muted-foreground: 210 16.2% 51.6%;  /* grey500 */
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
+    /* Accent - slight blue tint for hover states */
+    --accent: 210 40.5% 96.9%;  /* blue100 #F0F8FF */
+    --accent-foreground: 210 65.5% 42.4%;  /* blue600 */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive - Du Bois red600 */
+    --destructive: 349 65.2% 47.3%;  /* red600 #C82D4C */
+    --destructive-foreground: 0 0% 100%;  /* white */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Success - Du Bois green600 */
+    --success: 142 49.6% 32.2%;  /* green600 #277C43 */
+    --success-foreground: 0 0% 100%;  /* white */
 
-    --radius: 0.5rem;
+    /* Warning - Du Bois yellow600 */
+    --warning: 25 72.9% 43.7%;  /* yellow600 #BE501E */
+    --warning-foreground: 0 0% 100%;  /* white */
+
+    /* Borders and inputs */
+    --border: 210 16.2% 79.8%;  /* grey300 #C0CDD8 */
+    --input: 210 16.2% 79.8%;  /* grey300 #C0CDD8 */
+    --input-hover: 210 65.5% 42.4%;  /* primary blue600 on hover */
+    --ring: 210 65.5% 42.4%;  /* blue600 for focus rings */
+    
+    /* Validation state hover colors */
+    --destructive-hover: 347 76.0% 39.6%;  /* red700 for destructive hover */
+    --warning-hover: 25 80.9% 36.1%;  /* yellow700 for warning hover */
+
+    /* Border radius following Du Bois design */
+    --radius: 0.375rem;  /* 6px, typical Du Bois radius */
+
+    /* Du Bois Button Semantic Colors - Light Mode */
+    /* Primary Button */
+    --btn-primary-bg: 210 65.5% 42.4%;  /* actionPrimaryBackgroundDefault */
+    --btn-primary-bg-hover: 203 70.4% 36.1%;  /* actionPrimaryBackgroundHover */
+    --btn-primary-bg-press: 203 78.9% 27.5%;  /* actionPrimaryBackgroundPress */
+    --btn-primary-text: 0 0% 100%;  /* actionPrimaryTextDefault */
+
+    /* Default/Secondary Button */
+    --btn-default-bg: 0 0% 0% / 0;  /* actionDefaultBackgroundDefault (transparent) */
+    --btn-default-bg-hover: 210 65.5% 42.4% / 0.08;  /* actionDefaultBackgroundHover */
+    --btn-default-bg-press: 210 65.5% 42.4% / 0.16;  /* actionDefaultBackgroundPress */
+    --btn-default-border: 210 16.2% 79.8%;  /* actionDefaultBorderDefault */
+    --btn-default-border-hover: 210 65.5% 42.4%;  /* actionDefaultBorderHover */
+    --btn-default-border-press: 203 78.9% 27.5%;  /* actionDefaultBorderPress */
+    --btn-default-text: 200 20.6% 12.9%;  /* actionDefaultTextDefault */
+    --btn-default-text-hover: 203 70.4% 36.1%;  /* actionDefaultTextHover */
+    --btn-default-text-press: 203 78.9% 27.5%;  /* actionDefaultTextPress */
+
+    /* Tertiary Button */
+    --btn-tertiary-bg: 0 0% 0% / 0;  /* actionTertiaryBackgroundDefault (transparent) */
+    --btn-tertiary-bg-hover: 210 65.5% 42.4% / 0.08;  /* actionTertiaryBackgroundHover */
+    --btn-tertiary-bg-press: 210 65.5% 42.4% / 0.16;  /* actionTertiaryBackgroundPress */
+    --btn-tertiary-text: 210 65.5% 42.4%;  /* actionTertiaryTextDefault */
+    --btn-tertiary-text-hover: 203 70.4% 36.1%;  /* actionTertiaryTextHover */
+    --btn-tertiary-text-press: 203 78.9% 27.5%;  /* actionTertiaryTextPress */
+
+    /* Danger Button */
+    --btn-danger-bg: 0 0% 0% / 0;  /* actionDangerDefaultBackgroundDefault (transparent) */
+    --btn-danger-bg-hover: 349 65.2% 47.3% / 0.08;  /* actionDangerDefaultBackgroundHover */
+    --btn-danger-bg-press: 349 65.2% 47.3% / 0.16;  /* actionDangerDefaultBackgroundPress */
+    --btn-danger-border: 349 65.2% 47.3%;  /* actionDangerDefaultBorderDefault */
+    --btn-danger-border-hover: 347 76.0% 39.6%;  /* actionDangerDefaultBorderHover */
+    --btn-danger-border-press: 347 82.6% 33.9%;  /* actionDangerDefaultBorderPress */
+    --btn-danger-text: 349 65.2% 47.3%;  /* actionDangerDefaultTextDefault */
+    --btn-danger-text-hover: 347 76.0% 39.6%;  /* actionDangerDefaultTextHover */
+    --btn-danger-text-press: 347 82.6% 33.9%;  /* actionDangerDefaultTextPress */
+
+    /* Danger Primary Button */
+    --btn-danger-primary-bg: 349 65.2% 47.3%;  /* actionDangerPrimaryBackgroundDefault */
+    --btn-danger-primary-bg-hover: 347 76.0% 39.6%;  /* actionDangerPrimaryBackgroundHover */
+    --btn-danger-primary-bg-press: 347 82.6% 33.9%;  /* actionDangerPrimaryBackgroundPress */
+    --btn-danger-primary-text: 0 0% 100%;  /* actionDangerPrimaryText */
+
+    /* Disabled Button */
+    --btn-disabled-bg: 220 14.3% 95.9%;  /* actionDisabledBackground */
+    --btn-disabled-border: 209 17.3% 88.2%;  /* actionDisabledBorder */
+    --btn-disabled-text: 210 13.6% 58.4%;  /* actionDisabledText */
+
+    /* Link Colors */
+    --link-default: 210 65.5% 42.4%;  /* actionLinkDefault */
+    --link-hover: 203 70.4% 36.1%;  /* actionLinkHover */
+    --link-press: 203 78.9% 27.5%;  /* actionLinkPress */
+
+    /* Additional Semantic Colors */
+    --text-placeholder: 210 16.2% 51.6%;  /* textPlaceholder */
+    --text-secondary: 210 16.2% 51.6%;  /* textSecondary */
+    --border-accessible: 210 16.2% 51.6%;  /* borderAccessible */
+    --background-secondary-page: 215 22.2% 96.5%;  /* backgroundSecondary */
+
+    /* Table Semantic Colors - Light Mode */
+    --table-header-bg: 215 22.2% 96.5%;  /* tableHeaderBackground */
+    --table-header-text: 200 20.6% 12.9%;  /* tableHeaderText */
+    --table-row-hover: 210 65.5% 42.4% / 0.05;  /* tableRowHover */
+    --table-row-selected: 210 40.5% 96.9%;  /* tableRowSelected */
+    --table-border: 210 16.2% 79.8%;  /* tableBorder */
+    --table-stripe: 220 14.3% 95.9% / 0.5;  /* tableStripe */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Du Bois Dark Theme Colors */
+    /* Backgrounds */
+    --background: 200 20.6% 12.9%;  /* grey800 #11171C */
+    --foreground: 220 14.3% 95.9%;  /* grey100 */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 200 20.6% 12.9%;  /* grey800 */
+    --card-foreground: 220 14.3% 95.9%;  /* grey100 */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 200 20.6% 12.9%;  /* grey800 */
+    --popover-foreground: 220 14.3% 95.9%;  /* grey100 */
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Primary - Du Bois blue500 (lighter blue for dark mode) */
+    --primary: 206 71.4% 57.1%;  /* blue500 #4299E0 */
+    --primary-foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary - Du Bois dark greys */
+    --secondary: 202 12.9% 27.3%;  /* grey650 #37444F */
+    --secondary-foreground: 220 14.3% 95.9%;  /* grey100 */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Muted - Du Bois dark greys */
+    --muted: 202 12.9% 27.3%;  /* grey650 */
+    --muted-foreground: 210 13.6% 58.4%;  /* grey350 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent - darker blue for dark mode */
+    --accent: 202 12.9% 27.3%;  /* grey650 */
+    --accent-foreground: 206 71.4% 57.1%;  /* blue500 */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive - Du Bois red500 (lighter red for dark mode) */
+    --destructive: 349 65.9% 63.1%;  /* red500 #E65B77 */
+    --destructive-foreground: 200 20.6% 12.9%;  /* grey800 */
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Success - Du Bois green500 (lighter green for dark mode) */
+    --success: 142 46.8% 45.3%;  /* green500 #3CAA60 */
+    --success-foreground: 200 20.6% 12.9%;  /* grey800 */
+
+    /* Warning - Du Bois yellow500 (lighter yellow for dark mode) */
+    --warning: 25 76.2% 52.4%;  /* yellow500 #DE7921 */
+    --warning-foreground: 200 20.6% 12.9%;  /* grey800 */
+
+    /* Borders and inputs */
+    --border: 202 12.9% 27.3%;  /* grey650 */
+    --input: 202 12.9% 27.3%;  /* grey650 */
+    --input-hover: 206 71.4% 57.1%;  /* primary blue500 on hover */
+    --ring: 206 71.4% 57.1%;  /* blue500 for focus rings */
+    
+    /* Validation state hover colors */
+    --destructive-hover: 349 65.9% 75.3%;  /* red400 for destructive hover */
+    --warning-hover: 25 76.2% 62.4%;  /* yellow400 for warning hover */
+
+    /* Du Bois Button Semantic Colors - Dark Mode */
+    /* Primary Button */
+    --btn-primary-bg: 206 71.4% 57.1%;  /* actionPrimaryBackgroundDefault (blue500) */
+    --btn-primary-bg-hover: 210 81.3% 73.1%;  /* actionPrimaryBackgroundHover (blue400) */
+    --btn-primary-bg-press: 219 86.5% 86.3%;  /* actionPrimaryBackgroundPress (blue300) */
+    --btn-primary-text: 200 20.6% 12.9%;  /* actionPrimaryTextDefault (grey800) */
+
+    /* Default/Secondary Button */
+    --btn-default-bg: 0 0% 0% / 0;  /* actionDefaultBackgroundDefault (transparent) */
+    --btn-default-bg-hover: 210 81.3% 73.1% / 0.08;  /* actionDefaultBackgroundHover */
+    --btn-default-bg-press: 210 81.3% 73.1% / 0.16;  /* actionDefaultBackgroundPress */
+    --btn-default-border: 202 12.9% 27.3%;  /* actionDefaultBorderDefault (grey650) */
+    --btn-default-border-hover: 210 81.3% 73.1%;  /* actionDefaultBorderHover (blue400) */
+    --btn-default-border-press: 219 86.5% 86.3%;  /* actionDefaultBorderPress (blue300) */
+    --btn-default-text: 220 14.3% 95.9%;  /* actionDefaultTextDefault (grey100) */
+    --btn-default-text-hover: 210 81.3% 73.1%;  /* actionDefaultTextHover (blue400) */
+    --btn-default-text-press: 219 86.5% 86.3%;  /* actionDefaultTextPress (blue300) */
+
+    /* Tertiary Button */
+    --btn-tertiary-bg: 0 0% 0% / 0;  /* actionTertiaryBackgroundDefault (transparent) */
+    --btn-tertiary-bg-hover: 219 95.8% 88.6% / 0.08;  /* actionTertiaryBackgroundHover */
+    --btn-tertiary-bg-press: 219 95.8% 88.6% / 0.16;  /* actionTertiaryBackgroundPress */
+    --btn-tertiary-text: 206 71.4% 57.1%;  /* actionTertiaryTextDefault (blue500) */
+    --btn-tertiary-text-hover: 210 81.3% 73.1%;  /* actionTertiaryTextHover (blue400) */
+    --btn-tertiary-text-press: 219 86.5% 86.3%;  /* actionTertiaryTextPress (blue300) */
+
+    /* Danger Button */
+    --btn-danger-bg: 0 0% 0% / 0;  /* actionDangerDefaultBackgroundDefault (transparent) */
+    --btn-danger-bg-hover: 349 65.9% 75.3% / 0.08;  /* actionDangerDefaultBackgroundHover */
+    --btn-danger-bg-press: 349 65.9% 75.3% / 0.16;  /* actionDangerDefaultBackgroundPress */
+    --btn-danger-border: 349 65.9% 63.1%;  /* actionDangerDefaultBorderDefault (red500) */
+    --btn-danger-border-hover: 349 65.9% 75.3%;  /* actionDangerDefaultBorderHover (red400) */
+    --btn-danger-border-press: 349 65.9% 85.3%;  /* actionDangerDefaultBorderPress (red300) */
+    --btn-danger-text: 349 65.9% 63.1%;  /* actionDangerDefaultTextDefault (red500) */
+    --btn-danger-text-hover: 349 65.9% 75.3%;  /* actionDangerDefaultTextHover (red400) */
+    --btn-danger-text-press: 349 65.9% 85.3%;  /* actionDangerDefaultTextPress (red300) */
+
+    /* Danger Primary Button */
+    --btn-danger-primary-bg: 349 65.9% 63.1%;  /* actionDangerPrimaryBackgroundDefault (red500) */
+    --btn-danger-primary-bg-hover: 349 65.9% 75.3%;  /* actionDangerPrimaryBackgroundHover (red400) */
+    --btn-danger-primary-bg-press: 349 65.9% 85.3%;  /* actionDangerPrimaryBackgroundPress (red300) */
+    --btn-danger-primary-text: 200 20.6% 12.9%;  /* actionDangerPrimaryText (grey800) */
+
+    /* Disabled Button */
+    --btn-disabled-bg: 202 12.9% 27.3%;  /* actionDisabledBackground (grey650) */
+    --btn-disabled-border: 210 15.7% 35.3%;  /* actionDisabledBorder (grey600) */
+    --btn-disabled-text: 210 16.2% 51.6%;  /* actionDisabledText (grey500) */
+
+    /* Link Colors */
+    --link-default: 206 71.4% 57.1%;  /* actionLinkDefault (blue500) */
+    --link-hover: 210 81.3% 73.1%;  /* actionLinkHover (blue400) */
+    --link-press: 219 86.5% 86.3%;  /* actionLinkPress (blue300) */
+
+    /* Additional Semantic Colors */
+    --text-placeholder: 210 15.0% 57.6%;  /* textPlaceholder (grey400) */
+    --text-secondary: 210 13.6% 58.4%;  /* textSecondary (grey350) */
+    --border-accessible: 209 17.3% 73.1%;  /* borderAccessible (grey300) */
+    --background-secondary-page: 200 12.2% 16.9%;  /* backgroundSecondary (grey700) */
+
+    /* Table Semantic Colors - Dark Mode */
+    --table-header-bg: 202 12.9% 27.3%;  /* tableHeaderBackground (grey650) */
+    --table-header-text: 220 14.3% 95.9%;  /* tableHeaderText (grey100) */
+    --table-row-hover: 206 71.4% 57.1% / 0.08;  /* tableRowHover */
+    --table-row-selected: 202 12.9% 27.3%;  /* tableRowSelected (grey650) */
+    --table-border: 202 12.9% 27.3%;  /* tableBorder (grey650) */
+    --table-stripe: 210 15.7% 35.3% / 0.3;  /* tableStripe (grey600) */
   }
 }
 

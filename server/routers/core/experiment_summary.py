@@ -170,7 +170,7 @@ async def get_experiment_summary(experiment_id: str) -> dict:
       'metadata': {
         'analysis_timestamp': run.data.tags.get('analysis.experiment_summary.timestamp'),
         'model_endpoint': metadata.get('model_endpoint', 'unknown'),
-        'traces_analyzed': metadata.get('total_traces_analyzed', 0),
+        'traces_analyzed': metadata.get('traces_analyzed', metadata.get('total_traces_analyzed', 0)),
       },
     }
 
