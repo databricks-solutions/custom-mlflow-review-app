@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,8 @@ import { useAppManifest, useLabelingSession } from "@/hooks/api-hooks";
 export function PreviewPage() {
   const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
+  const [searchParams] = useSearchParams();
+  const traceId = searchParams.get("trace");
 
   // Get the current review app from manifest
   const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
@@ -56,7 +58,11 @@ export function PreviewPage() {
       <div className="border-t border-border"></div>
 
       {/* Direct SME UI without card wrapper */}
-      <SMELabelingInterface sessionId={sessionId!} hideNavigation={true} />
+      <SMELabelingInterface 
+        sessionId={sessionId!} 
+        hideNavigation={true}
+        initialTraceId={traceId || undefined}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle, Circle } from "lucide-react";
 import { Assessment, LabelingSchema, JsonValue } from "@/types/renderers";
+
 import { useSavingState } from "../../contexts/SavingStateContext";
 import {
   useLogFeedbackMutation,
@@ -20,6 +21,8 @@ interface LabelSchemaFieldProps {
   assessment?: Assessment;
   traceId: string;
   readOnly?: boolean;
+  reviewAppId?: string;
+  sessionId?: string;
 }
 
 export function LabelSchemaField({
@@ -27,9 +30,20 @@ export function LabelSchemaField({
   assessment,
   traceId,
   readOnly = false,
+  reviewAppId,
+  sessionId,
 }: LabelSchemaFieldProps) {
   // Local state for immediate UI updates
-  const [localValue, setLocalValue] = useState<JsonValue>(assessment?.value || "");
+  // Initialize with proper default based on schema type
+  const getDefaultValue = (): JsonValue => {
+    if (assessment?.value !== undefined && assessment?.value !== null) {
+      return assessment.value;
+    }
+    // Return empty string as default for all types (will be converted as needed)
+    return "";
+  };
+  
+  const [localValue, setLocalValue] = useState<JsonValue>(getDefaultValue());
   const [localRationale, setLocalRationale] = useState<string>(assessment?.rationale || "");
   const [localAssessmentId, setLocalAssessmentId] = useState<string | undefined>(
     assessment?.assessment_id
@@ -42,21 +56,35 @@ export function LabelSchemaField({
   // Saving state
   const { setSaving, setLastSaved } = useSavingState();
 
+  // Create session context for mutations if both reviewAppId and sessionId are available
+  const sessionContext = reviewAppId && sessionId ? { reviewAppId, sessionId } : undefined;
+
   // Mutations
-  const logFeedbackMutation = useLogFeedbackMutation();
-  const logExpectationMutation = useLogExpectationMutation();
-  const updateFeedbackMutation = useUpdateFeedbackMutation();
-  const updateExpectationMutation = useUpdateExpectationMutation();
+  const logFeedbackMutation = useLogFeedbackMutation(sessionContext);
+  const logExpectationMutation = useLogExpectationMutation(sessionContext);
+  const updateFeedbackMutation = useUpdateFeedbackMutation(sessionContext);
+  const updateExpectationMutation = useUpdateExpectationMutation(sessionContext);
 
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Refs to track latest values for debounced save
+  const latestValueRef = useRef<JsonValue>(localValue);
+  const latestRationaleRef = useRef<string>(localRationale);
 
   // Update local state when assessment prop changes
   useEffect(() => {
-    setLocalValue(assessment?.value || "");
+    if (assessment?.value !== undefined && assessment?.value !== null) {
+      setLocalValue(assessment.value);
+      latestValueRef.current = assessment.value;
+    } else {
+      setLocalValue("");
+      latestValueRef.current = "";
+    }
     setLocalRationale(assessment?.rationale || "");
+    latestRationaleRef.current = assessment?.rationale || "";
     // IMPORTANT: Preserve the assessment_id from existing assessments
-    setLocalAssessmentId(assessment?.assessment_id || null);
+    setLocalAssessmentId(assessment?.assessment_id || undefined);
   }, [assessment]);
 
   // Handle the actual save logic
@@ -143,32 +171,32 @@ export function LabelSchemaField({
     ]
   );
 
-  // Trigger save with debounce
-  const triggerSave = useCallback(
-    (value: JsonValue, rationale: string) => {
-      // Clear existing timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+  // Trigger save with debounce - always uses the latest values from refs
+  const triggerSave = useCallback(() => {
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-      // Set new timeout for auto-save
-      saveTimeoutRef.current = setTimeout(() => {
-        performSave(value, rationale);
-      }, 500); // 500ms debounce
-    },
-    [performSave]
-  );
+    // Set new timeout for auto-save
+    // This will always use the latest values from the refs when it fires
+    saveTimeoutRef.current = setTimeout(() => {
+      performSave(latestValueRef.current, latestRationaleRef.current);
+    }, 750); // 750ms debounce to give more time for typing
+  }, [performSave]);
 
   // Handle value change
   const handleValueChange = (newValue: JsonValue) => {
     setLocalValue(newValue);
-    triggerSave(newValue, localRationale);
+    latestValueRef.current = newValue;
+    triggerSave();
   };
 
   // Handle rationale change
   const handleRationaleChange = (newRationale: string) => {
     setLocalRationale(newRationale);
-    triggerSave(localValue, newRationale);
+    latestRationaleRef.current = newRationale;
+    triggerSave();
   };
 
   // Clean up timeout on unmount

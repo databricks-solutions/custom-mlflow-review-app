@@ -40,6 +40,7 @@ interface LabelingSessionAnalysisModalProps {
   sessionName: string;
   workspaceUrl?: string;
   mlflowRunId?: string;
+  experimentId?: string;
 }
 
 // Interfaces for type checking - not exported
@@ -73,6 +74,7 @@ export function LabelingSessionAnalysisModal({
   sessionName,
   workspaceUrl,
   mlflowRunId,
+  experimentId,
 }: LabelingSessionAnalysisModalProps) {
   const [isPolling, setIsPolling] = useState(false);
 
@@ -209,12 +211,12 @@ export function LabelingSessionAnalysisModal({
 
             {/* Action buttons */}
             <div className="flex items-center gap-2 shrink-0">
-              {workspaceUrl && mlflowRunId && (
+              {workspaceUrl && mlflowRunId && experimentId && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    window.open(`${workspaceUrl}/ml/experiments/runs/${mlflowRunId}`, "_blank");
+                    window.open(`${workspaceUrl}/ml/experiments/${experimentId}/evaluation-runs?selectedRunUuid=${mlflowRunId}`, "_blank");
                   }}
                 >
                   <ExternalLink className="h-4 w-4 mr-1" />

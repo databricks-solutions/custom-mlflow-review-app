@@ -11,8 +11,9 @@ export function ReviewAppPage() {
 
   // Support both URL structures:
   // New: /review/:sessionId  
-  // Old: /review-app/:reviewAppId?session=:sessionId
+  // Old: /review-app/:reviewAppId?session=:sessionId&trace=:traceId
   const sessionId = urlSessionId || searchParams.get("session");
+  const traceId = searchParams.get("trace");
 
   if (!sessionId) {
     return <NoSessionSelected />;
@@ -22,6 +23,7 @@ export function ReviewAppPage() {
   // For the old URL structure, we pass the reviewAppId
   return <SMELabelingInterface 
     reviewAppId={reviewAppId || undefined} 
-    sessionId={sessionId!} 
+    sessionId={sessionId!}
+    initialTraceId={traceId || undefined}
   />;
 }

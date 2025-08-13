@@ -8,6 +8,7 @@ import sys
 from typing import Any, Dict, List
 
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id, add_review_app_args
 
 
 def create_numeric_schema(
@@ -70,24 +71,28 @@ async def main():
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  # Create a single numeric rating schema
-  python create_labeling_schemas.py review_app_id --numeric quality "Response Quality" "Rate the quality of the AI response" --min 1 --max 5
+  # Create a single numeric rating schema (uses current experiment)
+  python create_labeling_schemas.py --numeric quality "Response Quality" "Rate the quality of the AI response" --min 1 --max 5
 
-  # Create a categorical schema
+  # Create with specific review app ID
   python create_labeling_schemas.py review_app_id --categorical helpfulness "Helpfulness" "Was the response helpful?" --options "Very Helpful" "Somewhat Helpful" "Not Helpful"
 
-  # Create a text feedback schema
-  python create_labeling_schemas.py review_app_id --text feedback "General Feedback" "Provide any additional feedback"
+  # Create with specific experiment ID
+  python create_labeling_schemas.py --experiment-id exp123 --text feedback "General Feedback" "Provide any additional feedback"
 
   # Create multiple schemas from JSON file
-  python create_labeling_schemas.py review_app_id --from-file schemas.json
+  python create_labeling_schemas.py --from-file schemas.json
 
   # Use preset template
-  python create_labeling_schemas.py review_app_id --preset quality-helpfulness
+  python create_labeling_schemas.py --preset quality-helpfulness
         """,
   )
 
-  parser.add_argument('review_app_id', help='Review app ID to add schemas to')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
 
   # Schema creation options
   schema_group = parser.add_mutually_exclusive_group(required=True)
@@ -150,8 +155,11 @@ Examples:
   args = parser.parse_args()
 
   try:
-    # Get current review app
-    current_app = await review_apps_utils.get_review_app(args.review_app_id)
+    # Resolve review app ID
+    review_app_id, current_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
     current_schemas = current_app.get('labeling_schemas', [])
     current_schema_names = {schema['name'] for schema in current_schemas}
 
@@ -262,7 +270,7 @@ Examples:
     # Update the review app
     update_data = {'labeling_schemas': updated_schemas}
     await review_apps_utils.update_review_app(
-      review_app_id=args.review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
+      review_app_id=review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
     )
 
     print('✅ Successfully created labeling schemas:')

@@ -152,6 +152,8 @@ function DefaultItemRendererContent({
               assessments={new Map(feedbackSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
               traceId={traceId}
               readOnly={false}
+              reviewAppId={reviewApp.review_app_id}
+              sessionId={session.labeling_session_id}
             />
           </div>
         )}
@@ -165,6 +167,8 @@ function DefaultItemRendererContent({
               assessments={new Map(expectationSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
               traceId={traceId}
               readOnly={false}
+              reviewAppId={reviewApp.review_app_id}
+              sessionId={session.labeling_session_id}
             />
           </div>
         )}

@@ -32,7 +32,7 @@ from typing import Any, Union
 from databricks.sdk import WorkspaceClient
 
 # Add server directory to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "server"))
+sys.path.insert(0, str(Path(__file__).parent.parent / 'server'))
 
 from utils.mlflow_utils import log_feedback
 
@@ -48,7 +48,11 @@ def parse_value(value_str: str) -> Union[str, int, float, bool, list]:
 
 
 def log_trace_feedback(
-  trace_id: str, feedback_key: str, feedback_value: Any, feedback_comment: str = None, username: str = 'unknown'
+  trace_id: str,
+  feedback_key: str,
+  feedback_value: Any,
+  feedback_comment: str = None,
+  username: str = 'unknown',
 ) -> dict:
   """Log feedback on a trace using direct MLflow utils."""
   return log_feedback(
@@ -56,7 +60,7 @@ def log_trace_feedback(
     key=feedback_key,
     value=feedback_value,
     username=username,
-    rationale=feedback_comment
+    rationale=feedback_comment,
   )
 
 

@@ -8,6 +8,7 @@ import sys
 
 from server.utils.labeling_sessions_utils import create_labeling_session
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 async def main():
@@ -17,17 +18,17 @@ async def main():
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  # Create a basic labeling session
-  python create_labeling_session.py review_app_id "Quality Review Session" --users user1@example.com user2@example.com
+  # Create a basic labeling session (uses current experiment)
+  python create_labeling_session.py --name "Quality Review Session" --users user1@example.com user2@example.com
 
-  # Create session with specific schemas
-  python create_labeling_session.py review_app_id "Helpfulness Review" --users reviewer@example.com --schemas quality_rating helpfulness
+  # Create with specific review app ID
+  python create_labeling_session.py review_app_id --name "Helpfulness Review" --users reviewer@example.com --schemas quality_rating helpfulness
 
-  # Create session with description
-  python create_labeling_session.py review_app_id "June Evaluation" --users team@example.com --description "Monthly quality evaluation for June traces"
+  # Create with specific experiment ID
+  python create_labeling_session.py --experiment-id exp123 --name "June Evaluation" --users team@example.com --description "Monthly quality evaluation for June traces"
 
   # Create from JSON template
-  python create_labeling_session.py review_app_id --from-file session_config.json
+  python create_labeling_session.py --from-file session_config.json
 
 JSON file format:
 {
@@ -39,11 +40,15 @@ JSON file format:
         """,
   )
 
-  parser.add_argument('review_app_id', help='Review app ID to create session for')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
 
   # Session creation options
   creation_group = parser.add_mutually_exclusive_group(required=True)
-  creation_group.add_argument('name', nargs='?', help='Name of the labeling session')
+  creation_group.add_argument('--name', help='Name of the labeling session')
   creation_group.add_argument('--from-file', help='Create session from JSON file')
 
   # Session details
@@ -63,8 +68,11 @@ JSON file format:
   args = parser.parse_args()
 
   try:
-    # Get the review app to validate and get available schemas
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
+    # Resolve review app ID and get the review app
+    review_app_id, review_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
     available_schemas = review_app.get('labeling_schemas', [])
     available_schema_names = {schema['name'] for schema in available_schemas}
 
@@ -89,7 +97,7 @@ JSON file format:
 
     else:
       if not args.name:
-        print('❌ Session name is required', file=sys.stderr)
+        print('❌ Session name is required (--name)', file=sys.stderr)
         sys.exit(1)
       if not args.users:
         print('❌ At least one assigned user is required (--users)', file=sys.stderr)
@@ -129,7 +137,7 @@ JSON file format:
 
     # Create the labeling session
     result = await create_labeling_session(
-      review_app_id=args.review_app_id, labeling_session_data=session_data
+      review_app_id=review_app_id, labeling_session_data=session_data
     )
 
     print('✅ Successfully created labeling session:')

@@ -546,7 +546,7 @@ export function useTriggerExperimentAnalysis() {
 /**
  * Hook to log feedback on a trace
  */
-export function useLogFeedbackMutation() {
+export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -575,6 +575,13 @@ export function useLogFeedbackMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.metadata(variables.traceId),
       });
+      
+      // Invalidate session items if session context is provided
+      if (sessionContext) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+        });
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to log feedback:", error);
@@ -586,7 +593,7 @@ export function useLogFeedbackMutation() {
 /**
  * Hook to update existing feedback on a trace
  */
-export function useUpdateFeedbackMutation() {
+export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -615,6 +622,13 @@ export function useUpdateFeedbackMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.metadata(variables.traceId),
       });
+      
+      // Invalidate session items if session context is provided
+      if (sessionContext) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+        });
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to update feedback:", error);
@@ -626,7 +640,7 @@ export function useUpdateFeedbackMutation() {
 /**
  * Hook to log expectation on a trace
  */
-export function useLogExpectationMutation() {
+export function useLogExpectationMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -655,6 +669,13 @@ export function useLogExpectationMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.metadata(variables.traceId),
       });
+      
+      // Invalidate session items if session context is provided
+      if (sessionContext) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+        });
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to log expectation:", error);
@@ -666,7 +687,7 @@ export function useLogExpectationMutation() {
 /**
  * Hook to update existing expectation on a trace
  */
-export function useUpdateExpectationMutation() {
+export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -695,6 +716,13 @@ export function useUpdateExpectationMutation() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.metadata(variables.traceId),
       });
+      
+      // Invalidate session items if session context is provided
+      if (sessionContext) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+        });
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to update expectation:", error);

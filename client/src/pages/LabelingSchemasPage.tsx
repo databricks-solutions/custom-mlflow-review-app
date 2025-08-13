@@ -48,6 +48,7 @@ export function LabelingSchemasPage() {
   const [savingSchemas, setSavingSchemas] = useState<Set<string>>(new Set());
   const [deletingSchemas, setDeletingSchemas] = useState<Set<string>>(new Set());
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<string | null>(null);
+  const [newlyCreatedSchemas, setNewlyCreatedSchemas] = useState<Set<string>>(new Set());
 
   const isLoading = isLoadingSessions || isLoadingSchemas;
 
@@ -92,8 +93,13 @@ export function LabelingSchemasPage() {
     if (schema.categorical) {
       const options = schema.categorical.options || [];
       if (options.length === 2) {
+        // Check for boolean-like options (case-insensitive)
         const lowerOptions = options.map((opt: string) => opt.toLowerCase());
-        if (lowerOptions.includes("yes") && lowerOptions.includes("no")) {
+        if (
+          (lowerOptions.includes("true") && lowerOptions.includes("false")) ||
+          (lowerOptions.includes("yes") && lowerOptions.includes("no")) ||
+          (lowerOptions.includes("pass") && lowerOptions.includes("fail"))
+        ) {
           return "pass_fail";
         }
       }
@@ -120,7 +126,7 @@ export function LabelingSchemasPage() {
     } else if (newType === "numeric") {
       newSchema.numeric = { min_value: 1, max_value: 5 };
     } else if (newType === "pass_fail") {
-      newSchema.categorical = { options: ["Yes", "No"] };
+      newSchema.categorical = { options: ["yes", "no"] };
     }
 
     setEditingSchemas((prev) => ({
@@ -201,7 +207,7 @@ export function LabelingSchemasPage() {
       instruction: "Rate this interaction",
       type: "FEEDBACK",
       categorical: {
-        options: ["Pass", "Fail"],
+        options: ["yes", "no"],
       },
       enable_comment: true,
     };
@@ -209,6 +215,9 @@ export function LabelingSchemasPage() {
     try {
       await createSchemaMutation.mutateAsync(newSchema);
 
+      // Track as newly created so it appears first
+      setNewlyCreatedSchemas((prev) => new Set([...prev, schemaName]));
+      
       toast.success(`Created new assessment schema: ${schemaName}`);
     } catch (error) {
       toast.error("Failed to create schema");
@@ -232,13 +241,6 @@ export function LabelingSchemasPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        {userRole?.is_developer && (
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dev")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        )}
-
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Label Schemas</h1>
@@ -261,7 +263,15 @@ export function LabelingSchemasPage() {
       {schemas && schemas.length > 0 ? (
         <div className="space-y-6">
           {[...schemas]
-            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+            .sort((a, b) => {
+              // Put newly created schemas first
+              const aIsNew = newlyCreatedSchemas.has(a.name);
+              const bIsNew = newlyCreatedSchemas.has(b.name);
+              if (aIsNew && !bIsNew) return -1;
+              if (!aIsNew && bIsNew) return 1;
+              // Otherwise sort alphabetically
+              return (a.title || a.name).localeCompare(b.title || b.name);
+            })
             .map((schema) => {
               // Initialize editing state for this schema
               initializeSchemaForEditing(schema);

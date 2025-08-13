@@ -1,6 +1,7 @@
 """Unified manifest endpoint that returns all application state."""
 
 import os
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -63,7 +64,7 @@ async def get_app_manifest(request: Request):
   try:
     # Check for test override email
     test_obo_email = os.getenv('TEST_OBO_EMAIL')
-    
+
     # Get user information
     is_obo = is_obo_request(request)
     obo_user_info = get_obo_user_info(request)

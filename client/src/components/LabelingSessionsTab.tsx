@@ -22,6 +22,8 @@ import {
 import { LabelingSessionItemsTable } from "@/components/LabelingSessionItemsTable";
 import { LabelingSessionAnalysisModal } from "@/components/LabelingSessionAnalysisModal";
 import { TraceExplorer } from "@/components/TraceExplorer";
+import { LabelSchemaField } from "@/components/session-renderer/renderers/schemas/LabelSchemaField";
+import { Accordion } from "@/components/ui/accordion";
 import {
   Plus,
   Info,
@@ -407,7 +409,7 @@ export function LabelingSessionsTab({
               Create Session
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Labeling Session</DialogTitle>
               <DialogDescription>
@@ -430,36 +432,34 @@ export function LabelingSessionsTab({
                   Select which evaluation criteria to include in this session
                 </p>
                 {labelSchemas && labelSchemas.length > 0 ? (
-                  <div className="border rounded-lg p-4 max-h-60 overflow-y-auto space-y-3">
+                  <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto space-y-4">
                     {[...labelSchemas]
                       .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
                       .map((schema) => (
-                        <div key={schema.name} className="flex items-start space-x-3">
-                          <Checkbox
-                            id={`schema-${schema.name}`}
-                            checked={selectedSchemas.has(schema.name)}
-                            onCheckedChange={(checked) => {
-                              const newSelected = new Set(selectedSchemas);
-                              if (checked) {
-                                newSelected.add(schema.name);
-                              } else {
-                                newSelected.delete(schema.name);
-                              }
-                              setSelectedSchemas(newSelected);
-                            }}
-                          />
-                          <div className="grid gap-1.5 leading-none flex-1">
-                            <label
-                              htmlFor={`schema-${schema.name}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {schema.title || schema.name}
-                            </label>
-                            {schema.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {schema.description}
-                              </p>
-                            )}
+                        <div key={schema.name} className="relative">
+                          <div className="absolute left-2 top-3 z-10">
+                            <Checkbox
+                              id={`schema-select-${schema.name}`}
+                              checked={selectedSchemas.has(schema.name)}
+                              onCheckedChange={(checked) => {
+                                const newSelected = new Set(selectedSchemas);
+                                if (checked) {
+                                  newSelected.add(schema.name);
+                                } else {
+                                  newSelected.delete(schema.name);
+                                }
+                                setSelectedSchemas(newSelected);
+                              }}
+                            />
+                          </div>
+                          <div className="ml-8">
+                            <Accordion type="single" collapsible className="w-full">
+                              <LabelSchemaField
+                                schema={schema}
+                                traceId="preview"
+                                readOnly={true}
+                              />
+                            </Accordion>
                           </div>
                         </div>
                       ))}
@@ -709,11 +709,12 @@ export function LabelingSessionsTab({
       <LabelingSessionAnalysisModal
         isOpen={analysisModalOpen}
         onClose={() => setAnalysisModalOpen(false)}
-        sessionId={selectedAnalysisSession?.session_id || ""}
+        sessionId={selectedAnalysisSession?.labeling_session_id || ""}
         sessionName={selectedAnalysisSession?.name || ""}
         reviewAppId={reviewApp?.review_app_id || ""}
-        workspaceUrl={selectedAnalysisSession?.workspace_url}
-        mlflowRunId={selectedAnalysisSession?.run_id}
+        workspaceUrl={workspaceData?.workspace?.url}
+        mlflowRunId={selectedAnalysisSession?.mlflow_run_id}
+        experimentId={experimentId}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -806,10 +807,8 @@ function AddTracesButton({
   const [isOpen, setIsOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [selectedTraces, setSelectedTraces] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
   const [allTraces, setAllTraces] = useState<any[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -824,58 +823,41 @@ function AddTracesButton({
     return new Set((itemsData?.items || []).map((item) => item.source?.trace_id).filter(Boolean));
   }, [itemsData]);
 
-  // Search traces - disable automatic fetch, we'll handle it manually
+  // Search traces - this will auto-fetch when isOpen is true
   const {
     data: tracesData,
     isLoading: isLoadingTraces,
-    refetch: refetchTraces,
+    isFetching,
+    refetch,
   } = useSearchTraces(
     {
       experiment_ids: experimentId ? [experimentId] : [],
       filter: searchFilter || undefined,
       max_results: 50,
       include_spans: false,
+      // TODO: Add page_token support when API supports it
+      // page_token: page > 0 ? `page_${page}` : undefined,
     },
-    false // Disable automatic fetch
+    !!experimentId && isOpen // Enable when modal is open
   );
 
-  // Manual search function
-  const performSearch = async (append = false) => {
-    if (!append) {
-      setHasSearched(true);
-      setAllTraces([]);
-      setNextPageToken(null);
-    }
-    
-    const result = await refetchTraces();
-    if (result.data?.traces) {
-      if (append) {
-        setAllTraces(prev => [...prev, ...result.data.traces]);
+  // Update allTraces when new data arrives
+  useEffect(() => {
+    if (tracesData?.traces) {
+      if (page === 0) {
+        setAllTraces(tracesData.traces);
       } else {
-        setAllTraces(result.data.traces);
+        setAllTraces(prev => [...prev, ...tracesData.traces]);
       }
-      // For now, we'll simulate pagination - in real implementation, 
-      // the API should return a next_page_token
-      setNextPageToken(result.data.traces.length === 50 ? "has_more" : null);
     }
-  };
+  }, [tracesData, page]);
 
   // Load more traces
-  const loadMoreTraces = async () => {
-    if (isLoadingMore || !nextPageToken) return;
-    
-    setIsLoadingMore(true);
-    try {
-      // In a real implementation, this would use the page token
-      // For now, we'll just fetch the same query again as a demonstration
-      const result = await refetchTraces();
-      if (result.data?.traces) {
-        setAllTraces(prev => [...prev, ...result.data.traces]);
-        setNextPageToken(result.data.traces.length === 50 ? "has_more" : null);
-      }
-    } finally {
-      setIsLoadingMore(false);
-    }
+  const loadMoreTraces = () => {
+    setPage(prev => prev + 1);
+    // In a real implementation with page tokens, we'd pass the token to the query
+    // For now, this will just refetch the same data
+    refetch();
   };
 
   // Handle scroll to load more
@@ -885,15 +867,15 @@ function AddTracesButton({
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If we're within 100px of the bottom, load more
-      if (scrollHeight - scrollTop <= clientHeight + 100 && nextPageToken && !isLoadingMore) {
+      // If we're within 100px of the bottom and not currently fetching, load more
+      if (scrollHeight - scrollTop <= clientHeight + 100 && !isFetching && tracesData?.traces?.length === 50) {
         loadMoreTraces();
       }
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [nextPageToken, isLoadingMore]);
+  }, [isFetching, tracesData]);
 
   const traces = allTraces;
 
@@ -931,15 +913,13 @@ function AddTracesButton({
     }
   };
 
-  // Reset state when modal opens and fetch initial data
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedTraces(new Set());
       setAllTraces([]);
-      setHasSearched(false);
-      setNextPageToken(null);
-      // Automatically fetch the first page when modal opens
-      performSearch(false);
+      setPage(0);
+      // The query will auto-fetch because it's enabled when isOpen is true
     }
   }, [isOpen]);
 
@@ -963,9 +943,19 @@ function AddTracesButton({
                 placeholder="Enter filter (e.g., attributes.status = 'SUCCESS')"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && performSearch(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setPage(0);
+                    setAllTraces([]);
+                    refetch();
+                  }
+                }}
               />
-              <Button onClick={() => performSearch(false)}>Search</Button>
+              <Button onClick={() => {
+                setPage(0);
+                setAllTraces([]);
+                refetch();
+              }}>Search</Button>
             </div>
 
             {/* Traces table */}
@@ -1011,7 +1001,7 @@ function AddTracesButton({
                 </table>
               ) : traces.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  {hasSearched ? "No traces found matching your search" : "Enter a search filter and click Search to find traces"}
+                  No traces found{searchFilter ? " matching your search" : ""}
                 </div>
               ) : (
                 <table className="w-full min-w-[800px]">
@@ -1094,7 +1084,7 @@ function AddTracesButton({
                 </table>
               )}
               {/* Loading more indicator */}
-              {isLoadingMore && (
+              {isFetching && page > 0 && (
                 <div className="p-4 text-center border-t">
                   <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
@@ -1103,7 +1093,7 @@ function AddTracesButton({
                 </div>
               )}
               {/* Load more button (as fallback if scroll doesn't work) */}
-              {nextPageToken && !isLoadingMore && traces.length > 0 && (
+              {!isFetching && tracesData?.traces?.length === 50 && traces.length > 0 && (
                 <div className="p-4 text-center border-t">
                   <Button
                     variant="outline"

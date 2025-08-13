@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Accordion } from "@/components/ui/accordion";
 import { Assessment, LabelingSchema } from "@/types/renderers";
 import { LabelSchemaField } from "./LabelSchemaField";
@@ -8,6 +8,8 @@ interface LabelSchemaFormProps {
   assessments: Map<string, Assessment>;
   traceId: string;
   readOnly?: boolean;
+  reviewAppId?: string;
+  sessionId?: string;
 }
 
 export function LabelSchemaForm({
@@ -15,49 +17,66 @@ export function LabelSchemaForm({
   assessments,
   traceId,
   readOnly = false,
+  reviewAppId,
+  sessionId,
 }: LabelSchemaFormProps) {
   // State to control which accordion item is open
   const [expandedValue, setExpandedValue] = useState<string>("");
+  // Track if we've initialized the accordion state for this trace
+  const [hasInitialized, setHasInitialized] = useState(false);
+  // Track the current trace ID to detect when it changes
+  const [currentTraceId, setCurrentTraceId] = useState(traceId);
 
-  // Find the first schema that doesn't have a completed assessment
-  const targetExpandedValue = useMemo(() => {
-    // Helper function to check if a schema is completed
-    const isSchemaCompleted = (schema: LabelingSchema): boolean => {
-      const assessment = assessments.get(schema.name);
-      const value = assessment?.value;
-      // More thorough check for completed assessments
-      if (value === undefined || value === null || value === "") {
-        return false;
-      }
-      // For arrays, check if they have length
-      if (Array.isArray(value) && value.length === 0) {
-        return false;
-      }
-      // For objects, check if they have meaningful content
-      if (typeof value === "object" && Object.keys(value).length === 0) {
-        return false;
-      }
-      return true;
-    };
-
-    // Find first incomplete schema
-    const firstIncomplete = schemas.find(schema => !isSchemaCompleted(schema));
-    
-    // Debug logging to understand the behavior
-    console.log("[EXPANSION DEBUG]", {
-      schemas: schemas.map(s => ({ name: s.name, completed: isSchemaCompleted(s) })),
-      firstIncomplete: firstIncomplete?.name,
-      willExpand: firstIncomplete?.name || "",
-    });
-    
-    // If there's an incomplete schema, expand it; otherwise collapse all (empty string)
-    return firstIncomplete?.name || "";
-  }, [schemas, assessments]);
-
-  // Update the expanded value when the target changes
+  // Detect when we navigate to a new trace
+  const isNewTrace = currentTraceId !== traceId;
+  
+  // When trace changes, reset initialization flag
   useEffect(() => {
-    setExpandedValue(targetExpandedValue);
-  }, [targetExpandedValue]);
+    if (isNewTrace) {
+      setCurrentTraceId(traceId);
+      setHasInitialized(false);
+    }
+  }, [traceId, isNewTrace]);
+
+  // Set initial accordion state only when trace changes or on first load
+  useEffect(() => {
+    // Only set initial state if we haven't initialized yet
+    if (!hasInitialized) {
+      // Helper function to check if a schema is completed
+      const isSchemaCompleted = (schema: LabelingSchema): boolean => {
+        const assessment = assessments.get(schema.name);
+        const value = assessment?.value;
+        // More thorough check for completed assessments
+        if (value === undefined || value === null || value === "") {
+          return false;
+        }
+        // For arrays, check if they have length
+        if (Array.isArray(value) && value.length === 0) {
+          return false;
+        }
+        // For objects, check if they have meaningful content
+        if (typeof value === "object" && Object.keys(value).length === 0) {
+          return false;
+        }
+        return true;
+      };
+
+      // Find first incomplete schema
+      const firstIncomplete = schemas.find(schema => !isSchemaCompleted(schema));
+      
+      // If there's an incomplete schema, expand it; otherwise collapse all (empty string)
+      const targetValue = firstIncomplete?.name || "";
+      
+      console.log("[ACCORDION INIT]", {
+        traceId,
+        firstIncomplete: firstIncomplete?.name,
+        willExpand: targetValue,
+      });
+      
+      setExpandedValue(targetValue);
+      setHasInitialized(true);
+    }
+  }, [hasInitialized, schemas, assessments, traceId]);
 
   return (
     <Accordion 
@@ -74,6 +93,8 @@ export function LabelSchemaForm({
           assessment={assessments.get(schema.name)}
           traceId={traceId}
           readOnly={readOnly}
+          reviewAppId={reviewAppId}
+          sessionId={sessionId}
         />
       ))}
     </Accordion>

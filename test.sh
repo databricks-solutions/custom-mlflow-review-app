@@ -1,14 +1,5 @@
 #!/bin/bash
-
-"""
-Test runner script for the MLflow Review App.
-
-This script runs the complete test suite including:
-- Backend pytest tests
-- Frontend tests (if available)
-- Integration tests
-- Code quality checks
-"""
+# Test runner script for the MLflow Review App
 
 set -e
 
@@ -169,13 +160,17 @@ if [ "$run_backend_tests" = true ]; then
     # Create test database/setup if needed
     log "Setting up test environment..."
     
-    # Run unit tests - look for *_test.py files
-    test_files=$(find . -name "*_test.py" -not -path "./client/*" -not -path "./.venv/*" -not -path "./venv/*")
-    
-    if [ -n "$test_files" ]; then
-        run_test_category "backend" "$PYTEST_CMD $PYTEST_OPTS $test_files" "Backend unit tests"
+    # Run unit tests - look in tests directory first, then for *_test.py files
+    if [ -d "tests" ]; then
+        run_test_category "backend" "$PYTEST_CMD $PYTEST_OPTS tests/" "Backend unit tests"
     else
-        log_warning "No *_test.py files found. Skipping backend tests."
+        test_files=$(find . -name "*_test.py" -not -path "./client/*" -not -path "./.venv/*" -not -path "./venv/*" -not -path "./integration_tests/*")
+        
+        if [ -n "$test_files" ]; then
+            run_test_category "backend" "$PYTEST_CMD $PYTEST_OPTS $test_files" "Backend unit tests"
+        else
+            log_warning "No tests directory or *_test.py files found. Skipping backend tests."
+        fi
     fi
 fi
 
@@ -207,13 +202,11 @@ if [ "$run_integration_tests" = true ]; then
         fi
     fi
     
-    # Run integration tests - look for *_integration_test.py files
-    integration_test_files=$(find . -name "*_integration_test.py" -not -path "./client/*" -not -path "./.venv/*" -not -path "./venv/*")
-    
-    if [ -n "$integration_test_files" ]; then
-        run_test_category "integration" "$PYTEST_CMD $PYTEST_OPTS $integration_test_files" "Integration tests"
+    # Run integration tests - look in integration_tests directory
+    if [ -d "integration_tests" ]; then
+        run_test_category "integration" "$PYTEST_CMD $PYTEST_OPTS integration_tests/" "Integration tests"
     else
-        log_warning "No *_integration_test.py files found. Skipping integration tests."
+        log_warning "No integration_tests directory found. Skipping integration tests."
     fi
     
     # Cleanup test server if we started it

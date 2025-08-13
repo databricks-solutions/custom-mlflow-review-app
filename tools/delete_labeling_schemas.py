@@ -6,6 +6,7 @@ import asyncio
 import sys
 
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 async def main():
@@ -15,21 +16,25 @@ async def main():
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  # Delete a single schema
-  python delete_labeling_schemas.py review_app_id quality
+  # Delete a single schema (uses current experiment)
+  python delete_labeling_schemas.py quality
 
-  # Delete multiple schemas
+  # Delete with specific review app ID
   python delete_labeling_schemas.py review_app_id quality helpfulness feedback
 
-  # Delete all schemas (dangerous!)
-  python delete_labeling_schemas.py review_app_id --all
+  # Delete with specific experiment ID
+  python delete_labeling_schemas.py --experiment-id exp123 --all
 
   # Show what would be deleted without actually deleting
-  python delete_labeling_schemas.py review_app_id quality --dry-run
+  python delete_labeling_schemas.py quality --dry-run
         """,
   )
 
-  parser.add_argument('review_app_id', help='Review app ID')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('schema_names', nargs='*', help='Names of schemas to delete')
   parser.add_argument('--all', action='store_true', help='Delete ALL schemas (use with caution)')
   parser.add_argument(
@@ -49,8 +54,11 @@ Examples:
     sys.exit(1)
 
   try:
-    # Get current review app and schemas
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
+    # Resolve review app ID and get current review app and schemas
+    review_app_id, review_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
     current_schemas = review_app.get('labeling_schemas', [])
 
     if not current_schemas:
@@ -127,7 +135,7 @@ Examples:
     # Perform deletion by updating with remaining schemas
     update_data = {'labeling_schemas': schemas_to_keep}
     await review_apps_utils.update_review_app(
-      review_app_id=args.review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
+      review_app_id=review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
     )
 
     # Success message

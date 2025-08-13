@@ -7,6 +7,7 @@ import json
 import sys
 
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 async def main():
@@ -16,34 +17,38 @@ async def main():
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  # Update schema title
-  python update_labeling_schemas.py review_app_id quality --title "Response Quality Assessment"
+  # Update schema title (uses current experiment)
+  python update_labeling_schemas.py quality --title "Response Quality Assessment"
 
-  # Update schema instruction
+  # Update with specific review app ID
   python update_labeling_schemas.py review_app_id helpfulness --instruction "How helpful was this response to the user?"
 
-  # Update numeric range
-  python update_labeling_schemas.py review_app_id quality --min 0 --max 10
+  # Update with specific experiment ID
+  python update_labeling_schemas.py --experiment-id exp123 quality --min 0 --max 10
 
   # Update categorical options
-  python update_labeling_schemas.py review_app_id helpfulness --options "Excellent" "Good" "Fair" "Poor"
+  python update_labeling_schemas.py helpfulness --options "Excellent" "Good" "Fair" "Poor"
 
   # Add option to categorical schema
-  python update_labeling_schemas.py review_app_id helpfulness --add-option "Extremely Helpful"
+  python update_labeling_schemas.py helpfulness --add-option "Extremely Helpful"
 
   # Remove option from categorical schema
-  python update_labeling_schemas.py review_app_id helpfulness --remove-option "Not Helpful"
+  python update_labeling_schemas.py helpfulness --remove-option "Not Helpful"
 
   # Enable/disable comments
-  python update_labeling_schemas.py review_app_id feedback --enable-comments
-  python update_labeling_schemas.py review_app_id feedback --disable-comments
+  python update_labeling_schemas.py feedback --enable-comments
+  python update_labeling_schemas.py feedback --disable-comments
 
   # Update from JSON file
-  python update_labeling_schemas.py review_app_id quality --from-file quality_update.json
+  python update_labeling_schemas.py quality --from-file quality_update.json
         """,
   )
 
-  parser.add_argument('review_app_id', help='Review app ID')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('schema_name', help='Name of the schema to update')
 
   # Update options
@@ -66,8 +71,11 @@ Examples:
   args = parser.parse_args()
 
   try:
-    # Get current review app and schemas
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
+    # Resolve review app ID and get current review app and schemas
+    review_app_id, review_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
     current_schemas = review_app.get('labeling_schemas', [])
 
     # Find the schema to update
@@ -187,7 +195,7 @@ Examples:
     # Update the review app
     update_data = {'labeling_schemas': updated_schemas}
     await review_apps_utils.update_review_app(
-      review_app_id=args.review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
+      review_app_id=review_app_id, review_app_data=update_data, update_mask='labeling_schemas'
     )
 
     print(f"✅ Successfully updated schema '{args.schema_name}':")

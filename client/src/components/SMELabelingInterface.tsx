@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -18,22 +18,29 @@ import {
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
-import { TraceData, Assessment, SchemaAssessments } from "@/types/renderers";
+import { TraceData, Assessment, SchemaAssessments, LabelingSchema } from "@/types/renderers";
 import { combineSchemaWithAssessments, filterByType } from "@/utils/schema-assessment-utils";
 
 interface SMELabelingInterfaceProps {
   sessionId: string;
   hideNavigation?: boolean;
+  initialTraceId?: string;
+  reviewAppId?: string;
 }
 
 export function SMELabelingInterface({
   sessionId,
   hideNavigation = false,
+  initialTraceId,
+  reviewAppId,
 }: SMELabelingInterfaceProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
   const [assessments, setAssessments] = useState<Map<string, Assessment>>(new Map());
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [hasAutoCompleted, setHasAutoCompleted] = useState(false);
 
   // Data fetching - get review app from manifest
   const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
@@ -55,6 +62,27 @@ export function SMELabelingInterface({
   );
 
   const items = itemsData?.items || [];
+  
+  // Initialize from URL trace parameter if provided
+  useEffect(() => {
+    if (!hasInitialized && items.length > 0 && initialTraceId) {
+      const traceIndex = items.findIndex(item => item.source?.trace_id === initialTraceId);
+      if (traceIndex !== -1) {
+        setCurrentItemIndex(traceIndex);
+      }
+      setHasInitialized(true);
+    } else if (!hasInitialized && items.length > 0) {
+      // If no initial trace specified, set the first item's trace in URL
+      const firstItem = items[0];
+      if (firstItem?.source?.trace_id) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set('trace', firstItem.source.trace_id);
+        setSearchParams(newParams, { replace: true });
+      }
+      setHasInitialized(true);
+    }
+  }, [items, initialTraceId, hasInitialized, searchParams, setSearchParams]);
+  
   const currentItem = items[currentItemIndex];
   const nextItem = items[currentItemIndex + 1];
 
@@ -131,6 +159,13 @@ export function SMELabelingInterface({
 
   const handleNavigateToIndex = (index: number) => {
     setCurrentItemIndex(index);
+    // Update URL with the new trace ID
+    const newItem = items[index];
+    if (newItem?.source?.trace_id) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('trace', newItem.source.trace_id);
+      setSearchParams(newParams, { replace: true });
+    }
     // Don't reset assessments here - let the useEffect handle loading from trace data
   };
 
@@ -163,15 +198,24 @@ export function SMELabelingInterface({
     );
   };
 
+  // Track the current trace ID to detect changes
+  const currentTraceId = currentItem?.source?.trace_id;
+  
   // Load assessments from trace data when trace changes
   useEffect(() => {
+    // Always start with a fresh map to ensure we don't carry over old assessments
+    const assessmentMap = new Map<string, Assessment>();
+    
+    // Debug: Log trace change
+    console.log(`[SME] Loading assessments for trace: ${currentTraceId}`);
+    
     if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
-      const assessmentMap = new Map<string, Assessment>();
-      
       // Filter assessments to only include those created by the current user
       const userAssessments = traceSummary.info.assessments.filter(assessment => {
         return isCurrentUserAssessment(assessment);
       });
+      
+      console.log(`[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`);
       
       // Group user assessments by name and type, keeping only the latest one
       const latestAssessments = new Map<string, Assessment>();
@@ -190,9 +234,77 @@ export function SMELabelingInterface({
       for (const assessment of latestAssessments.values()) {
         assessmentMap.set(assessment.name, assessment);
       }
-      setAssessments(assessmentMap);
+    } else {
+      console.log(`[SME] No assessments found for trace ${currentTraceId}`);
     }
-  }, [traceSummary, currentUser]);
+    
+    // Always set assessments, even if empty, to clear any previous values
+    // This clears both remote assessments AND local changes when trace changes
+    setAssessments(assessmentMap);
+    // Reset auto-completed flag when trace changes
+    setHasAutoCompleted(false);
+  }, [traceSummary, currentUser, currentTraceId]);
+
+  // Check if all required assessments are complete and auto-update state
+  useEffect(() => {
+    // Only check if we have a current item and session schemas
+    if (!currentItem || !session?.labeling_schemas || !allSchemas || hasAutoCompleted) {
+      return;
+    }
+
+    // Don't auto-complete if the item is already completed or skipped
+    if (currentItem.state === "COMPLETED" || currentItem.state === "SKIPPED") {
+      return;
+    }
+
+    // Get all schemas for this session
+    const sessionSchemas = session.labeling_schemas
+      .map(ref => allSchemas.find(schema => schema.name === ref.name))
+      .filter(Boolean) as LabelingSchema[];
+
+    // Check if all schemas have assessments with values
+    const allAssessmentsComplete = sessionSchemas.every(schema => {
+      const assessment = assessments.get(schema.name);
+      const value = assessment?.value;
+      
+      // Check if assessment has a meaningful value
+      if (value === undefined || value === null || value === "") {
+        return false;
+      }
+      // For arrays, check if they have length
+      if (Array.isArray(value) && value.length === 0) {
+        return false;
+      }
+      // For objects (but not arrays), check if they have meaningful content
+      if (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0) {
+        return false;
+      }
+      return true;
+    });
+
+    // If all assessments are complete, update the item state to COMPLETED
+    if (allAssessmentsComplete && sessionSchemas.length > 0) {
+      console.log(`[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`);
+      
+      // Set flag to prevent multiple updates
+      setHasAutoCompleted(true);
+      
+      // Update the item state to COMPLETED
+      handleUpdateItem(currentItem.item_id, { state: "COMPLETED" })
+        .then(() => {
+          console.log(`[SME] Successfully auto-marked item ${currentItem.item_id} as COMPLETED`);
+          // Update the local items array to reflect the new state
+          const updatedItems = [...items];
+          updatedItems[currentItemIndex] = { ...currentItem, state: "COMPLETED" };
+          // Note: We don't have setItems here, so the state will be updated on next fetch
+        })
+        .catch((error) => {
+          console.error(`[SME] Failed to auto-mark item as COMPLETED:`, error);
+          // Reset the flag on error so it can be retried
+          setHasAutoCompleted(false);
+        });
+    }
+  }, [assessments, currentItem, session?.labeling_schemas, allSchemas, hasAutoCompleted, handleUpdateItem, currentItemIndex, items]);
 
   const handlePrevious = () => {
     if (currentItemIndex > 0) {

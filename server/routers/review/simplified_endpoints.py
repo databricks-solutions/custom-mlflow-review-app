@@ -207,7 +207,11 @@ async def list_labeling_sessions(
   if not username:
     raise HTTPException(status_code=401, detail='User not authenticated')
 
-  review_app_id = await get_cached_review_app_id()
+  try:
+    review_app_id = await get_cached_review_app_id()
+  except HTTPException:
+    # If there's no review app, return empty sessions list
+    return {'labeling_sessions': [], 'next_page_token': None}
 
   # Get all sessions first
   result = await utils_list_sessions(
@@ -216,6 +220,10 @@ async def list_labeling_sessions(
     page_size=page_size,
     page_token=page_token,
   )
+
+  # Handle None result
+  if result is None:
+    return {'labeling_sessions': [], 'next_page_token': None}
 
   # If user is developer, return all sessions
   if is_user_developer(request):

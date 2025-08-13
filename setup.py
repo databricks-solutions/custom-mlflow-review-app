@@ -729,7 +729,7 @@ class DatabricksAppSetup:
     if 'sme_thank_you_message' not in config:
       config['sme_thank_you_message'] = (
         'Thank you for participating to improve the quality of this Agent. '
-        'Your expertise has made a huge impact, and every interaction you\'ve '
+        "Your expertise has made a huge impact, and every interaction you've "
         'reviewed helps the chatbot become smarter and more user-friendly. '
         'Thank you for your dedication and valuable insights.'
       )

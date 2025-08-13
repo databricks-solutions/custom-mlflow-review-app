@@ -17,6 +17,7 @@ from server.utils.labeling_sessions_utils import (
 )
 from server.utils.mlflow_utils import get_trace
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 def analyze_categorical_schema(items: List[Dict[str, Any]], schema_name: str) -> Dict[str, Any]:
@@ -801,7 +802,11 @@ async def main():
   parser = argparse.ArgumentParser(
     description='Analyze labeling session results and provide statistical summaries'
   )
-  parser.add_argument('review_app_id', help='Review app ID')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('--session-id', help='Specific session ID to analyze (optional)')
   parser.add_argument('--session-name', help='Specific session name to analyze (optional)')
   parser.add_argument('--format', choices=['json', 'text'], default='text', help='Output format')
@@ -810,21 +815,24 @@ async def main():
   args = parser.parse_args()
 
   try:
-    # Get review app to access schema definitions
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
-    all_schemas = review_app.get('labeling_schemas', [])
+    # Resolve review app ID and get review app to access schema definitions
+    review_app_id, review_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
+    all_schemas = review_app.get('labeling_schemas', []) if review_app else []
 
     # Get sessions to analyze
     if args.session_id:
       # Analyze specific session
       session = await get_labeling_session(
-        review_app_id=args.review_app_id, labeling_session_id=args.session_id
+        review_app_id=review_app_id, labeling_session_id=args.session_id
       )
       sessions_to_analyze = [session]
     elif args.session_name:
       # Find session by name
       session = await get_session_by_name(
-        review_app_id=args.review_app_id, session_name=args.session_name
+        review_app_id=review_app_id, session_name=args.session_name
       )
       if not session:
         print(f"❌ Session '{args.session_name}' not found", file=sys.stderr)
@@ -833,9 +841,9 @@ async def main():
     else:
       # Get all sessions
       sessions_response = await list_labeling_sessions(
-        review_app_id=args.review_app_id, filter_string=args.filter
+        review_app_id=review_app_id, filter_string=args.filter
       )
-      sessions_to_analyze = sessions_response.get('labeling_sessions', [])
+      sessions_to_analyze = sessions_response.get('labeling_sessions', []) if sessions_response else []
 
     if not sessions_to_analyze:
       print('❌ No sessions found to analyze', file=sys.stderr)
@@ -854,7 +862,7 @@ async def main():
         schema for schema in all_schemas if schema.get('name') in session_schema_names
       ]
 
-      result = await analyze_session(args.review_app_id, session_id, session_name, session_schemas)
+      result = await analyze_session(review_app_id, session_id, session_name, session_schemas)
       analysis_results.append(result)
 
     # Output results

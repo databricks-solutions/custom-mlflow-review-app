@@ -8,6 +8,7 @@ import sys
 
 from server.utils.labeling_sessions_utils import get_labeling_session, update_labeling_session
 from server.utils.review_apps_utils import review_apps_utils
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 async def main():
@@ -17,36 +18,40 @@ async def main():
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  # Update session name
-  python update_labeling_session.py review_app_id session_id --name "New Session Name"
+  # Update session name (uses current experiment)
+  python update_labeling_session.py session_id --name "New Session Name"
 
-  # Update assigned users
+  # Update with specific review app ID
   python update_labeling_session.py review_app_id session_id --users user1@example.com user2@example.com
 
-  # Add a user to existing users
-  python update_labeling_session.py review_app_id session_id --add-user newuser@example.com
+  # Update with specific experiment ID
+  python update_labeling_session.py --experiment-id exp123 session_id --add-user newuser@example.com
 
   # Remove a user from assigned users
-  python update_labeling_session.py review_app_id session_id --remove-user olduser@example.com
+  python update_labeling_session.py session_id --remove-user olduser@example.com
 
   # Update description
-  python update_labeling_session.py review_app_id session_id --description "Updated description"
+  python update_labeling_session.py session_id --description "Updated description"
 
   # Update labeling schemas
-  python update_labeling_session.py review_app_id session_id --schemas quality_rating helpfulness
+  python update_labeling_session.py session_id --schemas quality_rating helpfulness
 
   # Add a schema to existing schemas
-  python update_labeling_session.py review_app_id session_id --add-schema feedback
+  python update_labeling_session.py session_id --add-schema feedback
 
   # Remove a schema from existing schemas
-  python update_labeling_session.py review_app_id session_id --remove-schema helpfulness
+  python update_labeling_session.py session_id --remove-schema helpfulness
 
   # Update from JSON file
-  python update_labeling_session.py review_app_id session_id --from-file session_update.json
+  python update_labeling_session.py session_id --from-file session_update.json
         """,
   )
 
-  parser.add_argument('review_app_id', help='Review app ID')
+  # For backwards compatibility, keep positional argument but make it optional
+  parser.add_argument('review_app_id', nargs='?', 
+                      help='Review app ID (optional, defaults to current experiment)')
+  parser.add_argument('--experiment-id', 
+                      help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('session_id', help='Labeling session ID to update')
 
   # Update options
@@ -68,13 +73,16 @@ Examples:
   args = parser.parse_args()
 
   try:
+    # Resolve review app ID
+    review_app_id, review_app = await resolve_review_app_id(
+      review_app_id=args.review_app_id,
+      experiment_id=args.experiment_id
+    )
+    
     # Get current session
     current_session = await get_labeling_session(
-      review_app_id=args.review_app_id, labeling_session_id=args.session_id
+      review_app_id=review_app_id, labeling_session_id=args.session_id
     )
-
-    # Get review app for schema validation
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
     available_schemas = review_app.get('labeling_schemas', [])
     available_schema_names = {schema['name'] for schema in available_schemas}
 
@@ -188,7 +196,7 @@ Examples:
 
     # Update the session
     result = await update_labeling_session(
-      review_app_id=args.review_app_id,
+      review_app_id=review_app_id,
       labeling_session_id=args.session_id,
       labeling_session_data=update_data,
       update_mask=','.join(update_fields),

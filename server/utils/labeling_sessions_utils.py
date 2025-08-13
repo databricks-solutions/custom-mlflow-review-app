@@ -57,17 +57,25 @@ async def list_labeling_sessions(
       params['page_token'] = page_token
 
     url = get_managed_evals_api_url(f'/review-apps/{review_app_id}/labeling-sessions')
-    response = await fetch_databricks(
-      method='GET',
-      url=url,
-      params=params,
-    )
+    
+    try:
+      response = await fetch_databricks(
+        method='GET',
+        url=url,
+        params=params,
+      )
+    except Exception:
+      # If the API call fails (e.g., 404 for non-existent review app), return empty list
+      return {'labeling_sessions': [], 'next_page_token': None}
 
-    # Handle empty response
-    if not response:
+    # Handle None or empty response
+    if response is None or not response:
       return {'labeling_sessions': [], 'next_page_token': None}
 
     # Ensure response has the expected structure
+    if not isinstance(response, dict):
+      return {'labeling_sessions': [], 'next_page_token': None}
+    
     if 'labeling_sessions' not in response:
       response = {'labeling_sessions': [], 'next_page_token': None}
 

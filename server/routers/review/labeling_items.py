@@ -118,17 +118,23 @@ async def list_items(
           item['response_preview'] = trace_previews[trace_id].get('response_preview')
 
           # Convert assessments to labels format for the UI (LabelValue format)
+          # IMPORTANT: We populate labels from MLflow assessments which have correct boolean values
+          # However, existing labels from Databricks API may have 1/0 instead of true/false
           assessments = trace_previews[trace_id].get('assessments', [])
           labels = {}
           for assessment in assessments:
             if assessment.get('name') and assessment.get('value') is not None:
               labels[assessment['name']] = {
-                'value': assessment['value'],
+                'value': assessment['value'],  # This will have the correct boolean from MLflow
                 'comment': assessment.get('metadata', {}).get('comment')
                 if isinstance(assessment.get('metadata'), dict)
                 else None,
               }
-          item['labels'] = labels
+          
+          # Only override labels if we have assessment data
+          # Otherwise keep the existing labels from Databricks API
+          if labels:
+            item['labels'] = labels
 
   return response
 

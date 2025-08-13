@@ -35,7 +35,7 @@ from typing import Any, Union
 from databricks.sdk import WorkspaceClient
 
 # Add server directory to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "server"))
+sys.path.insert(0, str(Path(__file__).parent.parent / 'server'))
 
 from utils.mlflow_utils import log_expectation
 
@@ -51,7 +51,11 @@ def parse_value(value_str: str) -> Union[str, int, float, bool, list, dict]:
 
 
 def log_trace_expectation(
-  trace_id: str, expectation_key: str, expectation_value: Any, expectation_comment: str = None, username: str = 'unknown'
+  trace_id: str,
+  expectation_key: str,
+  expectation_value: Any,
+  expectation_comment: str = None,
+  username: str = 'unknown',
 ) -> dict:
   """Log expectation on a trace using direct MLflow utils."""
   return log_expectation(
@@ -59,7 +63,7 @@ def log_trace_expectation(
     key=expectation_key,
     value=expectation_value,
     username=username,
-    rationale=expectation_comment
+    rationale=expectation_comment,
   )
 
 

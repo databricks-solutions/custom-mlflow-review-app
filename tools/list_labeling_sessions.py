@@ -7,6 +7,7 @@ import inspect
 import json
 import sys
 
+from server.utils.config import config
 from server.utils.labeling_sessions_utils import list_labeling_sessions
 from server.utils.review_apps_utils import review_apps_utils
 
@@ -22,19 +23,34 @@ async def main():
   description = func_doc.split('\n')[0] if func_doc else 'List labeling sessions for a review app'
 
   parser = argparse.ArgumentParser(description=description)
-  parser.add_argument('review_app_id', help='Review app ID')
+  parser.add_argument('--review-app-id', help='Review app ID (defaults to current experiment)')
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('--filter', dest='filter_string', help='Filter string')
 
   args = parser.parse_args()
 
   try:
+    # Validate arguments
+    if args.review_app_id and args.experiment_id:
+      print('❌ Error: Cannot specify both --review-app-id and --experiment-id', file=sys.stderr)
+      sys.exit(1)
+
+    # Get review app ID
+    if args.review_app_id:
+      review_app_id = args.review_app_id
+      review_app = await review_apps_utils.get_review_app(review_app_id=review_app_id)
+    else:
+      # Use provided experiment_id or default to config
+      experiment_id = args.experiment_id or config.experiment_id
+      review_app = await review_apps_utils.get_review_app_by_experiment(experiment_id=experiment_id)
+      review_app_id = review_app.get('review_app_id')
+
     # Get labeling sessions
     sessions_result = await list_labeling_sessions(
-      review_app_id=args.review_app_id, filter_string=args.filter_string
+      review_app_id=review_app_id, filter_string=args.filter_string
     )
 
     # Always get review app details to fetch full schema information
-    review_app = await review_apps_utils.get_review_app(args.review_app_id)
     review_app_schemas = review_app.get('labeling_schemas', [])
 
     # Enhance sessions with full schema details and analysis
@@ -54,7 +70,7 @@ async def main():
 
       try:
         analysis = await analyze_session(
-          review_app_id=args.review_app_id,
+          review_app_id=review_app_id,
           session_id=session_id,
           session_name=session_name,
           schemas=session['full_schemas'],
