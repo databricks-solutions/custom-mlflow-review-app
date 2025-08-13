@@ -11,12 +11,6 @@ export class LabelingItemsService {
     /**
      * List Items
      * List items in a labeling session.
-     *
-     * Common filters:
-     * - state=PENDING
-     * - state=IN_PROGRESS
-     * - state=COMPLETED
-     * @param reviewAppId
      * @param labelingSessionId
      * @param filter Filter string (e.g., state=PENDING)
      * @param pageSize
@@ -24,8 +18,7 @@ export class LabelingItemsService {
      * @returns ListItemsResponse Successful Response
      * @throws ApiError
      */
-    public static listItemsApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsGet(
-        reviewAppId: string,
+    public static listItemsApiLabelingSessionsLabelingSessionIdItemsGet(
         labelingSessionId: string,
         filter?: (string | null),
         pageSize: number = 500,
@@ -33,9 +26,8 @@ export class LabelingItemsService {
     ): CancelablePromise<ListItemsResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items',
+            url: '/api/labeling-sessions/{labeling_session_id}/items',
             path: {
-                'review_app_id': reviewAppId,
                 'labeling_session_id': labelingSessionId,
             },
             query: {
@@ -51,22 +43,19 @@ export class LabelingItemsService {
     /**
      * Batch Create Items
      * Batch create items by proxying to Databricks API.
-     * @param reviewAppId
      * @param labelingSessionId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static batchCreateItemsApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsBatchCreatePost(
-        reviewAppId: string,
+    public static batchCreateItemsApiLabelingSessionsLabelingSessionIdItemsBatchCreatePost(
         labelingSessionId: string,
         requestBody: Record<string, any>,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/batchCreate',
+            url: '/api/labeling-sessions/{labeling_session_id}/items/batchCreate',
             path: {
-                'review_app_id': reviewAppId,
                 'labeling_session_id': labelingSessionId,
             },
             body: requestBody,
@@ -79,22 +68,19 @@ export class LabelingItemsService {
     /**
      * Get Item
      * Get a specific item.
-     * @param reviewAppId
      * @param labelingSessionId
      * @param itemId
      * @returns Item Successful Response
      * @throws ApiError
      */
-    public static getItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdGet(
-        reviewAppId: string,
+    public static getItemApiLabelingSessionsLabelingSessionIdItemsItemIdGet(
         labelingSessionId: string,
         itemId: string,
     ): CancelablePromise<Item> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}',
+            url: '/api/labeling-sessions/{labeling_session_id}/items/{item_id}',
             path: {
-                'review_app_id': reviewAppId,
                 'labeling_session_id': labelingSessionId,
                 'item_id': itemId,
             },
@@ -108,7 +94,6 @@ export class LabelingItemsService {
      * Update an item.
      *
      * Example update_mask: "state,chat_rounds"
-     * @param reviewAppId
      * @param labelingSessionId
      * @param itemId
      * @param updateMask Comma-separated list of fields to update
@@ -116,8 +101,7 @@ export class LabelingItemsService {
      * @returns Item Successful Response
      * @throws ApiError
      */
-    public static updateItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdPatch(
-        reviewAppId: string,
+    public static updateItemApiLabelingSessionsLabelingSessionIdItemsItemIdPatch(
         labelingSessionId: string,
         itemId: string,
         updateMask: string,
@@ -125,9 +109,8 @@ export class LabelingItemsService {
     ): CancelablePromise<Item> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}',
+            url: '/api/labeling-sessions/{labeling_session_id}/items/{item_id}',
             path: {
-                'review_app_id': reviewAppId,
                 'labeling_session_id': labelingSessionId,
                 'item_id': itemId,
             },
@@ -144,22 +127,19 @@ export class LabelingItemsService {
     /**
      * Delete Item
      * Delete/unlink an item from the labeling session.
-     * @param reviewAppId
      * @param labelingSessionId
      * @param itemId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static deleteItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdDelete(
-        reviewAppId: string,
+    public static deleteItemApiLabelingSessionsLabelingSessionIdItemsItemIdDelete(
         labelingSessionId: string,
         itemId: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}/items/{item_id}',
+            url: '/api/labeling-sessions/{labeling_session_id}/items/{item_id}',
             path: {
-                'review_app_id': reviewAppId,
                 'labeling_session_id': labelingSessionId,
                 'item_id': itemId,
             },

@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AnalysisStatus } from '../models/AnalysisStatus';
 import type { AppManifest } from '../models/AppManifest';
-import type { server__routers__core__experiment_summary__AnalysisStatus } from '../models/server__routers__core__experiment_summary__AnalysisStatus';
-import type { server__routers__core__experiment_summary__TriggerAnalysisRequest } from '../models/server__routers__core__experiment_summary__TriggerAnalysisRequest';
+import type { TriggerAnalysisRequest } from '../models/TriggerAnalysisRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -12,6 +12,8 @@ export class CoreService {
     /**
      * Get App Manifest
      * Get complete application manifest including user, workspace, and config.
+     *
+     * Optimized to run independent API calls in parallel for better performance.
      * @returns AppManifest Successful Response
      * @throws ApiError
      */
@@ -72,12 +74,12 @@ export class CoreService {
      * Returns:
      * Status of the analysis request
      * @param requestBody
-     * @returns server__routers__core__experiment_summary__AnalysisStatus Successful Response
+     * @returns AnalysisStatus Successful Response
      * @throws ApiError
      */
     public static triggerAnalysisApiExperimentSummaryTriggerAnalysisPost(
-        requestBody: server__routers__core__experiment_summary__TriggerAnalysisRequest,
-    ): CancelablePromise<server__routers__core__experiment_summary__AnalysisStatus> {
+        requestBody: TriggerAnalysisRequest,
+    ): CancelablePromise<AnalysisStatus> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/experiment-summary/trigger-analysis',
@@ -98,12 +100,12 @@ export class CoreService {
      * Returns:
      * Current status of the analysis
      * @param experimentId
-     * @returns server__routers__core__experiment_summary__AnalysisStatus Successful Response
+     * @returns AnalysisStatus Successful Response
      * @throws ApiError
      */
     public static getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet(
         experimentId: string,
-    ): CancelablePromise<server__routers__core__experiment_summary__AnalysisStatus> {
+    ): CancelablePromise<AnalysisStatus> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/experiment-summary/status/{experiment_id}',

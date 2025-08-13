@@ -173,10 +173,9 @@ class ApiClientWrapper {
           params.sessionId
         ),
 
-      // Labeling Items endpoints
+      // Labeling Items endpoints (no longer need reviewAppId - uses cached app)
       listLabelingItems: (params: { reviewAppId: string; sessionId: string }) =>
-        LabelingItemsService.listItemsApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsGet(
-          params.reviewAppId,
+        LabelingItemsService.listItemsApiLabelingSessionsLabelingSessionIdItemsGet(
           params.sessionId
         ),
       updateLabelingItem: (params: {
@@ -186,16 +185,14 @@ class ApiClientWrapper {
         item: Partial<LabelingItem>;
         updateMask: string;
       }) =>
-        LabelingItemsService.updateItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdPatch(
-          params.reviewAppId,
+        LabelingItemsService.updateItemApiLabelingSessionsLabelingSessionIdItemsItemIdPatch(
           params.sessionId,
           params.itemId,
           params.updateMask,
           params.item
         ),
       deleteLabelingItem: (params: { reviewAppId: string; sessionId: string; itemId: string }) =>
-        ApiService.deleteItemApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdItemsItemIdDelete(
-          params.reviewAppId,
+        LabelingItemsService.deleteItemApiLabelingSessionsLabelingSessionIdItemsItemIdDelete(
           params.sessionId,
           params.itemId
         ),

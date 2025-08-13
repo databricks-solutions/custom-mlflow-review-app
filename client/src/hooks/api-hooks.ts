@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { ReviewApp, LabelingSession, LabelingItem } from "@/types/renderers";
-import { SimplifiedApiService, type LabelingSchema } from "@/fastapi_client";
+import { LabelSchemasService, LabelingSessionsService, type LabelingSchema } from "@/fastapi_client";
 
 // Query Keys Factory
 export const queryKeys = {
@@ -171,7 +171,7 @@ export function useUpdateReviewApp() {
 export function useLabelingSessions(enabled = true) {
   return useQuery({
     queryKey: queryKeys.labelingSessions.list(),
-    queryFn: () => SimplifiedApiService.listLabelingSessionsApiLabelingSessionsGet(),
+    queryFn: () => LabelingSessionsService.listLabelingSessionsApiLabelingSessionsGet(),
     enabled,
   });
 }
@@ -179,7 +179,7 @@ export function useLabelingSessions(enabled = true) {
 export function useLabelingSession(sessionId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.labelingSessions.detail(sessionId),
-    queryFn: () => SimplifiedApiService.getLabelingSessionApiLabelingSessionsLabelingSessionIdGet(sessionId),
+    queryFn: () => LabelingSessionsService.getLabelingSessionApiLabelingSessionsLabelingSessionIdGet(sessionId),
     enabled: enabled && !!sessionId,
   });
 }
@@ -189,7 +189,7 @@ export function useCreateLabelingSession() {
 
   return useMutation({
     mutationFn: (params: { reviewAppId: string; session: LabelingSession }) => 
-      SimplifiedApiService.createLabelingSessionApiLabelingSessionsPost(params.session),
+      LabelingSessionsService.createLabelingSessionApiLabelingSessionsPost(params.session),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.list(),
@@ -211,7 +211,7 @@ export function useUpdateLabelingSession() {
       sessionId: string;
       session: LabelingSession;
       updateMask: string;
-    }) => SimplifiedApiService.updateLabelingSessionApiLabelingSessionsLabelingSessionIdPatch(
+    }) => LabelingSessionsService.updateLabelingSessionApiLabelingSessionsLabelingSessionIdPatch(
         sessionId, 
         updateMask, 
         session
@@ -233,7 +233,7 @@ export function useDeleteLabelingSession() {
 
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) =>
-      SimplifiedApiService.deleteLabelingSessionApiLabelingSessionsLabelingSessionIdDelete(sessionId),
+      LabelingSessionsService.deleteLabelingSessionApiLabelingSessionsLabelingSessionIdDelete(sessionId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.list(),
@@ -275,7 +275,6 @@ export function useUpdateLabelingItem() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingItems.list(variables.reviewAppId, variables.sessionId),
       });
-      toast.success("Labels saved successfully");
     },
   });
 }
@@ -735,7 +734,7 @@ export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: str
 export function useLabelSchemas(enabled = true) {
   return useQuery({
     queryKey: queryKeys.labelSchemas.list(),
-    queryFn: () => SimplifiedApiService.listLabelSchemasApiLabelSchemasGet(),
+    queryFn: () => LabelSchemasService.listLabelSchemasApiLabelSchemasGet(),
     enabled,
   });
 }
@@ -745,7 +744,7 @@ export function useCreateLabelSchema() {
 
   return useMutation({
     mutationFn: (schema: LabelingSchema) => 
-      SimplifiedApiService.createLabelSchemaApiLabelSchemasPost(schema),
+      LabelSchemasService.createLabelSchemaApiLabelSchemasPost(schema),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelSchemas.list(),
@@ -769,7 +768,7 @@ export function useUpdateLabelSchema() {
       schemaName: string;
       schema: LabelingSchema;
     }) => 
-      SimplifiedApiService.updateLabelSchemaApiLabelSchemasSchemaNamePatch(
+      LabelSchemasService.updateLabelSchemaApiLabelSchemasSchemaNamePatch(
         schemaName,
         schema
       ),
@@ -790,7 +789,7 @@ export function useDeleteLabelSchema() {
 
   return useMutation({
     mutationFn: ({ schemaName }: { schemaName: string }) => 
-      SimplifiedApiService.deleteLabelSchemaApiLabelSchemasSchemaNameDelete(schemaName),
+      LabelSchemasService.deleteLabelSchemaApiLabelSchemasSchemaNameDelete(schemaName),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelSchemas.list(),
