@@ -42,6 +42,8 @@ export interface LabelingItem {
   source?: {
     trace_id: string;
   };
+  request_preview?: string;
+  response_preview?: string;
 }
 
 export interface LabelingSchema {

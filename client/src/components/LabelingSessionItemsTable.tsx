@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Edit } from "lucide-react";
-import { LabelingItem, ReviewApp, LabelingSchema, LabelingSession } from "@/types/renderers";
+import { LabelingItem, ReviewApp, LabelingSession } from "@/types/renderers";
 
 interface LabelingSessionItemsTableProps {
   items: LabelingItem[];
@@ -38,16 +38,7 @@ export function LabelingSessionItemsTable({
 }: LabelingSessionItemsTableProps) {
   const navigate = useNavigate();
 
-  const truncate = (text: string, maxLength = 100) => {
-    if (!text) return "-";
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
-
   const completedCount = items.filter((i) => i.state === "COMPLETED").length;
-  const inProgressCount = items.filter((i) => i.state === "IN_PROGRESS").length;
-  const pendingCount = items.filter((i) => i.state === "PENDING").length;
-  const skippedCount = items.filter((i) => i.state === "SKIPPED").length;
   const progressPercentage = items.length > 0 ? (completedCount / items.length) * 100 : 0;
 
   return (
@@ -77,7 +68,6 @@ export function LabelingSessionItemsTable({
               {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => (
                 <TableHead key={schema.name}>{schema.title || schema.name}</TableHead>
               ))}
-              <TableHead>Comment</TableHead>
               {showActions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -128,9 +118,17 @@ export function LabelingSessionItemsTable({
                 </TableCell>
                 {/* Use session-specific schemas if available, otherwise use review app schemas */}
                 {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => {
-                  const labelValue = item.labels?.[schema.name] !== undefined
-                    ? String(item.labels[schema.name]?.value || item.labels[schema.name])
-                    : "-";
+                  const label = item.labels?.[schema.name];
+                  let labelValue = "-";
+                  
+                  if (label !== undefined && label !== null) {
+                    if (typeof label === 'object' && 'value' in label) {
+                      labelValue = String(label.value);
+                    } else {
+                      labelValue = String(label);
+                    }
+                  }
+                  
                   return (
                     <TableCell key={schema.name} className="max-w-xs text-sm align-top">
                       <div
@@ -147,19 +145,6 @@ export function LabelingSessionItemsTable({
                     </TableCell>
                   );
                 })}
-                <TableCell className="max-w-xs text-xs align-top">
-                  <div
-                    className="overflow-hidden max-h-12"
-                    style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                    title={item.comment || ""}
-                  >
-                    {item.comment || "-"}
-                  </div>
-                </TableCell>
                 {showActions && (
                   <TableCell>
                     <Button
