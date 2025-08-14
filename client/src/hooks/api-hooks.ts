@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { ReviewApp, LabelingSession, LabelingItem } from "@/types/renderers";
 import { LabelSchemasService, LabelingSessionsService, type LabelingSchema } from "@/fastapi_client";
+import { transformTrace, transformSearchTracesResponse } from "@/utils/mlflow-transforms";
 
 // Query Keys Factory
 export const queryKeys = {
@@ -44,7 +45,6 @@ export const queryKeys = {
     search: (params: Record<string, unknown>) => ["traces", "search", params] as const,
     detail: (traceId: string) => ["traces", traceId] as const,
     detailWithRun: (traceId: string, runId: string) => ["traces", traceId, "run", runId] as const,
-    metadata: (traceId: string) => ["traces", traceId, "metadata"] as const,
   },
 
   experiments: {
@@ -305,7 +305,10 @@ export function useDeleteLabelingItem() {
 export function useSearchTraces(params: Record<string, unknown>, enabled = true) {
   return useQuery({
     queryKey: queryKeys.traces.search(params),
-    queryFn: () => apiClient.api.searchTraces(params),
+    queryFn: async () => {
+      const response = await apiClient.api.searchTraces(params);
+      return transformSearchTracesResponse(response);
+    },
     enabled,
   });
 }
@@ -313,7 +316,10 @@ export function useSearchTraces(params: Record<string, unknown>, enabled = true)
 export function useSessionTraces(sessionId: string, runId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: queryKeys.traces.search({ run_id: runId }),
-    queryFn: () => apiClient.api.searchTraces({ run_id: runId, max_results: 500 }),
+    queryFn: async () => {
+      const response = await apiClient.api.searchTraces({ run_id: runId, max_results: 500 });
+      return transformSearchTracesResponse(response);
+    },
     enabled: enabled && !!runId && !!sessionId,
     staleTime: 30 * 1000, // Cache for 30 seconds
   });
@@ -322,19 +328,15 @@ export function useSessionTraces(sessionId: string, runId: string | undefined, e
 export function useTrace(traceId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.traces.detail(traceId),
-    queryFn: () => apiClient.api.getTrace({ traceId }),
+    queryFn: async () => {
+      const response = await apiClient.api.getTrace({ traceId });
+      return transformTrace(response);
+    },
     enabled: enabled && !!traceId,
     staleTime: 5 * 60 * 1000, // 5 minutes - match prefetch staleTime
   });
 }
 
-export function useTraceMetadata(traceId: string, enabled = true) {
-  return useQuery({
-    queryKey: queryKeys.traces.metadata(traceId),
-    queryFn: () => apiClient.api.getTraceMetadata({ traceId }),
-    enabled: enabled && !!traceId,
-  });
-}
 
 export function useLinkTracesToRun() {
   const queryClient = useQueryClient();
@@ -580,9 +582,6 @@ export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; s
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.traces.metadata(variables.traceId),
-      });
       
       // Invalidate session items if session context is provided
       if (sessionContext) {
@@ -626,9 +625,6 @@ export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string
       // Invalidate trace-related queries to refresh feedback
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.traces.metadata(variables.traceId),
       });
       
       // Invalidate session items if session context is provided
@@ -674,9 +670,6 @@ export function useLogExpectationMutation(sessionContext?: { reviewAppId: string
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.traces.metadata(variables.traceId),
-      });
       
       // Invalidate session items if session context is provided
       if (sessionContext) {
@@ -720,9 +713,6 @@ export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: str
       // Invalidate trace-related queries to refresh expectations
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.traces.metadata(variables.traceId),
       });
       
       // Invalidate session items if session context is provided

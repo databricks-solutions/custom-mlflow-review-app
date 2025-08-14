@@ -314,29 +314,6 @@ export class ApiService {
         });
     }
     /**
-     * Get Trace Metadata
-     * Get trace metadata (info and spans without heavy inputs/outputs).
-     *
-     * Note: This endpoint is currently unused in the UI but kept for API compatibility.
-     * @param traceId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static getTraceMetadataApiMlflowTracesTraceIdMetadataGet(
-        traceId: string,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/mlflow/traces/{trace_id}/metadata',
-            path: {
-                'trace_id': traceId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Log Trace Feedback
      * Log feedback on a trace.
      *

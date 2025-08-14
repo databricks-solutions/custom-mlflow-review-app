@@ -200,10 +200,8 @@ class ApiClientWrapper {
       // MLflow endpoints
       searchTraces: (params: Record<string, unknown>) =>
         MLflowService.searchTracesApiMlflowSearchTracesPost(params),
-      getTrace: (params: { traceId: string; runId?: string }) =>
-        MLflowService.getTraceApiMlflowTracesTraceIdGet(params.traceId, params.runId),
-      getTraceMetadata: (params: { traceId: string }) =>
-        MLflowService.getTraceMetadataApiMlflowTracesTraceIdMetadataGet(params.traceId),
+      getTrace: (params: { traceId: string }) =>
+        MLflowService.getTraceApiMlflowTracesTraceIdGet(params.traceId),
       linkTracesToRun: (params: { runId: string; traceIds: string[] }) =>
         MLflowService.linkTracesToRunApiMlflowTracesLinkToRunPost(params),
       linkTracesToSession: (params: {

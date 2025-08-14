@@ -9,7 +9,6 @@ import { TraceExplorer } from "@/components/TraceExplorer";
 import { LabelingSchemasPage } from "./LabelingSchemasPage";
 import { LabelingSessionsTab } from "@/components/LabelingSessionsTab";
 import { ExperimentAnalysis } from "@/components/ExperimentAnalysis";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   ArrowLeft,
   Users,
@@ -100,10 +99,8 @@ export function DeveloperDashboard() {
             </div>
           </div>
           
-          {/* Info section with theme toggle */}
-          <div className="flex items-start gap-4">
-            <ThemeToggle />
-            <div className="text-right space-y-2">
+          {/* Info section */}
+          <div className="text-right space-y-2">
               {EXPERIMENT_ID && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Experiment:</span>
@@ -158,7 +155,6 @@ export function DeveloperDashboard() {
                 )}
               </div>
             )}
-            </div>
           </div>
         </div>
 

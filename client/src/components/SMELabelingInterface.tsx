@@ -60,7 +60,7 @@ export function SMELabelingInterface({
   const items = itemsData?.items || [];
   
   // Fetch all traces for the session (for content and assessments)
-  const { data: tracesData } = useSessionTraces(
+  const { data: tracesData, isLoading: isLoadingTraces } = useSessionTraces(
     sessionId,
     session?.mlflow_run_id,
     !!sessionId && !!session?.mlflow_run_id
@@ -97,7 +97,7 @@ export function SMELabelingInterface({
   const traceSummary = tracesData?.traces?.find(
     (trace: any) => trace.info.trace_id === currentTraceId
   );
-  const isLoadingTrace = !tracesData && !!currentTraceId;
+  const isLoadingTrace = isLoadingTraces && !!currentTraceId;
 
   const updateItemMutation = useUpdateLabelingItem();
 
@@ -376,8 +376,38 @@ export function SMELabelingInterface({
     );
   }
 
-  if (!currentItem || !traceSummary || !reviewApp) {
+  if (!currentItem || !reviewApp) {
     return <LoadingState />;
+  }
+  
+  // If we don't have trace data yet, wait for it
+  if (!traceSummary && isLoadingTraces) {
+    return <LoadingState />;
+  }
+  
+  // If traces loaded but no matching trace found, show error
+  if (!traceSummary && !isLoadingTraces) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trace Not Found</CardTitle>
+            <CardDescription>
+              Could not find trace {currentTraceId} in the session's traces.
+              This trace may have been removed or is not linked to this session.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!hideNavigation && (
+              <Button onClick={() => navigate("/")} variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Sessions
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   // Convert trace data to the expected format

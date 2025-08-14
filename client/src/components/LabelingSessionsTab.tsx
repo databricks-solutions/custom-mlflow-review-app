@@ -59,11 +59,15 @@ function SessionItemsWrapper({
   sessionId,
   reviewApp,
   session,
+  experimentId,
+  workspaceData,
 }: {
   reviewAppId: string;
   sessionId: string;
   reviewApp: ReviewApp | null | undefined;
   session: LabelingSession;
+  experimentId?: string;
+  workspaceData?: any;
 }) {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);

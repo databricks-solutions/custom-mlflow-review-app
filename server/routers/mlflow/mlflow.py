@@ -6,7 +6,7 @@ handling authentication and providing type-safe interfaces.
 
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from server.exceptions import MLflowError, NotFoundError
 from server.models.mlflow import (
@@ -67,92 +67,6 @@ from server.utils.mlflow_utils import (
 )
 
 router = APIRouter(prefix='/mlflow', tags=['MLflow'])
-
-
-def _convert_span(span):
-  """Convert MLflow span to API format."""
-  return {
-    'name': span.name,
-    'span_id': span.span_id,
-    'parent_id': span.parent_id,
-    'start_time_ms': int(span.start_time_ns // 1_000_000) if span.start_time_ns else 0,
-    'end_time_ms': int(span.end_time_ns // 1_000_000) if span.end_time_ns else 0,
-    'status': {
-      'status_code': 'OK' if span.status == 'OK' or not span.status else 'ERROR',
-      'description': getattr(span, 'status_message', ''),
-    },
-    'span_type': getattr(span, 'span_type', 'UNKNOWN'),
-    'inputs': getattr(span, 'inputs', None),
-    'outputs': getattr(span, 'outputs', None),
-    'attributes': getattr(span, 'attributes', None),
-  }
-
-
-def _convert_assessment(assessment):
-  """Convert MLflow assessment to API format."""
-  import logging
-
-  logger = logging.getLogger(__name__)
-
-  # Get assessment value and type from nested structure
-  value = None
-  assessment_type = None
-
-  # FIRST: Get assessment_id from the top-level assessment object (it's always there)
-  assessment_id = getattr(assessment, 'assessment_id', None)
-
-  # Check for feedback/expectation nested structure
-  if hasattr(assessment, 'feedback') and assessment.feedback:
-    value = getattr(assessment.feedback, 'value', None)
-    assessment_type = 'feedback'
-  elif hasattr(assessment, 'expectation') and assessment.expectation:
-    value = getattr(assessment.expectation, 'value', None)
-    assessment_type = 'expectation'
-  elif hasattr(assessment, 'value'):
-    value = assessment.value
-    # Try to infer type from the assessment itself
-    if hasattr(assessment, 'type'):
-      assessment_type = assessment.type
-    elif hasattr(assessment, '__class__'):
-      class_name = assessment.__class__.__name__.lower()
-      if 'feedback' in class_name:
-        assessment_type = 'feedback'
-      elif 'expectation' in class_name:
-        assessment_type = 'expectation'
-
-  # Skip if no value
-  if value is None:
-    return None
-
-  result = {
-    'name': getattr(assessment, 'name', ''),
-    'value': value,
-    'type': assessment_type,
-    'assessment_id': assessment_id,
-  }
-
-  # Add optional fields
-  if hasattr(assessment, 'metadata') and assessment.metadata:
-    result['metadata'] = assessment.metadata
-    # Check for rationale in metadata
-    if isinstance(assessment.metadata, dict) and 'rationale' in assessment.metadata:
-      result['rationale'] = assessment.metadata.get('rationale')
-
-  # Also check for rationale as a direct attribute
-  if not result.get('rationale') and hasattr(assessment, 'rationale'):
-    result['rationale'] = getattr(assessment, 'rationale', None)
-
-  if hasattr(assessment, 'source') and assessment.source:
-    source = assessment.source
-    if hasattr(source, 'source_type') and hasattr(source, 'source_id'):
-      result['source'] = {
-        'source_type': source.source_type,
-        'source_id': source.source_id,
-      }
-    else:
-      result['source'] = str(source)
-
-  return result if result.get('name') else None
 
 
 @router.post('/search-traces')
@@ -260,34 +174,6 @@ async def get_trace_data(trace_id: str) -> Dict[str, Any]:
   return mlflow_get_trace_data(trace_id)
 
 
-@router.get('/traces/{trace_id}/metadata')
-async def get_trace_metadata(trace_id: str) -> Dict[str, Any]:
-  """Get trace metadata (info and spans without heavy inputs/outputs).
-
-  Note: This endpoint is currently unused in the UI but kept for API compatibility.
-  """
-  try:
-    # Get the raw trace and convert to dict
-    raw_trace = mlflow_get_trace(trace_id)
-    trace_dict = raw_trace.to_dict()
-
-    # Return just the info without heavy data
-    metadata = {'info': trace_dict.get('info', {}), 'spans': []}
-
-    # Add lightweight span metadata if spans exist
-    if 'data' in trace_dict and 'spans' in trace_dict['data']:
-      for span in trace_dict['data']['spans']:
-        metadata['spans'].append(
-          {
-            'name': span.get('name', ''),
-            'span_id': span.get('span_id', ''),
-            'span_type': span.get('span_type', 'UNKNOWN'),
-          }
-        )
-
-    return metadata
-  except Exception as e:
-    raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post('/traces/{trace_id}/feedback', response_model=LogFeedbackResponse)
