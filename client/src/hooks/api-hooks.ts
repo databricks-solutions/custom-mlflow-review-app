@@ -583,6 +583,11 @@ export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; s
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
       
+      // Also invalidate search queries (used by session traces)
+      queryClient.invalidateQueries({
+        queryKey: ['traces', 'search'],
+      });
+      
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
@@ -625,6 +630,11 @@ export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string
       // Invalidate trace-related queries to refresh feedback
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      
+      // Also invalidate search queries (used by session traces)
+      queryClient.invalidateQueries({
+        queryKey: ['traces', 'search'],
       });
       
       // Invalidate session items if session context is provided
@@ -671,6 +681,11 @@ export function useLogExpectationMutation(sessionContext?: { reviewAppId: string
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
       
+      // Also invalidate search queries (used by session traces)
+      queryClient.invalidateQueries({
+        queryKey: ['traces', 'search'],
+      });
+      
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
@@ -713,6 +728,11 @@ export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: str
       // Invalidate trace-related queries to refresh expectations
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
+      });
+      
+      // Also invalidate search queries (used by session traces)
+      queryClient.invalidateQueries({
+        queryKey: ['traces', 'search'],
       });
       
       // Invalidate session items if session context is provided

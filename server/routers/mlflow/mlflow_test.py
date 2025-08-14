@@ -31,6 +31,7 @@ def mock_mlflow_functions():
     patch('server.routers.mlflow.mlflow.mlflow_link_traces_to_run') as mock_link_traces_to_run,
     patch('server.routers.mlflow.mlflow.mlflow_get_trace') as mock_get_trace,
     patch('server.routers.mlflow.mlflow.mlflow_get_trace_data') as mock_get_trace_data,
+    patch('server.routers.mlflow.mlflow._extract_request_response_preview') as mock_extract_preview,
   ):
     # Create a mock object that has all the methods for backward compatibility with tests
     class MockMLflowUtils:
@@ -44,6 +45,10 @@ def mock_mlflow_functions():
         self.link_traces_to_run = mock_link_traces_to_run
         self.get_trace = mock_get_trace
         self.get_trace_data = mock_get_trace_data
+        self.extract_preview = mock_extract_preview
+
+    # Mock extract_preview to return empty previews
+    mock_extract_preview.return_value = (None, None)
 
     yield MockMLflowUtils()
 
