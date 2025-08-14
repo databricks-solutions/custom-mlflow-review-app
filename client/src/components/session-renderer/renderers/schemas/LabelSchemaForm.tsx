@@ -88,7 +88,7 @@ export function LabelSchemaForm({
     >
       {schemas.map((schema) => (
         <LabelSchemaField
-          key={schema.name}
+          key={`${schema.name}-${traceId}`}
           schema={schema}
           assessment={assessments.get(schema.name)}
           traceId={traceId}

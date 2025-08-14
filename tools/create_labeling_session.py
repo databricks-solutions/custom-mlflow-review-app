@@ -7,7 +7,6 @@ import json
 import sys
 
 from server.utils.labeling_sessions_utils import create_labeling_session
-from server.utils.review_apps_utils import review_apps_utils
 from tools.utils.review_app_resolver import resolve_review_app_id
 
 
@@ -41,10 +40,10 @@ JSON file format:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
 
   # Session creation options
   creation_group = parser.add_mutually_exclusive_group(required=True)
@@ -70,8 +69,7 @@ JSON file format:
   try:
     # Resolve review app ID and get the review app
     review_app_id, review_app = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
     available_schemas = review_app.get('labeling_schemas', [])
     available_schema_names = {schema['name'] for schema in available_schemas}

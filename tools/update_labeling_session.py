@@ -7,7 +7,6 @@ import json
 import sys
 
 from server.utils.labeling_sessions_utils import get_labeling_session, update_labeling_session
-from server.utils.review_apps_utils import review_apps_utils
 from tools.utils.review_app_resolver import resolve_review_app_id
 
 
@@ -48,10 +47,10 @@ Examples:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('session_id', help='Labeling session ID to update')
 
   # Update options
@@ -75,10 +74,9 @@ Examples:
   try:
     # Resolve review app ID
     review_app_id, review_app = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
-    
+
     # Get current session
     current_session = await get_labeling_session(
       review_app_id=review_app_id, labeling_session_id=args.session_id

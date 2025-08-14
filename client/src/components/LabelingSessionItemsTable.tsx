@@ -92,7 +92,11 @@ export function LabelingSessionItemsTable({
                 <TableCell className="max-w-xs text-xs align-top">
                   <div
                     className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left overflow-hidden max-h-12"
-                    onClick={() => onTraceClick?.(item.source?.trace_id || "")}
+                    onClick={() => {
+                      if (item.source && 'trace_id' in item.source) {
+                        onTraceClick?.(item.source.trace_id || "");
+                      }
+                    }}
                     style={{
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
@@ -151,9 +155,11 @@ export function LabelingSessionItemsTable({
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        navigate(
-                          `/review-app/${reviewAppId}?session=${sessionId}&trace=${item.source?.trace_id}`
-                        );
+                        if (item.source && 'trace_id' in item.source) {
+                          navigate(
+                            `/review-app/${reviewAppId}?session=${sessionId}&trace=${item.source.trace_id}`
+                          );
+                        }
                       }}
                     >
                       <Edit className="h-4 w-4 mr-1" />

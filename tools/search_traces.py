@@ -10,96 +10,105 @@ from server.utils.mlflow_utils import _extract_request_response_preview, search_
 
 
 def _convert_traces_to_json_format(traces, include_spans: bool = False):
-  """Convert raw MLflow Trace objects to JSON format."""
+  """Convert raw MLflow Trace objects to JSON format using built-in to_dict()."""
   trace_list = []
 
   for trace in traces:
     try:
+      # Use built-in to_dict() for full trace serialization
+      trace_dict = trace.to_dict()
+
       # Extract request/response previews
       request_preview, response_preview = _extract_request_response_preview(trace)
 
+      # Transform the dict to match expected format
+      trace_info_dict = trace_dict.get('info', {})
+
       # Convert trace info
       trace_info = {
-        'trace_id': trace.info.trace_id,
+        'trace_id': trace_info_dict.get('trace_id', trace_info_dict.get('request_id', '')),
         'trace_location': {
-          'experiment_id': trace.info.experiment_id,
-          'run_id': trace.info.run_id
-          if hasattr(trace.info, 'run_id') and trace.info.run_id
-          else '',
+          'experiment_id': trace_info_dict.get('experiment_id', ''),
+          'run_id': trace_info_dict.get('run_id', ''),
         },
-        'request_time': str(trace.info.timestamp_ms),
-        'execution_duration': f'{trace.info.execution_time_ms}ms'
-        if trace.info.execution_time_ms
-        else '0ms',
-        'state': trace.info.status or 'OK',
-        'trace_metadata': dict(trace.info.request_metadata) if trace.info.request_metadata else {},
-        'tags': dict(trace.info.tags) if trace.info.tags else {},
+        'request_time': str(trace_info_dict.get('timestamp_ms', '')),
+        'execution_duration': f'{trace_info_dict.get("execution_time_ms", 0)}ms',
+        'state': trace_info_dict.get('status', 'OK'),
+        'trace_metadata': trace_info_dict.get('request_metadata', {}),
+        'tags': trace_info_dict.get('tags', {}),
         'assessments': [],
         'request_preview': request_preview,
         'response_preview': response_preview,
       }
 
       # Convert trace data with spans (only if requested)
+      trace_data_dict = trace_dict.get('data', {})
       trace_data = {'spans': []}
-      if include_spans and trace.data and trace.data.spans is not None:
-        for span in trace.data.spans:
-          span_dict = {
-            'name': span.name,
-            'span_id': span.span_id,
-            'parent_id': span.parent_id,
-            'start_time_ms': int(span.start_time_ns // 1_000_000) if span.start_time_ns else 0,
-            'end_time_ms': int(span.end_time_ns // 1_000_000) if span.end_time_ns else 0,
-            'status': {
-              'status_code': 'OK' if span.status == 'OK' or not span.status else 'ERROR',
-              'description': span.status_message
-              if hasattr(span, 'status_message') and span.status_message
-              else '',
-            },
-            'span_type': getattr(span, 'span_type', 'UNKNOWN'),
-            'inputs': getattr(span, 'inputs', None),
-            'outputs': getattr(span, 'outputs', None),
-            'attributes': getattr(span, 'attributes', None),
-          }
-          trace_data['spans'].append(span_dict)
 
-      # Convert assessments if present
+      if include_spans and trace_data_dict.get('spans'):
+        for span_dict in trace_data_dict['spans']:
+          converted_span = {
+            'name': span_dict.get('name', ''),
+            'span_id': span_dict.get('span_id', ''),
+            'parent_id': span_dict.get('parent_id'),
+            'start_time_ms': int(span_dict.get('start_time_ns', 0) // 1_000_000),
+            'end_time_ms': int(span_dict.get('end_time_ns', 0) // 1_000_000),
+            'status': {
+              'status_code': span_dict.get('status', 'OK'),
+              'description': span_dict.get('status_message', ''),
+            },
+            'span_type': span_dict.get(
+              'span_type', span_dict.get('attributes', {}).get('mlflow.spanType', 'UNKNOWN')
+            ),
+            'inputs': span_dict.get('inputs'),
+            'outputs': span_dict.get('outputs'),
+            'attributes': span_dict.get('attributes'),
+          }
+          trace_data['spans'].append(converted_span)
+
+      # Convert assessments if present - use built-in to_dictionary() method
       if hasattr(trace.info, 'assessments') and trace.info.assessments is not None:
         for assessment in trace.info.assessments:
-          assessment_dict = {}
+          try:
+            # Use the built-in to_dictionary() method which includes rationale
+            assessment_dict = assessment.to_dictionary()
 
-          if hasattr(assessment, 'name'):
-            assessment_dict['name'] = assessment.name
+            # Simplify the structure for consistency with existing format
+            simplified = {
+              'name': assessment_dict.get('assessment_name', ''),
+              'value': None,
+              'assessment_id': assessment_dict.get('assessment_id'),
+            }
 
-          assessment_value = None
-          if hasattr(assessment, 'feedback') and assessment.feedback:
-            if hasattr(assessment.feedback, 'value'):
-              assessment_value = assessment.feedback.value
-          elif hasattr(assessment, 'expectation') and assessment.expectation:
-            if hasattr(assessment.expectation, 'value'):
-              assessment_value = assessment.expectation.value
-          elif hasattr(assessment, 'value'):
-            assessment_value = assessment.value
+            # Extract value from feedback or expectation
+            if 'feedback' in assessment_dict and assessment_dict['feedback']:
+              simplified['value'] = assessment_dict['feedback'].get('value')
+            elif 'expectation' in assessment_dict and assessment_dict['expectation']:
+              simplified['value'] = assessment_dict['expectation'].get('value')
 
-          if assessment_value is None:
+            # Include rationale if present
+            if assessment_dict.get('rationale'):
+              simplified['rationale'] = assessment_dict['rationale']
+
+            # Include metadata if present
+            if assessment_dict.get('metadata'):
+              simplified['metadata'] = assessment_dict['metadata']
+
+            # Format source for consistency
+            if assessment_dict.get('source'):
+              source = assessment_dict['source']
+              if isinstance(source, dict):
+                simplified['source'] = (
+                  f"{source.get('source_type', '')}:{source.get('source_id', '')}"
+                )
+              else:
+                simplified['source'] = str(source)
+
+            if simplified['name'] and simplified['value'] is not None:
+              trace_info['assessments'].append(simplified)
+          except Exception:
+            # Fall back to manual extraction if to_dictionary fails
             continue
-
-          assessment_dict['value'] = assessment_value
-
-          if hasattr(assessment, 'metadata') and assessment.metadata:
-            assessment_dict['metadata'] = assessment.metadata
-
-          if hasattr(assessment, 'source') and assessment.source:
-            if hasattr(assessment.source, 'source_type') and hasattr(
-              assessment.source, 'source_id'
-            ):
-              assessment_dict['source'] = (
-                f'{assessment.source.source_type}:{assessment.source.source_id}'
-              )
-            else:
-              assessment_dict['source'] = str(assessment.source)
-
-          if 'name' in assessment_dict:
-            trace_info['assessments'].append(assessment_dict)
 
       trace_list.append({'info': trace_info, 'data': trace_data})
     except Exception:

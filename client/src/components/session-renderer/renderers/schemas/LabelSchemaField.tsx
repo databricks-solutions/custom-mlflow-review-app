@@ -72,7 +72,7 @@ export function LabelSchemaField({
   const latestValueRef = useRef<JsonValue>(localValue);
   const latestRationaleRef = useRef<string>(localRationale);
 
-  // Update local state when assessment prop changes
+  // Update local state when assessment prop or traceId changes
   useEffect(() => {
     if (assessment?.value !== undefined && assessment?.value !== null) {
       setLocalValue(assessment.value);
@@ -85,7 +85,7 @@ export function LabelSchemaField({
     latestRationaleRef.current = assessment?.rationale || "";
     // IMPORTANT: Preserve the assessment_id from existing assessments
     setLocalAssessmentId(assessment?.assessment_id || undefined);
-  }, [assessment]);
+  }, [assessment, traceId]);
 
   // Handle the actual save logic
   const performSave = useCallback(
@@ -199,14 +199,14 @@ export function LabelSchemaField({
     triggerSave();
   };
 
-  // Clean up timeout on unmount
+  // Clean up timeout on unmount or trace change
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, []);
+  }, [traceId]);
 
   // Check if field has value
   const hasValue = localValue !== undefined && localValue !== null && localValue !== "";

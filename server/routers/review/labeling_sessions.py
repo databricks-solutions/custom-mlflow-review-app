@@ -210,9 +210,7 @@ async def delete_labeling_session(request: Request, labeling_session_id: str) ->
   )
 
 
-@router.post(
-  '/{labeling_session_id}/link-traces', response_model=LinkTracesToSessionResponse
-)
+@router.post('/{labeling_session_id}/link-traces', response_model=LinkTracesToSessionResponse)
 async def link_traces_to_session(
   request: Request, labeling_session_id: str, link_request: LinkTracesToSessionRequest
 ) -> LinkTracesToSessionResponse:

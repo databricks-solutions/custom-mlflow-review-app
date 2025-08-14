@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,7 @@ import {
 import { LabelingSessionItemsTable } from "@/components/LabelingSessionItemsTable";
 import { LabelingSessionAnalysisModal } from "@/components/LabelingSessionAnalysisModal";
 import { TraceExplorer } from "@/components/TraceExplorer";
-import { LabelSchemaField } from "@/components/session-renderer/renderers/schemas/LabelSchemaField";
+import { LabelSchemaFieldPreview } from "@/components/LabelSchemaFieldPreview";
 import { Accordion } from "@/components/ui/accordion";
 import {
   Plus,
@@ -44,12 +44,14 @@ import {
   useDeleteLabelingSession,
   useUpdateLabelingSession,
   useLabelingItems,
+  useSessionTraces,
   useSearchTraces,
   useLabelSchemas,
   queryKeys,
 } from "@/hooks/api-hooks";
 import { apiClient } from "@/lib/api-client";
 import { toast } from "sonner";
+import { mergeItemsWithTraces } from "@/utils/trace-merge-utils";
 
 // Wrapper component to fetch items data for LabelingSessionItemsTable
 function SessionItemsWrapper({
@@ -103,11 +105,26 @@ function SessionItemsWrapper({
     };
   }, []);
 
-  const { data: itemsData, isLoading } = useLabelingItems(
+  const { data: itemsData, isLoading: isLoadingItems } = useLabelingItems(
     reviewAppId,
     sessionId,
     isVisible && !!reviewAppId && !!sessionId
   );
+  
+  // Fetch traces for merging (only for preview display)
+  const { data: tracesData } = useSessionTraces(
+    sessionId,
+    session?.mlflow_run_id,
+    isVisible && !!session?.mlflow_run_id && !!sessionId
+  );
+  
+  // Merge items with trace previews
+  const mergedItems = React.useMemo(() => {
+    if (!itemsData?.items) return [];
+    return mergeItemsWithTraces(itemsData.items, tracesData?.traces);
+  }, [itemsData?.items, tracesData?.traces]);
+  
+  const isLoading = isLoadingItems;
 
   return (
     <div ref={containerRef}>
@@ -162,7 +179,7 @@ function SessionItemsWrapper({
         </div>
       ) : (
         <LabelingSessionItemsTable
-          items={itemsData?.items || []}
+          items={mergedItems}
           reviewApp={reviewApp}
           reviewAppId={reviewAppId}
           sessionId={sessionId}
@@ -259,8 +276,9 @@ export function LabelingSessionsTab({
 
     // Auto-add current user if not already included
     let userEmails = assignedUsers ? assignedUsers.split(",").map((email) => email.trim()) : [];
-    if (currentUser?.email && !userEmails.includes(currentUser.email)) {
-      userEmails.push(currentUser.email);
+    const currentUserEmail = currentUser?.emails?.[0] || currentUser?.userName;
+    if (currentUserEmail && !userEmails.includes(currentUserEmail)) {
+      userEmails.push(currentUserEmail);
     }
 
     // Convert selected schema names to the required format
@@ -454,11 +472,7 @@ export function LabelingSessionsTab({
                           </div>
                           <div className="ml-8">
                             <Accordion type="single" collapsible className="w-full">
-                              <LabelSchemaField
-                                schema={schema}
-                                traceId="preview"
-                                readOnly={true}
-                              />
+                              <LabelSchemaFieldPreview schema={schema} />
                             </Accordion>
                           </div>
                         </div>
@@ -486,7 +500,7 @@ export function LabelingSessionsTab({
                   rows={2}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current user ({currentUser?.email}) will be automatically added
+                  Current user ({currentUser?.emails?.[0] || currentUser?.userName || "unknown"}) will be automatically added
                 </p>
               </div>
             </div>

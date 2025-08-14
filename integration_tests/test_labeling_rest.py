@@ -26,7 +26,7 @@ if env_path.exists():
 def cleanup_test_resources(base_url, review_app_id, session_id, schema_names, headers):
   """Helper function to clean up test resources."""
   cleanup_success = True
-  
+
   def api_call_cleanup(method: str, endpoint: str, **kwargs) -> requests.Response:
     """Make an API call for cleanup with proper error handling."""
     url = f'{base_url}{endpoint}'
@@ -38,30 +38,39 @@ def cleanup_test_resources(base_url, review_app_id, session_id, schema_names, he
     except Exception as e:
       print(f'    ⚠️  Cleanup API call failed: {e}')
       return None
-  
+
   # Clean up labeling session
   if session_id and review_app_id:
     print(f'Cleaning up labeling session: {session_id}')
-    response = api_call_cleanup('DELETE', f'/api/review-apps/{review_app_id}/labeling-sessions/{session_id}')
+    response = api_call_cleanup(
+      'DELETE', f'/api/review-apps/{review_app_id}/labeling-sessions/{session_id}'
+    )
     if response and response.status_code == 200:
       print('  ✓ Labeling session deleted successfully')
     else:
-      print(f'  ⚠️  Failed to delete labeling session: {response.status_code if response else "No response"}')
+      print(
+        f'  ⚠️  Failed to delete labeling session: {response.status_code if response else "No response"}'
+      )
       cleanup_success = False
-  
+
   # Clean up label schemas
   if schema_names and review_app_id:
     print('Cleaning up label schemas...')
     for schema_name in schema_names:
       print(f'  Deleting schema: {schema_name}')
-      response = api_call_cleanup('DELETE', f'/api/review-apps/{review_app_id}/schemas/{schema_name}')
+      response = api_call_cleanup(
+        'DELETE', f'/api/review-apps/{review_app_id}/schemas/{schema_name}'
+      )
       if response and response.status_code == 200:
         print(f'    ✓ Schema {schema_name} deleted successfully')
       else:
-        print(f'    ⚠️  Failed to delete schema {schema_name}: {response.status_code if response else "No response"}')
+        print(
+          f'    ⚠️  Failed to delete schema {schema_name}: {response.status_code if response else "No response"}'
+        )
         cleanup_success = False
-  
+
   return cleanup_success
+
 
 def test_labeling_rest():
   """Integration test for the REST API labeling workflow.
@@ -171,7 +180,9 @@ def test_labeling_rest():
   search_request = {'experiment_ids': [experiment_id], 'max_results': 5}
 
   response = api_call('POST', '/api/mlflow/search-traces', json=search_request)
-  assert response.status_code == 200, f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
+  assert (
+    response.status_code == 200
+  ), f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
 
   traces = response.json().get('traces', [])
   assert (
@@ -402,7 +413,7 @@ def test_labeling_rest():
   # Section 6.5: Test various data types
   # ========================================================================
   print('\n=== Section 6.5: Testing data types ===')
-  
+
   # Create numeric schema for dtype testing
   numeric_schema = {
     'name': f'test_rating_{timestamp}',
@@ -411,7 +422,7 @@ def test_labeling_rest():
     'instruction': 'Rate from 1 to 5',
     'numeric': {'min_value': 1, 'max_value': 5},
   }
-  
+
   response = api_call('POST', f'/api/review-apps/{review_app_id}/schemas', json=numeric_schema)
   if response.status_code == 400 and 'already exists' in response.text:
     print('   Numeric schema already exists')
@@ -419,7 +430,7 @@ def test_labeling_rest():
   else:
     assert response.status_code == 200, f'Failed to create numeric schema: {response.text}'
     print(f"✓ Created numeric schema: {numeric_schema['name']}")
-  
+
   # Test boolean dtype (actual boolean, not categorical)
   print('\n   Testing boolean data type...')
   bool_request = {
@@ -429,12 +440,12 @@ def test_labeling_rest():
       'rationale': 'Testing boolean dtype',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=bool_request)
   assert response.status_code == 200, f'Failed to log boolean: {response.text}'
   bool_assessment_id = response.json().get('assessment_id')
   print(f'   ✓ Logged boolean True (ID: {bool_assessment_id})')
-  
+
   # Test with False
   bool_false_request = {
     'assessment': {
@@ -443,14 +454,14 @@ def test_labeling_rest():
       'rationale': 'Testing boolean False',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=bool_false_request)
   assert response.status_code == 200, f'Failed to log boolean False: {response.text}'
-  print(f'   ✓ Logged boolean False')
-  
+  print('   ✓ Logged boolean False')
+
   # Test numeric dtypes
   print('\n   Testing numeric data types...')
-  
+
   # Integer
   int_request = {
     'assessment': {
@@ -459,12 +470,12 @@ def test_labeling_rest():
       'rationale': 'Testing integer dtype',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=int_request)
   assert response.status_code == 200, f'Failed to log integer: {response.text}'
   int_assessment_id = response.json().get('assessment_id')
   print(f'   ✓ Logged integer 4 (ID: {int_assessment_id})')
-  
+
   # Float
   float_request = {
     'assessment': {
@@ -473,11 +484,11 @@ def test_labeling_rest():
       'rationale': 'Testing float dtype',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=float_request)
   assert response.status_code == 200, f'Failed to log float: {response.text}'
-  print(f'   ✓ Logged float 3.14159')
-  
+  print('   ✓ Logged float 3.14159')
+
   # Negative number
   neg_request = {
     'assessment': {
@@ -486,14 +497,14 @@ def test_labeling_rest():
       'rationale': 'Testing negative number',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=neg_request)
   assert response.status_code == 200, f'Failed to log negative: {response.text}'
-  print(f'   ✓ Logged negative -42.5')
-  
+  print('   ✓ Logged negative -42.5')
+
   # Test string dtypes
   print('\n   Testing string data types...')
-  
+
   # Regular string
   string_request = {
     'assessment': {
@@ -502,11 +513,11 @@ def test_labeling_rest():
       'rationale': 'Testing string dtype',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=string_request)
   assert response.status_code == 200, f'Failed to log string: {response.text}'
-  print(f'   ✓ Logged string value')
-  
+  print('   ✓ Logged string value')
+
   # Unicode string
   unicode_request = {
     'assessment': {
@@ -515,11 +526,11 @@ def test_labeling_rest():
       'rationale': 'Testing unicode string',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=unicode_request)
   assert response.status_code == 200, f'Failed to log unicode: {response.text}'
-  print(f'   ✓ Logged unicode string with emojis')
-  
+  print('   ✓ Logged unicode string with emojis')
+
   # Numeric string (should stay string)
   num_string_request = {
     'assessment': {
@@ -528,11 +539,11 @@ def test_labeling_rest():
       'rationale': 'Testing numeric string',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=num_string_request)
   assert response.status_code == 200, f'Failed to log numeric string: {response.text}'
-  print(f'   ✓ Logged numeric string "12345"')
-  
+  print('   ✓ Logged numeric string "12345"')
+
   # Test array dtype
   print('\n   Testing array data type...')
   array_request = {
@@ -542,14 +553,14 @@ def test_labeling_rest():
       'rationale': 'Testing array dtype',
     }
   }
-  
+
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=array_request)
   assert response.status_code == 200, f'Failed to log array: {response.text}'
-  print(f'   ✓ Logged array of strings')
-  
+  print('   ✓ Logged array of strings')
+
   # Test updating preserves dtype
   print('\n   Testing dtype preservation on update...')
-  
+
   # Update boolean to opposite value
   update_bool_request = {
     'assessment_id': bool_assessment_id,
@@ -558,11 +569,11 @@ def test_labeling_rest():
       'rationale': 'Updated boolean to False',
     },
   }
-  
+
   response = api_call('PATCH', f'/api/mlflow/traces/{trace_id}/feedback', json=update_bool_request)
   assert response.status_code == 200, f'Failed to update boolean: {response.text}'
-  print(f'   ✓ Updated boolean from True to False')
-  
+  print('   ✓ Updated boolean from True to False')
+
   # Update numeric value
   update_int_request = {
     'assessment_id': int_assessment_id,
@@ -571,13 +582,13 @@ def test_labeling_rest():
       'rationale': 'Updated integer to 5',
     },
   }
-  
+
   response = api_call('PATCH', f'/api/mlflow/traces/{trace_id}/feedback', json=update_int_request)
   assert response.status_code == 200, f'Failed to update integer: {response.text}'
-  print(f'   ✓ Updated integer from 4 to 5')
-  
+  print('   ✓ Updated integer from 4 to 5')
+
   print('\n✓ All data type tests passed!')
-  
+
   # ========================================================================
   # Section 7: Search traces again to make sure assessments are updated
   # ========================================================================
@@ -590,7 +601,9 @@ def test_labeling_rest():
   }
 
   response = api_call('POST', '/api/mlflow/search-traces', json=search_request)
-  assert response.status_code == 200, f'Failed to search traces after update. Status: {response.status_code}, Body: {response.text}'
+  assert (
+    response.status_code == 200
+  ), f'Failed to search traces after update. Status: {response.status_code}, Body: {response.text}'
 
   traces = response.json().get('traces', [])
   assert len(traces) > 0, 'No traces found after updating assessments'
@@ -654,21 +667,17 @@ def test_labeling_rest():
   # Section 8: Cleanup test data
   # ========================================================================
   print('\n=== Section 8: Cleanup test data ===')
-  
+
   # Perform cleanup
-  schemas_to_delete = [
-    feedback_schema['name'],
-    expectation_schema['name'],
-    numeric_schema['name']
-  ]
-  
+  schemas_to_delete = [feedback_schema['name'], expectation_schema['name'], numeric_schema['name']]
+
   cleanup_success = cleanup_test_resources(
     base_url, review_app_id, session_id, schemas_to_delete, headers
   )
-  
+
   # Verify cleanup worked
   print('\nVerifying cleanup...')
-  
+
   # Check session is gone by checking it's not in the sessions list
   if session_id and review_app_id:
     response = api_call('GET', f'/api/review-apps/{review_app_id}/labeling-sessions')
@@ -678,30 +687,30 @@ def test_labeling_rest():
       if session_id not in session_ids:
         print('  ✓ Verified session deletion - session no longer in list')
       else:
-        print(f'  ⚠️  Warning: Session still exists in sessions list')
+        print('  ⚠️  Warning: Session still exists in sessions list')
         cleanup_success = False
     else:
       print(f'  ⚠️  Could not verify session deletion: {response.status_code}')
-  
+
   # Check schemas are gone from review app
   response = api_call('GET', f'/api/review-apps/{review_app_id}/schemas')
   if response.status_code == 200:
     remaining_schemas = response.json()
     remaining_names = [s.get('name', '') for s in remaining_schemas]
-    
+
     still_present = [name for name in schemas_to_delete if name in remaining_names]
-    
+
     if still_present:
       print(f'  ⚠️  Warning: Some schemas still present in review app: {still_present}')
       cleanup_success = False
     else:
       print('  ✓ All test schemas successfully removed from review app')
-  
+
   if cleanup_success:
     print('\n✅ All test data cleaned up successfully!')
   else:
     print('\n⚠️  Some cleanup operations had warnings - check above for details')
-  
+
   # ========================================================================
   # Section 9: Test Summary
   # ========================================================================
@@ -718,15 +727,17 @@ def test_labeling_rest():
   print('\nTest completed with cleanup:')
   print(f'  • Review App ID used: {review_app_id}')
   print(f'  • Trace used for testing: {trace_id}')
-  print(f'  • Total assessments logged: {len(assessment_ids) + 10}+')  # Rough count including dtype tests
+  print(
+    f'  • Total assessments logged: {len(assessment_ids) + 10}+'
+  )  # Rough count including dtype tests
   print('  • All test schemas: ✅ DELETED')
   print('  • Test session: ✅ DELETED')
   print('  • Cleanup verification: ✅ COMPLETED')
-  
-  print('\nNote: Assessments on traces are left intact as they don\'t interfere with other tests')
+
+  print("\nNote: Assessments on traces are left intact as they don't interfere with other tests")
   print('\nCleanup verification:')
   print('  • Schemas: Removed from review app schema list')
-  print('  • Sessions: Removed from active sessions list') 
+  print('  • Sessions: Removed from active sessions list')
   print('  • Test data: Isolated and non-interfering with future tests')
 
   print('\n' + '=' * 80)
@@ -761,5 +772,6 @@ if __name__ == '__main__':
   except Exception as e:
     print(f'\n❌ Test failed with error: {e}')
     import traceback
+
     traceback.print_exc()
     exit(1)

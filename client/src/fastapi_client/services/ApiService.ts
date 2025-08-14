@@ -21,8 +21,6 @@ import type { ReviewApp } from '../models/ReviewApp';
 import type { SearchRunsRequest } from '../models/SearchRunsRequest';
 import type { SearchRunsResponse } from '../models/SearchRunsResponse';
 import type { SearchTracesRequest } from '../models/SearchTracesRequest';
-import type { SearchTracesResponse } from '../models/SearchTracesResponse';
-import type { Trace } from '../models/Trace';
 import type { TraceAnalysisResponse } from '../models/TraceAnalysisResponse';
 import type { TriggerAnalysisRequest } from '../models/TriggerAnalysisRequest';
 import type { UpdateExpectationRequest } from '../models/UpdateExpectationRequest';
@@ -148,12 +146,12 @@ export class ApiService {
      *
      * Uses MLflow SDK since there's no direct API endpoint.
      * @param requestBody
-     * @returns SearchTracesResponse Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static searchTracesApiMlflowSearchTracesPost(
         requestBody: SearchTracesRequest,
-    ): CancelablePromise<SearchTracesResponse> {
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/mlflow/search-traces',
@@ -276,24 +274,18 @@ export class ApiService {
      *
      * Args:
      * trace_id: The trace ID
-     * run_id: Optional run ID to help locate the trace
      * @param traceId
-     * @param runId
-     * @returns Trace Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static getTraceApiMlflowTracesTraceIdGet(
         traceId: string,
-        runId?: string,
-    ): CancelablePromise<Trace> {
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/mlflow/traces/{trace_id}',
             path: {
                 'trace_id': traceId,
-            },
-            query: {
-                'run_id': runId,
             },
             errors: {
                 422: `Validation Error`,
@@ -324,6 +316,8 @@ export class ApiService {
     /**
      * Get Trace Metadata
      * Get trace metadata (info and spans without heavy inputs/outputs).
+     *
+     * Note: This endpoint is currently unused in the UI but kept for API compatibility.
      * @param traceId
      * @returns any Successful Response
      * @throws ApiError
@@ -732,6 +726,9 @@ export class ApiService {
     /**
      * List Items
      * List items in a labeling session.
+     *
+     * Returns only item state data without trace content.
+     * UI should fetch trace data separately via /search-traces endpoint.
      * @param labelingSessionId
      * @param filter Filter string (e.g., state=PENDING)
      * @param pageSize

@@ -157,55 +157,8 @@ def _convert_assessment(assessment):
   return result if result.get('name') else None
 
 
-def _convert_traces_to_api_format(traces, include_spans: bool = False):
-  """Convert raw MLflow Trace objects to API format."""
-  trace_list = []
-
-  for trace in traces:
-    try:
-      request_preview, response_preview = _extract_request_response_preview(trace)
-
-      # Build trace info
-      trace_info = {
-        'trace_id': trace.info.trace_id,
-        'trace_location': {
-          'experiment_id': trace.info.experiment_id,
-          'run_id': getattr(trace.info, 'run_id', ''),
-        },
-        'request_time': str(trace.info.timestamp_ms),
-        'execution_duration': f'{trace.info.execution_time_ms or 0}ms',
-        'state': trace.info.status or 'OK',
-        'trace_metadata': dict(trace.info.request_metadata or {}),
-        'tags': dict(trace.info.tags or {}),
-        'assessments': [],
-        'request_preview': request_preview,
-        'response_preview': response_preview,
-      }
-
-      # Add spans if requested
-      trace_data = {'spans': []}
-      if include_spans and trace.data and trace.data.spans:
-        trace_data['spans'] = [_convert_span(span) for span in trace.data.spans]
-
-      # Add assessments
-      if hasattr(trace.info, 'assessments') and trace.info.assessments:
-        for assessment in trace.info.assessments:
-          converted = _convert_assessment(assessment)
-          if converted:
-            trace_info['assessments'].append(converted)
-
-      trace_list.append({'info': trace_info, 'data': trace_data})
-    except Exception:
-      continue  # Skip traces that can't be converted
-
-  return {
-    'traces': trace_list,
-    'next_page_token': None,
-  }
-
-
-@router.post('/search-traces', response_model=SearchTracesResponse)
-async def search_traces(request: SearchTracesRequest) -> SearchTracesResponse:
+@router.post('/search-traces')
+async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
   """Search for traces in MLflow experiments.
 
   Uses MLflow SDK since there's no direct API endpoint.
@@ -220,9 +173,17 @@ async def search_traces(request: SearchTracesRequest) -> SearchTracesResponse:
       order_by=request.order_by,
     )
 
-    # Convert to API format
-    result = _convert_traces_to_api_format(raw_traces, request.include_spans)
-    return SearchTracesResponse(**result)
+    # Convert traces to dict format and return directly
+    traces_list = [trace.to_dict() for trace in raw_traces]
+
+    # Add request/response previews
+    for trace, trace_dict in zip(raw_traces, traces_list):
+      request_preview, response_preview = _extract_request_response_preview(trace)
+      if 'info' in trace_dict:
+        trace_dict['info']['request_preview'] = request_preview
+        trace_dict['info']['response_preview'] = response_preview
+
+    return {'traces': traces_list, 'next_page_token': None}
   except Exception as e:
     raise MLflowError(str(e), operation='search_traces')
 
@@ -271,57 +232,27 @@ async def link_traces_to_run(request: LinkTracesToRunRequest) -> LinkTracesRespo
   )
 
 
-@router.get('/traces/{trace_id}', response_model=Trace)
-async def get_trace(trace_id: str, run_id: str = None) -> Trace:
+@router.get('/traces/{trace_id}')
+async def get_trace(trace_id: str) -> Dict[str, Any]:
   """Get trace information by ID.
 
   Args:
       trace_id: The trace ID
-      run_id: Optional run ID to help locate the trace
   """
-  import logging
-
-  logger = logging.getLogger(__name__)
-  logger.info(f'🔍 [API] get_trace called with trace_id={trace_id}, run_id={run_id}')
-
   try:
-    # If run_id is provided, search for the trace in that specific run first
-    if run_id:
-      logger.info(f'🔍 [API] Searching for trace {trace_id} in run {run_id}')
-      raw_traces = mlflow_search_traces(
-        experiment_ids=None,  # Will be inferred from run_id
-        run_id=run_id,
-        max_results=100,
-      )
-
-      # Find the specific trace in the results and convert to API format
-      for raw_trace in raw_traces:
-        if raw_trace.info.trace_id == trace_id:
-          logger.info(f'✅ [API] Found trace {trace_id} via search')
-          # Convert raw trace to API format
-          converted_trace = _convert_traces_to_api_format([raw_trace], include_spans=True)
-          return Trace(**converted_trace['traces'][0])
-
-      logger.warning(f'⚠️ [API] Trace {trace_id} not found in run {run_id} search results')
-
-    # Otherwise fall back to direct get_trace
-    logger.info(f'🔍 [API] Attempting direct get_trace for {trace_id}')
+    # Get the trace directly using MLflow
     raw_trace = mlflow_get_trace(trace_id)
 
-    # Convert raw trace to API format
-    converted_trace = _convert_traces_to_api_format([raw_trace], include_spans=True)
-    trace_data = converted_trace['traces'][0]
+    # Convert to dict and add previews
+    trace_dict = raw_trace.to_dict()
+    request_preview, response_preview = _extract_request_response_preview(raw_trace)
 
-    # Add the required trace_location field if missing
-    if 'trace_location' not in trace_data['info']:
-      trace_data['info']['trace_location'] = {
-        'experiment_id': raw_trace.info.experiment_id,
-        'run_id': run_id or '',
-      }
+    if 'info' in trace_dict:
+      trace_dict['info']['request_preview'] = request_preview
+      trace_dict['info']['response_preview'] = response_preview
 
-    return Trace(**trace_data)
-  except Exception as e:
-    logger.error(f'❌ [API] Failed to get trace {trace_id}: {str(e)}')
+    return trace_dict
+  except Exception:
     raise NotFoundError('Trace', trace_id)
 
 
@@ -333,28 +264,30 @@ async def get_trace_data(trace_id: str) -> Dict[str, Any]:
 
 @router.get('/traces/{trace_id}/metadata')
 async def get_trace_metadata(trace_id: str) -> Dict[str, Any]:
-  """Get trace metadata (info and spans without heavy inputs/outputs)."""
+  """Get trace metadata (info and spans without heavy inputs/outputs).
+
+  Note: This endpoint is currently unused in the UI but kept for API compatibility.
+  """
   try:
-    # Get the raw trace
+    # Get the raw trace and convert to dict
     raw_trace = mlflow_get_trace(trace_id)
+    trace_dict = raw_trace.to_dict()
 
-    # Convert to API format to get proper structure
-    converted_trace = _convert_traces_to_api_format([raw_trace], include_spans=True)
-    trace_data = converted_trace['traces'][0]
+    # Return just the info without heavy data
+    metadata = {'info': trace_dict.get('info', {}), 'spans': []}
 
-    # Extract metadata (remove heavy inputs/outputs from spans)
-    metadata = {'info': trace_data['info'], 'spans': []}
-
-    # Process spans to keep only name and type
-    for span in trace_data['data']['spans']:
-      span_metadata = {
-        'name': span['name'],
-        'type': span.get('attributes', {}).get('mlflow.spanType', span.get('span_type', 'UNKNOWN')),
-      }
-      metadata['spans'].append(span_metadata)
+    # Add lightweight span metadata if spans exist
+    if 'data' in trace_dict and 'spans' in trace_dict['data']:
+      for span in trace_dict['data']['spans']:
+        metadata['spans'].append(
+          {
+            'name': span.get('name', ''),
+            'span_id': span.get('span_id', ''),
+            'span_type': span.get('span_type', 'UNKNOWN'),
+          }
+        )
 
     return metadata
-
   except Exception as e:
     raise HTTPException(status_code=404, detail=str(e))
 

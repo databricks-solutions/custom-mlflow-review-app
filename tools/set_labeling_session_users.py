@@ -41,10 +41,10 @@ Examples:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('session_id', help='Labeling session ID to update')
   parser.add_argument(
     'users', nargs='*', help='Email addresses of users to assign (space-separated)'
@@ -58,10 +58,9 @@ Examples:
   try:
     # Resolve review app ID
     review_app_id, _ = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
-    
+
     # Get current session info to show before/after
     try:
       current_session = await get_labeling_session(

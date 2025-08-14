@@ -16,7 +16,6 @@ from server.utils.labeling_sessions_utils import (
   list_labeling_sessions,
 )
 from server.utils.mlflow_utils import get_trace
-from server.utils.review_apps_utils import review_apps_utils
 from tools.utils.review_app_resolver import resolve_review_app_id
 
 
@@ -242,15 +241,17 @@ async def get_trace_content(trace_id: str) -> Optional[Dict[str, Any]]:
   """
   try:
     raw_trace = get_trace(trace_id)
+    # Use built-in to_dict() for conversion
+    trace_dict = raw_trace.to_dict()
+
     # Convert to expected format for compatibility
+    trace_info = trace_dict.get('info', {})
     trace_data = {
       'info': {
-        'trace_id': raw_trace.info.trace_id,
-        'experiment_id': raw_trace.info.experiment_id,
+        'trace_id': trace_info.get('trace_id', trace_info.get('request_id', '')),
+        'experiment_id': trace_info.get('experiment_id', ''),
         'assessments': [],  # Will be populated if assessments exist
-        'execution_duration': f'{raw_trace.info.execution_time_ms}ms'
-        if raw_trace.info.execution_time_ms
-        else '0ms',
+        'execution_duration': f'{trace_info.get("execution_time_ms", 0)}ms',
       }
     }
 
@@ -803,10 +804,10 @@ async def main():
     description='Analyze labeling session results and provide statistical summaries'
   )
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('--session-id', help='Specific session ID to analyze (optional)')
   parser.add_argument('--session-name', help='Specific session name to analyze (optional)')
   parser.add_argument('--format', choices=['json', 'text'], default='text', help='Output format')
@@ -817,8 +818,7 @@ async def main():
   try:
     # Resolve review app ID and get review app to access schema definitions
     review_app_id, review_app = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
     all_schemas = review_app.get('labeling_schemas', []) if review_app else []
 
@@ -843,7 +843,9 @@ async def main():
       sessions_response = await list_labeling_sessions(
         review_app_id=review_app_id, filter_string=args.filter
       )
-      sessions_to_analyze = sessions_response.get('labeling_sessions', []) if sessions_response else []
+      sessions_to_analyze = (
+        sessions_response.get('labeling_sessions', []) if sessions_response else []
+      )
 
     if not sessions_to_analyze:
       print('❌ No sessions found to analyze', file=sys.stderr)

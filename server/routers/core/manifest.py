@@ -1,5 +1,6 @@
 """Unified manifest endpoint that returns all application state."""
 
+import asyncio
 import os
 
 from fastapi import APIRouter, HTTPException, Request
@@ -60,7 +61,10 @@ router = APIRouter()
 
 @router.get('/manifest', response_model=AppManifest)
 async def get_app_manifest(request: Request):
-  """Get complete application manifest including user, workspace, and config."""
+  """Get complete application manifest including user, workspace, and config.
+
+  Optimized to run independent API calls in parallel for better performance.
+  """
   try:
     # Check for test override email
     test_obo_email = os.getenv('TEST_OBO_EMAIL')
@@ -77,7 +81,39 @@ async def get_app_manifest(request: Request):
     # Debug: Check if we have the x-forwarded-access-token header
     has_forwarded_token = bool(request.headers.get('x-forwarded-access-token'))
 
-    # Build user info with test override if defined
+    # Prepare async tasks for parallel execution
+    tasks = []
+    task_names = []
+
+    # Task 1: Get user info (only if not OBO and no test override)
+    need_user_fetch = not test_obo_email and not (is_obo and obo_user_info)
+    if need_user_fetch:
+      # Create async wrapper for sync function
+      async def get_user_async():
+        return user_utils.get_current_user()
+
+      tasks.append(get_user_async())
+      task_names.append('user')
+
+    # Task 2: Get workspace info
+    async def get_workspace_async():
+      return user_utils.get_user_workspace_info()
+
+    tasks.append(get_workspace_async())
+    task_names.append('workspace')
+
+    # Task 3: Get review app (if experiment configured)
+    if config.experiment_id:
+      tasks.append(review_apps_utils.get_review_app_by_experiment(config.experiment_id))
+      task_names.append('review_app')
+
+    # Execute all tasks in parallel
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Map results back to named variables
+    result_map = dict(zip(task_names, results))
+
+    # Process user info
     if test_obo_email:
       # Use test override email
       user_info = UserInfo(
@@ -108,8 +144,10 @@ async def get_app_manifest(request: Request):
         can_access_dev_pages=is_dev,
       )
     else:
-      # Fall back to service principal info for non-OBO requests
-      databricks_user_info = user_utils.get_current_user()
+      # Use fetched user info
+      databricks_user_info = result_map.get('user')
+      if isinstance(databricks_user_info, Exception):
+        raise databricks_user_info
       user_info = UserInfo(
         userName=databricks_user_info['userName'],
         displayName=databricks_user_info['displayName'],
@@ -124,24 +162,24 @@ async def get_app_manifest(request: Request):
         can_access_dev_pages=is_dev,
       )
 
-    # Get workspace information
-    workspace_data = user_utils.get_user_workspace_info()
+    # Process workspace info
+    workspace_data = result_map.get('workspace')
+    if isinstance(workspace_data, Exception):
+      raise workspace_data
     workspace_info = WorkspaceInfo(
       url=workspace_data['workspace']['url'],
       deployment_name=workspace_data['workspace']['deployment_name'],
     )
 
-    # Get review app data if experiment is configured
+    # Process review app data
     review_app_id = None
     review_app_data = None
     if config.experiment_id:
-      try:
-        review_app_data = await review_apps_utils.get_review_app_by_experiment(config.experiment_id)
-        if review_app_data:
-          review_app_id = review_app_data.get('review_app_id')
-      except Exception:
-        # Silently fail if review app not found
-        pass
+      review_app_result = result_map.get('review_app')
+      if review_app_result and not isinstance(review_app_result, Exception):
+        review_app_data = review_app_result
+        review_app_id = review_app_data.get('review_app_id')
+      # Silently ignore review app errors
 
     # Get configuration
     config_info = ConfigInfo(

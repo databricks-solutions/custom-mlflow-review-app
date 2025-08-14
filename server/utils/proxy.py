@@ -4,12 +4,31 @@ import inspect
 import json
 import logging
 import time
+from functools import lru_cache
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urlparse
 
 from fastapi import HTTPException
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 from mlflow.utils.rest_utils import http_request_safe
+
+# Configure module logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+@lru_cache(maxsize=1)
+def get_cached_databricks_creds():
+  """Get Databricks credentials with caching.
+
+  This caches the credentials for the lifetime of the process,
+  avoiding repeated lookups of environment variables and config files.
+
+  Returns:
+      Databricks host credentials object
+  """
+  logger.info('🔐 [DATABRICKS] Loading credentials (this should only happen once)')
+  return get_databricks_host_creds()
 
 
 def fetch_databricks_sync(
@@ -59,11 +78,14 @@ def fetch_databricks_sync(
     logger.info(f'🔍 [DATABRICKS] Query params: {params}')
 
   try:
-    # Get Databricks credentials
+    # Get Databricks credentials (cached)
     creds_start = time.time()
-    creds = get_databricks_host_creds()
+    creds = get_cached_databricks_creds()
     creds_time = time.time() - creds_start
-    logger.info(f'🔐 [DATABRICKS] Credentials lookup: {creds_time * 1000:.1f}ms')
+    if creds_time > 0.001:  # Only log if it took more than 1ms (i.e., not cached)
+      logger.info(f'🔐 [DATABRICKS] Credentials lookup: {creds_time * 1000:.1f}ms (fresh load)')
+    else:
+      logger.debug(f'🔐 [DATABRICKS] Credentials lookup: {creds_time * 1000:.1f}ms (cached)')
 
     # Build endpoint with params
     endpoint = parsed_url.path

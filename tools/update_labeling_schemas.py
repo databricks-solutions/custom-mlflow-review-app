@@ -45,10 +45,10 @@ Examples:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('schema_name', help='Name of the schema to update')
 
   # Update options
@@ -73,8 +73,7 @@ Examples:
   try:
     # Resolve review app ID and get current review app and schemas
     review_app_id, review_app = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
     current_schemas = review_app.get('labeling_schemas', [])
 

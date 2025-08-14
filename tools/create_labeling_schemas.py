@@ -8,7 +8,7 @@ import sys
 from typing import Any, Dict, List
 
 from server.utils.review_apps_utils import review_apps_utils
-from tools.utils.review_app_resolver import resolve_review_app_id, add_review_app_args
+from tools.utils.review_app_resolver import resolve_review_app_id
 
 
 def create_numeric_schema(
@@ -89,10 +89,10 @@ Examples:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
 
   # Schema creation options
   schema_group = parser.add_mutually_exclusive_group(required=True)
@@ -157,8 +157,7 @@ Examples:
   try:
     # Resolve review app ID
     review_app_id, current_app = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
     current_schemas = current_app.get('labeling_schemas', [])
     current_schema_names = {schema['name'] for schema in current_schemas}

@@ -11,6 +11,9 @@ export class LabelingItemsService {
     /**
      * List Items
      * List items in a labeling session.
+     *
+     * Returns only item state data without trace content.
+     * UI should fetch trace data separately via /search-traces endpoint.
      * @param labelingSessionId
      * @param filter Filter string (e.g., state=PENDING)
      * @param pageSize

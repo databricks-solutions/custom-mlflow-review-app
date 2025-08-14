@@ -36,10 +36,10 @@ Examples:
   )
 
   # For backwards compatibility, keep positional argument but make it optional
-  parser.add_argument('review_app_id', nargs='?', 
-                      help='Review app ID (optional, defaults to current experiment)')
-  parser.add_argument('--experiment-id', 
-                      help='Experiment ID (defaults to config experiment_id)')
+  parser.add_argument(
+    'review_app_id', nargs='?', help='Review app ID (optional, defaults to current experiment)'
+  )
+  parser.add_argument('--experiment-id', help='Experiment ID (defaults to config experiment_id)')
   parser.add_argument('session_id', nargs='?', help='Labeling session ID to delete')
   parser.add_argument('--name', help='Delete session by name (alternative to session_id)')
   parser.add_argument(
@@ -61,10 +61,9 @@ Examples:
   try:
     # Resolve review app ID
     review_app_id, _ = await resolve_review_app_id(
-      review_app_id=args.review_app_id,
-      experiment_id=args.experiment_id
+      review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
-    
+
     session_to_delete = None
 
     if args.session_id:

@@ -310,6 +310,15 @@ export function useSearchTraces(params: Record<string, unknown>, enabled = true)
   });
 }
 
+export function useSessionTraces(sessionId: string, runId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.traces.search({ run_id: runId }),
+    queryFn: () => apiClient.api.searchTraces({ run_id: runId, max_results: 500 }),
+    enabled: enabled && !!runId && !!sessionId,
+    staleTime: 30 * 1000, // Cache for 30 seconds
+  });
+}
+
 export function useTrace(traceId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.traces.detail(traceId),

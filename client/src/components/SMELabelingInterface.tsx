@@ -1,22 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { LoadingState } from "@/components/LoadingState";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useAppManifest,
   useLabelingSession,
   useLabelingItems,
   useUpdateLabelingItem,
-  useTrace,
+  useSessionTraces,
   useRendererName,
   useLabelSchemas,
   useCurrentUser,
-  queryKeys,
 } from "@/hooks/api-hooks";
-import { apiClient } from "@/lib/api-client";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
 import { TraceData, Assessment, SchemaAssessments, LabelingSchema } from "@/types/renderers";
 import { combineSchemaWithAssessments, filterByType } from "@/utils/schema-assessment-utils";
@@ -32,15 +29,14 @@ export function SMELabelingInterface({
   sessionId,
   hideNavigation = false,
   initialTraceId,
-  reviewAppId,
 }: SMELabelingInterfaceProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient();
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
   const [assessments, setAssessments] = useState<Map<string, Assessment>>(new Map());
   const [hasInitialized, setHasInitialized] = useState(false);
   const [hasAutoCompleted, setHasAutoCompleted] = useState(false);
+  const pendingUpdateRef = useRef<string | null>(null);
 
   // Data fetching - get review app from manifest
   const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
@@ -54,7 +50,7 @@ export function SMELabelingInterface({
   // Fetch all available schemas to match with session references
   const { data: allSchemas } = useLabelSchemas();
 
-  // Load items immediately for SME mode
+  // Load items immediately for SME mode (for state tracking)
   const { data: itemsData, isLoading: isLoadingItems } = useLabelingItems(
     reviewApp?.review_app_id || "",
     sessionId,
@@ -63,10 +59,19 @@ export function SMELabelingInterface({
 
   const items = itemsData?.items || [];
   
+  // Fetch all traces for the session (for content and assessments)
+  const { data: tracesData } = useSessionTraces(
+    sessionId,
+    session?.mlflow_run_id,
+    !!sessionId && !!session?.mlflow_run_id
+  );
+  
   // Initialize from URL trace parameter if provided
   useEffect(() => {
     if (!hasInitialized && items.length > 0 && initialTraceId) {
-      const traceIndex = items.findIndex(item => item.source?.trace_id === initialTraceId);
+      const traceIndex = items.findIndex(item => 
+        item.source && 'trace_id' in item.source && item.source.trace_id === initialTraceId
+      );
       if (traceIndex !== -1) {
         setCurrentItemIndex(traceIndex);
       }
@@ -74,7 +79,7 @@ export function SMELabelingInterface({
     } else if (!hasInitialized && items.length > 0) {
       // If no initial trace specified, set the first item's trace in URL
       const firstItem = items[0];
-      if (firstItem?.source?.trace_id) {
+      if (firstItem?.source && 'trace_id' in firstItem.source) {
         const newParams = new URLSearchParams(searchParams);
         newParams.set('trace', firstItem.source.trace_id);
         setSearchParams(newParams, { replace: true });
@@ -84,37 +89,20 @@ export function SMELabelingInterface({
   }, [items, initialTraceId, hasInitialized, searchParams, setSearchParams]);
   
   const currentItem = items[currentItemIndex];
-  const nextItem = items[currentItemIndex + 1];
-
-  const { data: traceSummary, isLoading: isLoadingTrace } = useTrace(
-    (currentItem?.source && "trace_id" in currentItem.source
-      ? currentItem.source.trace_id
-      : null) || "",
-    !!(currentItem?.source && "trace_id" in currentItem.source ? currentItem.source.trace_id : null)
+  
+  // Get the current trace from the session traces
+  const currentTraceId = currentItem?.source && 'trace_id' in currentItem.source 
+    ? currentItem.source.trace_id 
+    : undefined;
+  const traceSummary = tracesData?.traces?.find(
+    (trace: any) => trace.info.trace_id === currentTraceId
   );
+  const isLoadingTrace = !tracesData && !!currentTraceId;
 
   const updateItemMutation = useUpdateLabelingItem();
 
-  // Prefetch next item's trace data - only after current item has loaded
-  useEffect(() => {
-    // Only prefetch if:
-    // 1. Current trace has finished loading
-    // 2. Next item exists and has a trace_id
-    // 3. We have a valid trace summary for current item
-    if (
-      !isLoadingTrace &&
-      traceSummary &&
-      nextItem?.source?.trace_id &&
-      "trace_id" in nextItem.source
-    ) {
-      console.log(`[PREFETCH] Starting prefetch for next trace: ${nextItem.source.trace_id}`);
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.traces.detail(nextItem.source.trace_id),
-        queryFn: () => apiClient.api.getTrace({ traceId: nextItem.source.trace_id }),
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      });
-    }
-  }, [isLoadingTrace, traceSummary, nextItem?.source?.trace_id, queryClient]);
+  // No need for prefetching since we already have all traces loaded
+  // The useSessionTraces hook loads all traces at once
 
   // Get renderer name from MLflow run tags
   const rendererQuery = useRendererName(session?.mlflow_run_id || "", !!session?.mlflow_run_id);
@@ -124,7 +112,7 @@ export function SMELabelingInterface({
   const RendererComponent = getRendererComponent(rendererName);
 
   // Pass the update mutation to the renderer for auto-save
-  const handleUpdateItem = (
+  const handleUpdateItem = useCallback((
     itemId: string,
     updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }
   ) => {
@@ -155,13 +143,13 @@ export function SMELabelingInterface({
       item: itemData,
       updateMask: updateFields.join(","),
     });
-  };
+  }, [reviewApp?.review_app_id, sessionId, updateItemMutation]);
 
   const handleNavigateToIndex = (index: number) => {
     setCurrentItemIndex(index);
     // Update URL with the new trace ID
     const newItem = items[index];
-    if (newItem?.source?.trace_id) {
+    if (newItem?.source && 'trace_id' in newItem.source) {
       const newParams = new URLSearchParams(searchParams);
       newParams.set('trace', newItem.source.trace_id);
       setSearchParams(newParams, { replace: true });
@@ -197,9 +185,6 @@ export function SMELabelingInterface({
       identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
     );
   };
-
-  // Track the current trace ID to detect changes
-  const currentTraceId = currentItem?.source?.trace_id;
   
   // Load assessments from trace data when trace changes
   useEffect(() => {
@@ -241,9 +226,16 @@ export function SMELabelingInterface({
     // Always set assessments, even if empty, to clear any previous values
     // This clears both remote assessments AND local changes when trace changes
     setAssessments(assessmentMap);
-    // Reset auto-completed flag when trace changes
+    // Reset auto-completed flag and pending update when trace changes
     setHasAutoCompleted(false);
+    pendingUpdateRef.current = null;
   }, [traceSummary, currentUser, currentTraceId]);
+
+  // Reset auto-completed flag when item changes
+  useEffect(() => {
+    setHasAutoCompleted(false);
+    pendingUpdateRef.current = null;
+  }, [currentItem?.item_id]);
 
   // Check if all required assessments are complete and auto-update state
   useEffect(() => {
@@ -284,15 +276,24 @@ export function SMELabelingInterface({
 
     // If all assessments are complete, update the item state to COMPLETED
     if (allAssessmentsComplete && sessionSchemas.length > 0) {
+      // Check if we're already updating this item
+      if (pendingUpdateRef.current === currentItem.item_id) {
+        console.log(`[SME] Already updating item ${currentItem.item_id}, skipping duplicate`);
+        return;
+      }
+      
       console.log(`[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`);
       
-      // Set flag to prevent multiple updates
+      // Set flags to prevent multiple updates
       setHasAutoCompleted(true);
+      pendingUpdateRef.current = currentItem.item_id;
       
       // Update the item state to COMPLETED
       handleUpdateItem(currentItem.item_id, { state: "COMPLETED" })
         .then(() => {
           console.log(`[SME] Successfully auto-marked item ${currentItem.item_id} as COMPLETED`);
+          // Clear the pending update ref
+          pendingUpdateRef.current = null;
           // Update the local items array to reflect the new state
           const updatedItems = [...items];
           updatedItems[currentItemIndex] = { ...currentItem, state: "COMPLETED" };
@@ -300,7 +301,8 @@ export function SMELabelingInterface({
         })
         .catch((error) => {
           console.error(`[SME] Failed to auto-mark item as COMPLETED:`, error);
-          // Reset the flag on error so it can be retried
+          // Clear the pending update ref and reset the flag on error so it can be retried
+          pendingUpdateRef.current = null;
           setHasAutoCompleted(false);
         });
     }

@@ -71,9 +71,9 @@ class ReportGenerator:
 
     return f"""# 🔬 Experiment Analysis Report
 
-**Experiment:** {exp_info['name']} (ID: {exp_info['experiment_id']})
-**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-**Analysis Method:** Open-Ended Chain-of-Thought Discovery
+**Experiment:** {exp_info['name']} (ID: {exp_info['experiment_id']})  
+**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**Analysis Method:** Open-Ended Chain-of-Thought Discovery  
 **Traces Analyzed:** {experiment_data['total_traces']}"""
 
   def _generate_executive_summary(

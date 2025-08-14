@@ -32,11 +32,14 @@ class SMEInsightDiscovery:
     self.logger = logging.getLogger(__name__)
 
   def compute_label_distributions(
-    self, items: List[Dict[str, Any]], schemas: List[Dict[str, Any]], traces: List[Dict[str, Any]] = None
+    self,
+    items: List[Dict[str, Any]],
+    schemas: List[Dict[str, Any]],
+    traces: List[Dict[str, Any]] = None,
   ) -> Dict[str, Any]:
     """Compute simple label distributions for each schema."""
     distributions = {}
-    
+
     # Build trace map for quick lookup
     trace_map = {}
     if traces:
@@ -44,12 +47,12 @@ class SMEInsightDiscovery:
         trace_id = trace.get('info', {}).get('trace_id')
         if trace_id:
           trace_map[trace_id] = trace
-    
+
     for schema in schemas:
       schema_key = schema.get('key') or schema.get('name')  # Use name if key not available
       schema_type = schema.get('schema_type', 'categorical')
       schema_name = schema.get('name', schema_key)
-      
+
       # Collect all labels for this schema from completed items' traces
       labels = []
       for item in items:
@@ -65,16 +68,16 @@ class SMEInsightDiscovery:
                 if value is not None:
                   labels.append(value)
                 break
-      
+
       if not labels:
         distributions[schema_key] = {
           'name': schema_name,
           'type': schema_type,
           'total': 0,
-          'summary': 'No assessments yet'
+          'summary': 'No assessments yet',
         }
         continue
-      
+
       if schema_type == 'categorical':
         # Count each category
         counts = Counter(labels)
@@ -84,12 +87,12 @@ class SMEInsightDiscovery:
           'type': 'categorical',
           'total': total,
           'distribution': {
-            cat: {'count': count, 'percentage': round(count/total * 100, 1)}
+            cat: {'count': count, 'percentage': round(count / total * 100, 1)}
             for cat, count in counts.items()
           },
-          'summary': f"{counts.most_common(1)[0][0]}: {counts.most_common(1)[0][1]}/{total}"
+          'summary': f'{counts.most_common(1)[0][0]}: {counts.most_common(1)[0][1]}/{total}',
         }
-        
+
       elif schema_type == 'numerical':
         # Compute basic stats
         numeric_labels = [float(l) for l in labels]
@@ -101,17 +104,17 @@ class SMEInsightDiscovery:
           'median': round(median(numeric_labels), 2),
           'min': min(numeric_labels),
           'max': max(numeric_labels),
-          'summary': f"Avg: {round(mean(numeric_labels), 1)} (n={len(numeric_labels)})"
+          'summary': f'Avg: {round(mean(numeric_labels), 1)} (n={len(numeric_labels)})',
         }
-        
+
       elif schema_type == 'text':
         distributions[schema_key] = {
           'name': schema_name,
           'type': 'text',
           'total': len(labels),
-          'summary': f"{len(labels)} text responses"
+          'summary': f'{len(labels)} text responses',
         }
-    
+
     return distributions
 
   async def discover_insights(
@@ -174,7 +177,7 @@ class SMEInsightDiscovery:
     """Generate brief 1-paragraph context summary."""
     # Prepare concise schema list
     schema_names = [f"{s.get('name')} ({s.get('schema_type')})" for s in schemas[:5]]
-    
+
     # Pass ALL traces for complete context
     prompt = f"""
 Based on the following evaluation setup, write ONE concise paragraph (2-3 sentences max) describing what is being evaluated:
@@ -195,7 +198,11 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
 
     # Extract content from the response structure
     if 'choices' in response and response['choices']:
-      return response['choices'][0].get('message', {}).get('content', 'Evaluation of agent interactions.')
+      return (
+        response['choices'][0]
+        .get('message', {})
+        .get('content', 'Evaluation of agent interactions.')
+      )
     elif 'predictions' in response and response['predictions']:
       return str(response['predictions'][0])
     else:
@@ -217,26 +224,26 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
         trace_id = trace.get('info', {}).get('trace_id')
         if trace_id:
           trace_map[trace_id] = trace
-    
+
     # Get completed items with their traces for pattern analysis
     completed_items = []
     negative_examples = []
     all_text_feedback = []  # Collect ALL text feedback
-    
+
     for item in items:
       if item.get('state') == 'COMPLETED':
         completed_items.append(item)
         trace_id = item.get('source', {}).get('trace_id')
-        
+
         # Get the FULL trace data for this item
         full_trace = trace_map.get(trace_id) if trace_id else None
-        
+
         if not full_trace:
           continue
-          
+
         # Get assessments from trace
         trace_assessments = full_trace.get('info', {}).get('assessments', [])
-        
+
         # Find any associated text feedback from assessments
         text_comment = None
         for assessment in trace_assessments:
@@ -244,18 +251,20 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
           if assessment.get('rationale'):
             text_comment = assessment['rationale']
             all_text_feedback.append(text_comment)
-        
+
         # Collect negative/low scoring examples WITH their comments AND trace data
         for assessment in trace_assessments:
           assessment_name = assessment.get('name', '')
           assessment_value = assessment.get('value')
           assessment_rationale = assessment.get('rationale', '')
-          
+
           # Find matching schema
-          schema = next((s for s in schemas if s.get('name', '').lower() == assessment_name.lower()), None)
+          schema = next(
+            (s for s in schemas if s.get('name', '').lower() == assessment_name.lower()), None
+          )
           schema_key = schema.get('name') if schema else assessment_name
           dist = label_distributions.get(schema_key, {})
-          
+
           # Handle both boolean False and string variations
           is_negative = False
           if dist.get('type') == 'categorical':
@@ -266,15 +275,18 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
               is_negative = assessment_value == 0
             elif isinstance(assessment_value, str):
               is_negative = assessment_value.lower() in ['false', 'no', 'incorrect']
-          
+
           if is_negative:
-            negative_examples.append({
-              'trace_id': trace_id,
-              'schema': schema_key,
-              'value': assessment_value,
-              'comment': assessment_rationale or text_comment,  # Use rationale or collected comment
-              'trace_data': full_trace  # Include FULL trace data!
-            })
+            negative_examples.append(
+              {
+                'trace_id': trace_id,
+                'schema': schema_key,
+                'value': assessment_value,
+                'comment': assessment_rationale
+                or text_comment,  # Use rationale or collected comment
+                'trace_data': full_trace,  # Include FULL trace data!
+              }
+            )
           elif dist.get('type') == 'numerical' and isinstance(assessment_value, (int, float)):
             # Use schema bounds to determine what's "low"
             if schema:
@@ -283,54 +295,59 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
               # Consider low if in bottom 40% of range
               threshold = min_val + (max_val - min_val) * 0.4
               if assessment_value <= threshold:
-                negative_examples.append({
-                  'trace_id': trace_id,
-                  'schema': schema_key,
-                  'value': assessment_value,
-                  'comment': assessment_rationale or text_comment,  # Use rationale or collected comment
-                  'trace_data': full_trace  # Include FULL trace data!
-                })
-    
+                negative_examples.append(
+                  {
+                    'trace_id': trace_id,
+                    'schema': schema_key,
+                    'value': assessment_value,
+                    'comment': assessment_rationale
+                    or text_comment,  # Use rationale or collected comment
+                    'trace_data': full_trace,  # Include FULL trace data!
+                  }
+                )
+
     if not completed_items:
       return {
         'main_pattern': 'No completed assessments yet',
-        'key_findings': ['Awaiting SME evaluations']
+        'key_findings': ['Awaiting SME evaluations'],
       }
-    
+
     # Build comprehensive assessment data without bias
     assessment_data = []
     for item in completed_items:
       trace_id = item.get('source', {}).get('trace_id')
       trace_data = trace_map.get(trace_id, {})
-      
+
       # Create assessment record
       assessment_record = {
         'trace_id': trace_id,
         'trace_request': trace_data.get('data', {}).get('request', '') if trace_data else '',
-        'trace_response': trace_data.get('data', {}).get('response', '')[:500] if trace_data else '',  # Limit response length
-        'assessments': {}
+        'trace_response': trace_data.get('data', {}).get('response', '')[:500]
+        if trace_data
+        else '',  # Limit response length
+        'assessments': {},
       }
-      
+
       # Get assessments from trace data (MLflow assessments)
       trace_assessments = trace_data.get('info', {}).get('assessments', []) if trace_data else []
-      
+
       # Convert assessments to a dict for easier lookup
       assessments_dict = {}
       for assessment in trace_assessments:
         if assessment.get('name'):
           assessments_dict[assessment['name'].lower()] = assessment
-      
+
       # Add all assessments for this trace based on schemas
       for schema in schemas:
         schema_name = schema.get('name')
-        
+
         # Try to find assessment with case-insensitive match
         assessment = None
         for name, assess in assessments_dict.items():
           if name == (schema_name or '').lower():
             assessment = assess
             break
-        
+
         if assessment:
           # Use assessment data from MLflow
           assessment_record['assessments'][schema_name] = {
@@ -338,11 +355,11 @@ Keep it to 2-3 sentences maximum. Be specific and factual.
             'type': schema.get('schema_type', 'categorical'),
             'value': assessment.get('value'),
             'comment': assessment.get('rationale', ''),  # Use rationale as comment
-            'possible_values': self._get_schema_possible_values(schema)
+            'possible_values': self._get_schema_possible_values(schema),
           }
-      
+
       assessment_data.append(assessment_record)
-    
+
     # Prepare unbiased prompt for pattern analysis
     prompt = f"""
 Analyze the following assessment data to identify patterns:
@@ -388,11 +405,13 @@ Be objective and descriptive. Focus on patterns without judging them.
       # Extract JSON from markdown code blocks if present
       if '```json' in content:
         import re
+
         json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
       elif '```' in content:
         import re
+
         json_match = re.search(r'```\s*(.*?)\s*```', content, re.DOTALL)
         if json_match:
           content = json_match.group(1)
@@ -402,7 +421,7 @@ Be objective and descriptive. Focus on patterns without judging them.
       self.logger.error('Failed to parse assessment patterns')
       return {
         'main_pattern': 'Analysis in progress',
-        'key_findings': ['Pattern analysis unavailable']
+        'key_findings': ['Pattern analysis unavailable'],
       }
 
   def _get_schema_possible_values(self, schema: Dict[str, Any]) -> Any:
@@ -411,10 +430,7 @@ Be objective and descriptive. Focus on patterns without judging them.
       return schema.get('categories', [])
     elif schema.get('schema_type') == 'numeric':
       numeric_config = schema.get('numeric', {})
-      return {
-        'min': numeric_config.get('min_value', 0),
-        'max': numeric_config.get('max_value', 10)
-      }
+      return {'min': numeric_config.get('min_value', 0), 'max': numeric_config.get('max_value', 10)}
     elif schema.get('schema_type') == 'text':
       return 'free text'
     return None
@@ -427,8 +443,8 @@ Be objective and descriptive. Focus on patterns without judging them.
   ) -> List[str]:
     """Generate 3-5 concise, actionable recommendations."""
     if completed_count == 0:
-      return ["Complete initial assessments to generate recommendations"]
-    
+      return ['Complete initial assessments to generate recommendations']
+
     prompt = f"""
 Based on the assessment patterns, generate 3-5 CONCISE recommendations:
 
@@ -467,14 +483,15 @@ Example format:
       # Extract JSON array
       if '[' in content:
         import re
+
         # Find the JSON array
         match = re.search(r'\[.*?\]', content, re.DOTALL)
         if match:
           content = match.group(0)
-      
+
       return json.loads(content)
     except:
-      return ["Review assessment patterns for improvement opportunities"]
+      return ['Review assessment patterns for improvement opportunities']
 
   def _analyze_trace_label_meanings(
     self,
@@ -975,9 +992,7 @@ class ActionableReportGenerator:
 
     return '\n\n'.join(filter(None, report_sections))
 
-  def _generate_header(
-    self, session_data: Dict[str, Any], metrics: Dict[str, Any]
-  ) -> str:
+  def _generate_header(self, session_data: Dict[str, Any], metrics: Dict[str, Any]) -> str:
     """Generate concise report header."""
     session = session_data.get('session', {})
     return f"""# Labeling Session Analysis: {session.get('name', 'Unknown')}
@@ -992,11 +1007,11 @@ class ActionableReportGenerator:
   def _generate_distributions(self, insights: Dict[str, Any]) -> str:
     """Generate label distribution section."""
     distributions = insights.get('label_distributions', {})
-    
+
     if not distributions:
-      return ""
-    
-    lines = ["## Label Distributions"]
+      return ''
+
+    lines = ['## Label Distributions']
     for key, dist in distributions.items():
       if dist.get('total', 0) > 0:
         lines.append(f"- **{dist['name']}**: {dist['summary']}")
@@ -1004,60 +1019,60 @@ class ActionableReportGenerator:
         if dist.get('type') == 'categorical' and 'distribution' in dist:
           for cat, data in dist['distribution'].items():
             lines.append(f"  - {cat}: {data['count']} ({data['percentage']}%)")
-    
-    return '\n'.join(lines) if len(lines) > 1 else ""
+
+    return '\n'.join(lines) if len(lines) > 1 else ''
 
   def _generate_patterns(self, insights: Dict[str, Any]) -> str:
     """Generate pattern analysis section."""
     patterns = insights.get('assessment_patterns', {})
-    
+
     if not patterns:
-      return ""
-    
-    lines = ["## Pattern Analysis"]
-    
+      return ''
+
+    lines = ['## Pattern Analysis']
+
     # Main pattern
     if patterns.get('main_pattern'):
       lines.append(f"**Main Pattern:** {patterns['main_pattern']}")
-    
+
     # Assessment trends
     if patterns.get('assessment_trends'):
-      lines.append("\n**Assessment Trends:**")
+      lines.append('\n**Assessment Trends:**')
       for trend in patterns['assessment_trends'][:5]:
-        lines.append(f"- {trend}")
-    
+        lines.append(f'- {trend}')
+
     # Correlations
     if patterns.get('correlations'):
-      lines.append("\n**Correlations:**")
+      lines.append('\n**Correlations:**')
       for correlation in patterns['correlations'][:3]:
-        lines.append(f"- {correlation}")
-    
+        lines.append(f'- {correlation}')
+
     # Key findings
     if patterns.get('key_findings'):
-      lines.append("\n**Key Findings:**")
+      lines.append('\n**Key Findings:**')
       for finding in patterns['key_findings'][:5]:
-        lines.append(f"- {finding}")
-    
+        lines.append(f'- {finding}')
+
     # Legacy support for negative_reasons if present
     if patterns.get('negative_reasons'):
-      lines.append("\n**Issues Identified:**")
+      lines.append('\n**Issues Identified:**')
       for reason in patterns['negative_reasons'][:3]:
-        lines.append(f"- {reason}")
-    
-    return '\n'.join(lines) if len(lines) > 1 else ""
+        lines.append(f'- {reason}')
+
+    return '\n'.join(lines) if len(lines) > 1 else ''
 
   def _generate_actions(self, insights: Dict[str, Any]) -> str:
     """Generate key actions section."""
     recommendations = insights.get('recommendations', [])
-    
+
     if not recommendations:
-      return ""
-    
-    lines = ["## Key Actions"]
+      return ''
+
+    lines = ['## Key Actions']
     for i, rec in enumerate(recommendations[:5], 1):
-      lines.append(f"{i}. {rec}")
-    
-    return '\n'.join(lines) if len(lines) > 1 else ""
+      lines.append(f'{i}. {rec}')
+
+    return '\n'.join(lines) if len(lines) > 1 else ''
 
   def _generate_trace_analysis(self, insights: Dict[str, Any]) -> str:
     """Generate trace analysis section from insights."""
@@ -1371,8 +1386,7 @@ class LabelingSessionAnalyzer:
         # Match by name (case-insensitive) since session schemas only have name field
         session_schema_names = {s.get('name', '').lower() for s in session_schemas if s.get('name')}
         self.schemas = [
-          s for s in review_app_schemas 
-          if s.get('name', '').lower() in session_schema_names
+          s for s in review_app_schemas if s.get('name', '').lower() in session_schema_names
         ]
         self.logger.info(
           f'Using {len(self.schemas)} schemas specified in session from {len(review_app_schemas)} available'
@@ -1407,15 +1421,17 @@ class LabelingSessionAnalyzer:
   def compute_schema_statistics(self) -> Dict[str, Any]:
     """Compute statistics for each schema."""
     schema_stats = {}
-    
+
     # Build a map from trace_id to trace data for quick lookup
     trace_map = {}
     for trace in self.traces:
       trace_id = trace.get('info', {}).get('trace_id')
       if trace_id:
         trace_map[trace_id] = trace
-    
-    self.logger.info(f'Computing statistics for {len(self.schemas)} schemas using {len(trace_map)} traces')
+
+    self.logger.info(
+      f'Computing statistics for {len(self.schemas)} schemas using {len(trace_map)} traces'
+    )
 
     for schema in self.schemas:
       schema_key = schema.get('key', 'unknown')
@@ -1654,7 +1670,9 @@ async def load_session_traces(
               'assessments': [
                 {'name': a.name, 'value': a.value, 'rationale': getattr(a, 'rationale', None)}
                 for a in getattr(trace.info, 'assessments', [])
-              ] if hasattr(trace.info, 'assessments') else [],
+              ]
+              if hasattr(trace.info, 'assessments')
+              else [],
             },
             'data': {
               'request': getattr(trace.data, 'request', None),
@@ -1708,7 +1726,9 @@ async def load_session_traces(
               'assessments': [
                 {'name': a.name, 'value': a.value, 'rationale': getattr(a, 'rationale', None)}
                 for a in getattr(trace.info, 'assessments', [])
-              ] if hasattr(trace.info, 'assessments') else [],
+              ]
+              if hasattr(trace.info, 'assessments')
+              else [],
             },
             'data': {
               'request': getattr(trace.data, 'request', None),
@@ -1746,7 +1766,9 @@ async def load_session_traces(
               'assessments': [
                 {'name': a.name, 'value': a.value, 'rationale': getattr(a, 'rationale', None)}
                 for a in getattr(trace.info, 'assessments', [])
-              ] if hasattr(trace.info, 'assessments') else [],
+              ]
+              if hasattr(trace.info, 'assessments')
+              else [],
             },
             'data': {
               'request': getattr(trace.data, 'request', None),
@@ -1800,7 +1822,7 @@ async def analyze_labeling_session_complete(
 
   # Load ALL traces for comprehensive analysis BEFORE computing statistics
   traces = await load_session_traces(session_data['session'], analyzer.items)
-  
+
   # Pass traces to analyzer so it can extract assessments
   analyzer.traces = traces
 
