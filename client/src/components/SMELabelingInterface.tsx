@@ -195,28 +195,67 @@ export function SMELabelingInterface({
     console.log(`[SME] Loading assessments for trace: ${currentTraceId}`);
     
     if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
+      // Work with MLflow's native assessment structure
       // Filter assessments to only include those created by the current user
-      const userAssessments = traceSummary.info.assessments.filter(assessment => {
-        return isCurrentUserAssessment(assessment);
+      const userAssessments = traceSummary.info.assessments.filter((mlflowAssessment: any) => {
+        // Check if assessment belongs to current user using MLflow's source structure
+        if (!currentUser?.userName && !currentUser?.emails?.[0]) {
+          return false;
+        }
+        
+        const userIdentifiers = [
+          currentUser.userName,
+          ...(currentUser.emails || [])
+        ].filter(Boolean);
+        
+        if (!mlflowAssessment.source) {
+          return false;
+        }
+        
+        let sourceString = '';
+        if (typeof mlflowAssessment.source === 'string') {
+          sourceString = mlflowAssessment.source;
+        } else if (mlflowAssessment.source?.source_id) {
+          sourceString = mlflowAssessment.source.source_id;
+        }
+        
+        return userIdentifiers.some(identifier => 
+          identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
+        );
       });
       
       console.log(`[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`);
       
       // Group user assessments by name and type, keeping only the latest one
-      const latestAssessments = new Map<string, Assessment>();
+      const latestAssessments = new Map<string, any>();
       
-      for (const assessment of userAssessments) {
-        const key = `${assessment.name}_${assessment.type}`;
+      for (const mlflowAssessment of userAssessments) {
+        // Use MLflow's assessment_name field
+        const assessmentName = mlflowAssessment.assessment_name;
+        const assessmentType = mlflowAssessment.feedback ? 'feedback' : 'expectation';
+        const key = `${assessmentName}_${assessmentType}`;
         const existing = latestAssessments.get(key);
         
-        // Keep the latest assessment (you could also compare timestamps if available)
-        if (!existing || (assessment.assessment_id && (!existing.assessment_id || assessment.assessment_id > existing.assessment_id))) {
-          latestAssessments.set(key, assessment);
+        // Keep the latest assessment (compare by assessment_id or timestamp)
+        if (!existing || 
+            (mlflowAssessment.assessment_id && (!existing.assessment_id || mlflowAssessment.assessment_id > existing.assessment_id))) {
+          latestAssessments.set(key, mlflowAssessment);
         }
       }
       
-      // Now map by name only (since schema name is unique)
-      for (const assessment of latestAssessments.values()) {
+      // Transform to our internal format for the UI components
+      // This transformation happens ONLY in the UI layer, not in the API
+      for (const mlflowAssessment of latestAssessments.values()) {
+        const assessment: Assessment = {
+          assessment_id: mlflowAssessment.assessment_id,
+          name: mlflowAssessment.assessment_name, // Map assessment_name to name for UI
+          value: mlflowAssessment.feedback?.value ?? mlflowAssessment.expectation?.value,
+          type: mlflowAssessment.feedback ? 'feedback' : 'expectation',
+          rationale: mlflowAssessment.metadata?.rationale, // Rationale is in metadata for both
+          metadata: mlflowAssessment.metadata,
+          source: mlflowAssessment.source,
+          timestamp: mlflowAssessment.create_time,
+        };
         assessmentMap.set(assessment.name, assessment);
       }
     } else {
