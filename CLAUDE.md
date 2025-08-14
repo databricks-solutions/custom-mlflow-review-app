@@ -31,11 +31,10 @@ This will:
 - Set up labeling sessions with appropriate filters
 
 #### Option B: Manual Customization
-1. **Update experiment in config.yaml**:
-   ```yaml
-   mlflow:
-     experiment_id: 'your_experiment_id'
-   sme_thank_you_message: "Custom thank you message"
+1. **Update experiment in .env.local**:
+   ```bash
+   MLFLOW_EXPERIMENT_ID='your_experiment_id'
+   SME_THANK_YOU_MESSAGE="Custom thank you message"
    ```
 
 2. **Create custom labeling schemas**:
@@ -572,8 +571,8 @@ export const AnalyticsRenderer: ItemRenderer = {
 ## Key Files Reference
 
 ### Configuration
-- `config.yaml` - MLflow experiment and app settings
-- `.env.local` - Environment variables (git-ignored)
+- `.env` - Default environment variables (checked into git)
+- `.env.local` - Local environment variables (git-ignored, overrides .env)
 - `app.yaml` - Databricks Apps deployment config
 
 ### Backend
