@@ -13,12 +13,10 @@ Build custom [review apps](https://docs.databricks.com/aws/en/mlflow3/genai/huma
 
 ### Prerequisites
 
-```bash
-# Install required tools
-curl -LsSf https://astral.sh/uv/install.sh | sh  # Python package manager
-curl -fsSL https://bun.sh/install | bash          # JavaScript package manager
-brew install databricks                           # Databricks CLI
-```
+The setup script checks for required tools and handles installation:
+- **uv** - Python package manager (prompts to install if missing)
+- **Databricks CLI** - Workspace integration (auto-installs via brew if missing)
+- **bun** - JavaScript package manager (optional, uses npm as fallback)
 
 ### Choose Your Path
 
