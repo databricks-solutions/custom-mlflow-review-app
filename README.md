@@ -11,12 +11,7 @@ Build custom [review apps](https://docs.databricks.com/aws/en/mlflow3/genai/huma
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-The setup script checks for required tools and handles installation:
-- **uv** - Python package manager (prompts to install if missing)
-- **Databricks CLI** - Workspace integration (auto-installs via brew if missing)
-- **bun** - JavaScript package manager (optional, uses npm as fallback)
+The setup script automatically handles all dependencies - just run it!
 
 ### Choose Your Path
 

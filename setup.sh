@@ -49,12 +49,43 @@ uv sync --dev
 
 echo ""
 echo "📦 Installing frontend dependencies..."
-cd client
-if command -v bun &> /dev/null; then
-    bun install
+
+# Check for bun
+if ! command -v bun &> /dev/null; then
+    echo "📦 bun (JavaScript package manager) is recommended but not installed."
+    echo "   bun is a fast JavaScript runtime and package manager."
+    echo "   Visit: https://bun.sh/"
+    echo ""
+    read -p "Would you like to install bun now? (y/N): " install_bun
+    
+    if [[ "$install_bun" =~ ^[Yy]$ ]]; then
+        echo "Installing bun..."
+        curl -fsSL https://bun.sh/install | bash
+        
+        # Update PATH for this session
+        export PATH="$HOME/.bun/bin:$PATH"
+        
+        if ! command -v bun &> /dev/null; then
+            echo "⚠️  Failed to install bun automatically."
+            echo "   Using npm as fallback..."
+            USE_NPM=true
+        else
+            echo "✅ bun installed successfully"
+            USE_NPM=false
+        fi
+    else
+        echo "⚠️  Using npm as fallback..."
+        USE_NPM=true
+    fi
 else
-    echo "⚠️  bun not found, using npm as fallback..."
+    USE_NPM=false
+fi
+
+cd client
+if [ "$USE_NPM" = true ]; then
     npm install
+else
+    bun install
 fi
 
 echo ""
