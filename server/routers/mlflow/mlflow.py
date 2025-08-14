@@ -27,8 +27,6 @@ from server.models.mlflow import (
 from server.models.traces import (
   LinkTracesToRunRequest,
   SearchTracesRequest,
-  SearchTracesResponse,
-  Trace,
 )
 from server.utils.mlflow_utils import _extract_request_response_preview
 from server.utils.mlflow_utils import (

@@ -386,6 +386,7 @@ export function SMELabelingInterface({
       trace_id: traceSummary.info.trace_id,
       request_time: traceSummary.info.request_time,
       execution_duration: traceSummary.info.execution_duration,
+      execution_duration_ms: traceSummary.info.execution_duration_ms,
       state: traceSummary.info.state,
       assessments: traceSummary.info.assessments,
     },

@@ -206,9 +206,18 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
   };
 
   // Calculate total duration
-  const totalDuration =
-    trace.info?.execution_duration ||
-    (rootSpan ? `${rootSpan.end_time_ms - rootSpan.start_time_ms}ms` : "Unknown");
+  const totalDuration = (() => {
+    if (trace.info?.execution_duration_ms) {
+      return `${trace.info.execution_duration_ms}ms`;
+    }
+    if (trace.info?.execution_duration) {
+      return trace.info.execution_duration;
+    }
+    if (rootSpan) {
+      return `${rootSpan.end_time_ms - rootSpan.start_time_ms}ms`;
+    }
+    return "Unknown";
+  })();
 
   // Parse root span inputs for the expandable section
   // Not currently used

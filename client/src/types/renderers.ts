@@ -21,6 +21,7 @@ export interface TraceData {
     trace_id: string;
     request_time: string;
     execution_duration?: string;
+    execution_duration_ms?: number;
     state?: string;
     assessments?: Record<string, JsonValue>;
   };

@@ -657,7 +657,7 @@ export function LabelingSessionsTab({
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-3 w-3 p-0 ml-1 text-muted-foreground hover:text-red-600 rounded-full"
+                                  className="h-3 w-3 p-0 ml-1 text-muted-foreground rounded-full"
                                   onClick={() => setRemoveUserConfirmDialog({sessionId: session.labeling_session_id, userEmail: user})}
                                 >
                                   <X className="h-2 w-2" />
