@@ -24,47 +24,8 @@ from server.models.mlflow import (
   UpdateFeedbackResponse,
   UpdateRunRequest,
 )
-from server.models.traces import (
-  LinkTracesToRunRequest,
-  SearchTracesRequest,
-)
-from server.utils.mlflow_utils import _extract_request_response_preview
-from server.utils.mlflow_utils import (
-  create_run as mlflow_create_run,
-)
-from server.utils.mlflow_utils import (
-  get_run as mlflow_get_run,
-)
-from server.utils.mlflow_utils import (
-  get_trace as mlflow_get_trace,
-)
-from server.utils.mlflow_utils import (
-  get_trace_data as mlflow_get_trace_data,
-)
-from server.utils.mlflow_utils import (
-  link_traces_to_run as mlflow_link_traces_to_run,
-)
-from server.utils.mlflow_utils import (
-  log_expectation as mlflow_log_expectation,
-)
-from server.utils.mlflow_utils import (
-  log_feedback as mlflow_log_feedback,
-)
-from server.utils.mlflow_utils import (
-  search_runs as mlflow_search_runs,
-)
-from server.utils.mlflow_utils import (
-  search_traces as mlflow_search_traces,
-)
-from server.utils.mlflow_utils import (
-  update_expectation as mlflow_update_expectation,
-)
-from server.utils.mlflow_utils import (
-  update_feedback as mlflow_update_feedback,
-)
-from server.utils.mlflow_utils import (
-  update_run as mlflow_update_run,
-)
+from server.models.traces import LinkTracesToRunRequest, SearchTracesRequest
+from server.utils import mlflow_utils
 
 router = APIRouter(prefix='/mlflow', tags=['MLflow'])
 
@@ -77,7 +38,7 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
   """
   try:
     # Get raw traces from the simplified search_traces function
-    raw_traces = mlflow_search_traces(
+    raw_traces = mlflow_utils.search_traces(
       experiment_ids=request.experiment_ids,
       filter_string=request.filter,
       run_id=request.run_id,
@@ -85,15 +46,67 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
       order_by=request.order_by,
     )
 
-    # Convert traces to dict format and return directly
-    traces_list = [trace.to_dict() for trace in raw_traces]
+    # Convert traces to dict format
+    traces_list = []
 
-    # Add request/response previews
-    for trace, trace_dict in zip(raw_traces, traces_list):
-      request_preview, response_preview = _extract_request_response_preview(trace)
+    # For each trace, fetch the full trace with assessments
+    for trace in raw_traces:
+      # Get the full trace with assessments using get_trace
+      # This is necessary because search_traces doesn't return assessments
+      try:
+        full_trace = mlflow_utils.get_trace(trace.info.trace_id)
+        trace_dict = full_trace.to_dict()
+        
+        # Add assessments to the dict since to_dict() doesn't include them
+        if hasattr(full_trace, 'search_assessments'):
+          assessments = full_trace.search_assessments()
+          if assessments:
+            trace_dict['assessments'] = []
+            for assessment in assessments:
+              # Convert assessment to dict format
+              assessment_dict = {
+                'assessment_id': assessment.assessment_id,
+                'assessment_name': assessment.assessment_name,
+                'timestamp': assessment.timestamp,
+              }
+              
+              # Add feedback or expectation details
+              if assessment.feedback:
+                assessment_dict['feedback'] = {
+                  'value': assessment.feedback.value,
+                  'rationale': assessment.feedback.rationale if hasattr(assessment.feedback, 'rationale') else None,
+                  'metadata': assessment.feedback.metadata if hasattr(assessment.feedback, 'metadata') else None,
+                  'source': {
+                    'source_type': assessment.feedback.source.source_type if hasattr(assessment.feedback.source, 'source_type') else 'human',
+                    'source_id': assessment.feedback.source.source_id if hasattr(assessment.feedback.source, 'source_id') else None,
+                  } if hasattr(assessment.feedback, 'source') else None,
+                }
+              elif assessment.expectation:
+                assessment_dict['expectation'] = {
+                  'value': assessment.expectation.value,
+                  'metadata': assessment.expectation.metadata if hasattr(assessment.expectation, 'metadata') else None,
+                  'source': {
+                    'source_type': assessment.expectation.source.source_type if hasattr(assessment.expectation.source, 'source_type') else 'human',
+                    'source_id': assessment.expectation.source.source_id if hasattr(assessment.expectation.source, 'source_id') else None,
+                  } if hasattr(assessment.expectation, 'source') else None,
+                }
+                # For expectations, rationale is in metadata
+                if assessment_dict['expectation']['metadata'] and 'rationale' in assessment_dict['expectation']['metadata']:
+                  assessment_dict['metadata'] = {'rationale': assessment_dict['expectation']['metadata']['rationale']}
+              
+              trace_dict['assessments'].append(assessment_dict)
+        
+      except Exception:
+        # If we can't get the full trace, use the search result
+        trace_dict = trace.to_dict()
+
+      # Add request/response previews
+      request_preview, response_preview = mlflow_utils._extract_request_response_preview(trace)
       if 'info' in trace_dict:
         trace_dict['info']['request_preview'] = request_preview
         trace_dict['info']['response_preview'] = response_preview
+
+      traces_list.append(trace_dict)
 
     return {'traces': traces_list, 'next_page_token': None}
   except Exception as e:
@@ -103,26 +116,26 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
 @router.get('/runs/{run_id}')
 async def get_run(run_id: str) -> Dict[str, Any]:
   """Get run details by ID."""
-  return mlflow_get_run(run_id)
+  return mlflow_utils.get_run(run_id)
 
 
 @router.post('/runs/create')
 async def create_run(request: CreateRunRequest) -> Dict[str, Any]:
   """Create a new MLflow run."""
-  return mlflow_create_run(request.dict(exclude_none=True))
+  return mlflow_utils.create_run(request.dict(exclude_none=True))
 
 
 @router.post('/runs/update')
 async def update_run(request: UpdateRunRequest) -> Dict[str, str]:
   """Update an MLflow run."""
-  mlflow_update_run(request.dict(exclude_none=True))
+  mlflow_utils.update_run(request.dict(exclude_none=True))
   return {'status': 'success'}
 
 
 @router.post('/runs/search', response_model=SearchRunsResponse)
 async def search_runs(request: SearchRunsRequest) -> SearchRunsResponse:
   """Search for runs in experiments."""
-  result = mlflow_search_runs(request.dict(exclude_none=True))
+  result = mlflow_utils.search_runs(request.dict(exclude_none=True))
   return SearchRunsResponse(**result)
 
 
@@ -135,7 +148,7 @@ async def link_traces_to_run(request: LinkTracesToRunRequest) -> LinkTracesRespo
 
   This endpoint only handles MLflow trace linking, not labeling session item creation.
   """
-  result = mlflow_link_traces_to_run(
+  result = mlflow_utils.link_traces_to_run(
     run_id=request.run_id,
     trace_ids=request.trace_ids,
   )
@@ -153,11 +166,51 @@ async def get_trace(trace_id: str) -> Dict[str, Any]:
   """
   try:
     # Get the trace directly using MLflow
-    raw_trace = mlflow_get_trace(trace_id)
+    raw_trace = mlflow_utils.get_trace(trace_id)
 
     # Convert to dict and add previews
     trace_dict = raw_trace.to_dict()
-    request_preview, response_preview = _extract_request_response_preview(raw_trace)
+    
+    # Add assessments to the dict since to_dict() doesn't include them
+    if hasattr(raw_trace, 'search_assessments'):
+      assessments = raw_trace.search_assessments()
+      if assessments:
+        trace_dict['assessments'] = []
+        for assessment in assessments:
+          # Convert assessment to dict format
+          assessment_dict = {
+            'assessment_id': assessment.assessment_id,
+            'assessment_name': assessment.assessment_name,
+            'timestamp': assessment.timestamp,
+          }
+          
+          # Add feedback or expectation details
+          if assessment.feedback:
+            assessment_dict['feedback'] = {
+              'value': assessment.feedback.value,
+              'rationale': assessment.feedback.rationale if hasattr(assessment.feedback, 'rationale') else None,
+              'metadata': assessment.feedback.metadata if hasattr(assessment.feedback, 'metadata') else None,
+              'source': {
+                'source_type': assessment.feedback.source.source_type if hasattr(assessment.feedback.source, 'source_type') else 'human',
+                'source_id': assessment.feedback.source.source_id if hasattr(assessment.feedback.source, 'source_id') else None,
+              } if hasattr(assessment.feedback, 'source') else None,
+            }
+          elif assessment.expectation:
+            assessment_dict['expectation'] = {
+              'value': assessment.expectation.value,
+              'metadata': assessment.expectation.metadata if hasattr(assessment.expectation, 'metadata') else None,
+              'source': {
+                'source_type': assessment.expectation.source.source_type if hasattr(assessment.expectation.source, 'source_type') else 'human',
+                'source_id': assessment.expectation.source.source_id if hasattr(assessment.expectation.source, 'source_id') else None,
+              } if hasattr(assessment.expectation, 'source') else None,
+            }
+            # For expectations, rationale is in metadata
+            if assessment_dict['expectation']['metadata'] and 'rationale' in assessment_dict['expectation']['metadata']:
+              assessment_dict['metadata'] = {'rationale': assessment_dict['expectation']['metadata']['rationale']}
+          
+          trace_dict['assessments'].append(assessment_dict)
+    
+    request_preview, response_preview = mlflow_utils._extract_request_response_preview(raw_trace)
 
     if 'info' in trace_dict:
       trace_dict['info']['request_preview'] = request_preview
@@ -171,9 +224,7 @@ async def get_trace(trace_id: str) -> Dict[str, Any]:
 @router.get('/traces/{trace_id}/data')
 async def get_trace_data(trace_id: str) -> Dict[str, Any]:
   """Get trace data (spans) by trace ID."""
-  return mlflow_get_trace_data(trace_id)
-
-
+  return mlflow_utils.get_trace_data(trace_id)
 
 
 @router.post('/traces/{trace_id}/feedback', response_model=LogFeedbackResponse)
@@ -197,7 +248,7 @@ async def log_trace_feedback(trace_id: str, request: LogFeedbackRequest) -> LogF
       # Fallback to 'unknown' if we can't get username
       username = 'unknown'
 
-    result = mlflow_log_feedback(
+    result = mlflow_utils.log_feedback(
       trace_id=trace_id,
       key=request.assessment.name,
       value=request.assessment.value,
@@ -234,7 +285,7 @@ async def log_trace_expectation(
       # Fallback to 'unknown' if we can't get username
       username = 'unknown'
 
-    result = mlflow_log_expectation(
+    result = mlflow_utils.log_expectation(
       trace_id=trace_id,
       key=request.assessment.name,
       value=request.assessment.value,
@@ -271,7 +322,7 @@ async def update_trace_feedback(
       # Fallback to 'unknown' if we can't get username
       username = 'unknown'
 
-    result = mlflow_update_feedback(
+    result = mlflow_utils.update_feedback(
       trace_id=trace_id,
       assessment_id=request.assessment_id,
       value=request.assessment.value,
@@ -309,7 +360,7 @@ async def update_trace_expectation(
       # Fallback to 'unknown' if we can't get username
       username = 'unknown'
 
-    result = mlflow_update_expectation(
+    result = mlflow_utils.update_expectation(
       trace_id=trace_id,
       assessment_id=request.assessment_id,
       value=request.assessment.value,

@@ -8,8 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from server.utils.auth_context import AuthContext
 from server.utils.config import get_config
-from server.utils.permissions import get_user_role as determine_user_role
-from server.utils.permissions import is_developer
+from server.utils.permissions import get_user_role as determine_user_role, is_developer
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

@@ -9,11 +9,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from server.exceptions import (
-  AppException,
-  NotFoundError,
-  ValidationError,
-)
+from server.exceptions import AppException, NotFoundError, ValidationError
 from server.middleware.error_handler import ErrorHandlerMiddleware
 
 

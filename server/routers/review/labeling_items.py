@@ -9,10 +9,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from server.models.review_apps import (
-  Item,
-  ListItemsResponse,
-)
+from server.models.review_apps import Item, ListItemsResponse
 from server.utils.config import get_config
 from server.utils.labeling_items_utils import labeling_items_utils
 from server.utils.review_apps_utils import review_apps_utils

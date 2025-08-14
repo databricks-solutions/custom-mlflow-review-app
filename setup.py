@@ -127,6 +127,12 @@ class DatabricksAppSetup:
 
     if not tools_to_install:
       console.print('✅ All required tools are available')
+      
+      # Check for .env file
+      env_file = Path('.env')
+      if env_file.exists():
+        console.print('📋 Found existing .env file.')
+      
       return
 
     console.print(f'Installing missing tools: {", ".join(tools_to_install)}')
@@ -646,13 +652,26 @@ class DatabricksAppSetup:
     console.print('The Review App needs an MLflow experiment to analyze traces from.')
     console.print('You can provide either an experiment name or experiment ID.\n')
 
-    # Load existing experiment ID
-    config = self.load_config_yaml()
-    current_experiment_id = config.get('mlflow', {}).get('experiment_id', '')
+    # First check .env file for MLFLOW_EXPERIMENT_ID
+    env_file = Path('.env')
+    current_experiment_id = None
+    
+    if env_file.exists():
+      with open(env_file, 'r') as f:
+        for line in f:
+          line = line.strip()
+          if line and not line.startswith('#') and line.startswith('MLFLOW_EXPERIMENT_ID='):
+            current_experiment_id = line.split('=', 1)[1].strip()
+            break
+    
+    # If not in .env, check config.yaml as fallback
+    if not current_experiment_id:
+      config = self.load_config_yaml()
+      current_experiment_id = config.get('mlflow', {}).get('experiment_id', '')
 
     if current_experiment_id:
-      console.print(f'✅ Found existing experiment in config.yaml: {current_experiment_id}')
-      if Confirm.ask('Use this existing experiment?', default=True):
+      console.print(f'✅ Found existing experiment ID: {current_experiment_id}')
+      if Confirm.ask('Keep existing experiment configuration?', default=True):
         console.print('✅ Keeping existing experiment configuration.')
         self.experiment_id = current_experiment_id
         # Need to get experiment name for display
@@ -663,9 +682,10 @@ class DatabricksAppSetup:
           self.experiment_name = f'Experiment {current_experiment_id}'
         # Continue to permissions management instead of returning early
       else:
-        console.print('📝 Configuring different experiment...')
+        console.print('📝 Configuring new experiment...')
         # Flag to indicate we need to get a new experiment
         current_experiment_id = None
+        self.experiment_id = None
 
     # Get experiment from user only if we don't have one yet
     if not self.experiment_id:
@@ -704,8 +724,8 @@ class DatabricksAppSetup:
     return True
 
   def update_config_yaml(self):
-    """Update or create .env.local with experiment configuration."""
-    console.print('📝 Updating .env.local...')
+    """Update or create .env with experiment configuration."""
+    console.print('📝 Updating .env file...')
 
     config = self.load_config_yaml()
 
@@ -923,15 +943,15 @@ class DatabricksAppSetup:
       for dev_email in developer_emails:
         if dev_email not in config['developers']:
           config['developers'].append(dev_email)
-          console.print(f'   ➕ Added {dev_email} to config.yaml')
+          console.print(f'   ➕ Added {dev_email} to developers list')
           added_count += 1
         else:
-          console.print(f'   ✅ {dev_email} already in config.yaml')
+          console.print(f'   ✅ {dev_email} already in developers list')
 
       if added_count > 0:
         # Save updated config
         self._save_config_env(config)
-        console.print(f'📝 Updated config.yaml with {added_count} new developer(s)')
+        console.print(f'📝 Updated .env file with {added_count} new developer(s)')
 
       return True
 
@@ -1110,10 +1130,12 @@ class DatabricksAppSetup:
         try:
           # Parse the JSON output to verify review app was found/created
           review_app_data = json.loads(output)
-          if review_app_data and 'id' in review_app_data:
-            review_app_id = review_app_data['id']
+          if review_app_data and ('review_app_id' in review_app_data or 'id' in review_app_data):
+            review_app_id = review_app_data.get('review_app_id') or review_app_data.get('id')
             console.print(f'✅ Review app initialized: {review_app_id}')
             console.print(f'   Experiment ID: {self.experiment_id}')
+            if 'url' in review_app_data:
+              console.print(f'   URL: {review_app_data["url"]}')
             return True
           else:
             console.print('⚠️  Review app data is empty or invalid')

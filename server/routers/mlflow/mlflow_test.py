@@ -56,7 +56,7 @@ def mock_mlflow_functions():
 class TestMLflowRouter:
   """Test MLflow endpoints."""
 
-  @pytest.mark.skip(reason="Experiment endpoint removed from API")
+  @pytest.mark.skip(reason='Experiment endpoint removed from API')
   def test_get_experiment_success(self, client, mock_mlflow_functions):
     """Test getting experiment details."""
     experiment_data = {
@@ -81,7 +81,7 @@ class TestMLflowRouter:
     assert data['experiment']['name'] == 'Test Experiment'
     mock_mlflow_functions.get_experiment.assert_called_once_with('123')
 
-  @pytest.mark.skip(reason="Experiment endpoint removed from API")
+  @pytest.mark.skip(reason='Experiment endpoint removed from API')
   def test_get_experiment_not_found(self, client, mock_mlflow_functions):
     """Test getting non-existent experiment."""
     mock_mlflow_functions.get_experiment.side_effect = MLflowError(
@@ -102,12 +102,8 @@ class TestMLflowRouter:
     class MockTrace:
       def to_dict(self):
         return {
-          'info': {
-            'trace_id': 'tr-123',
-            'state': 'OK',
-            'client_request_id': 'req-123'
-          },
-          'data': {'spans': []}
+          'info': {'trace_id': 'tr-123', 'state': 'OK', 'client_request_id': 'req-123'},
+          'data': {'spans': []},
         }
 
     mock_mlflow_functions.search_traces.return_value = [MockTrace()]
@@ -122,15 +118,12 @@ class TestMLflowRouter:
 
   def test_get_trace_success(self, client, mock_mlflow_functions):
     """Test getting a specific trace."""
+
     # Create mock trace object that has to_dict() method like real MLflow traces
     class MockTrace:
       def to_dict(self):
         return {
-          'info': {
-            'trace_id': 'tr-123',
-            'state': 'OK',
-            'client_request_id': 'req-123'
-          },
+          'info': {'trace_id': 'tr-123', 'state': 'OK', 'client_request_id': 'req-123'},
           'data': {
             'spans': [
               {
@@ -154,7 +147,7 @@ class TestMLflowRouter:
     assert len(data['data']['spans']) == 1
     mock_mlflow_functions.get_trace.assert_called_once_with('tr-123')
 
-  @pytest.mark.skip(reason="Metadata endpoint removed from API")
+  @pytest.mark.skip(reason='Metadata endpoint removed from API')
   def test_get_trace_metadata_success(self, client, mock_mlflow_functions):
     """Test getting trace metadata."""
     metadata = {
