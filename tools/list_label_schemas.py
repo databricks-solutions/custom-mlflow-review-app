@@ -87,11 +87,12 @@ Examples:
     review_app_id, current_app = await resolve_review_app_id(
       review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
-    
+
     # Get latest data directly from the API to avoid caching issues
     from server.utils.review_apps_utils import review_apps_utils
+
     review_app_data = await review_apps_utils.get_review_app(review_app_id)
-    
+
     schemas = review_app_data.get('labeling_schemas', [])
 
     if not schemas:

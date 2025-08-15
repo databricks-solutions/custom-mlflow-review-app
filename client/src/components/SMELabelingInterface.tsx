@@ -191,7 +191,6 @@ export function SMELabelingInterface({
     const assessmentMap = new Map<string, Assessment>();
 
     // Debug: Log trace change
-    console.log(`[SME] Loading assessments for trace: ${currentTraceId}`);
 
     if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
       // Work with MLflow's native assessment structure
@@ -223,7 +222,6 @@ export function SMELabelingInterface({
         );
       });
 
-      console.log(
         `[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`
       );
 
@@ -263,7 +261,6 @@ export function SMELabelingInterface({
         assessmentMap.set(assessment.name, assessment);
       }
     } else {
-      console.log(`[SME] No assessments found for trace ${currentTraceId}`);
     }
 
     // Always set assessments, even if empty, to clear any previous values
@@ -321,11 +318,9 @@ export function SMELabelingInterface({
     if (allAssessmentsComplete && sessionSchemas.length > 0) {
       // Check if we're already updating this item
       if (pendingUpdateRef.current === currentItem.item_id) {
-        console.log(`[SME] Already updating item ${currentItem.item_id}, skipping duplicate`);
         return;
       }
 
-      console.log(
         `[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`
       );
 
@@ -336,7 +331,6 @@ export function SMELabelingInterface({
       // Update the item state to COMPLETED
       handleUpdateItem(currentItem.item_id, { state: "COMPLETED" })
         .then(() => {
-          console.log(`[SME] Successfully auto-marked item ${currentItem.item_id} as COMPLETED`);
           // Clear the pending update ref
           pendingUpdateRef.current = null;
           // Update the local items array to reflect the new state

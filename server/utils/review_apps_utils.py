@@ -117,7 +117,7 @@ class ReviewAppsUtils:
 
   async def get_review_app_by_experiment(self, experiment_id: str) -> Optional[Dict[str, Any]]:
     """Get review app for a specific experiment ID with ID caching.
-    
+
     Note: Only the review_app_id mapping is cached, not the full review app data,
     to ensure we always get fresh schema and configuration data.
 
@@ -157,11 +157,11 @@ class ReviewAppsUtils:
       # Extract review app ID from SDK response
       if review_app:
         review_app_id = getattr(review_app, 'review_app_id', None)
-        
+
         if review_app_id:
           # Cache the ID mapping for future requests
           self._experiment_to_review_app_id_cache[experiment_id] = review_app_id
-          
+
           # Fetch full review app data from API (to get latest schemas, etc.)
           return await self.get_review_app(review_app_id)
       return None

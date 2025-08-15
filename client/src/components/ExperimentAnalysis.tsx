@@ -105,7 +105,6 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   React.useEffect(() => {
     if (!analysisStatus) return;
 
-    console.log(`[ANALYSIS-STATUS] Status: ${analysisStatus.status}`);
 
     if (analysisStatus.status === "completed") {
       // Refresh the summary to get new results

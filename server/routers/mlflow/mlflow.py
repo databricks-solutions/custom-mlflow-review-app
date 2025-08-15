@@ -53,7 +53,7 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
     for trace in raw_traces:
       # Just use the trace as returned by search_traces
       trace_dict = trace.to_dict()
-      
+
       # Add request/response previews
       request_preview, response_preview = mlflow_utils._extract_request_response_preview(trace)
       if 'info' in trace_dict:

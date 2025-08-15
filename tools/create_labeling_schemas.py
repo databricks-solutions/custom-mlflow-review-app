@@ -159,7 +159,7 @@ Examples:
     review_app_id, current_app = await resolve_review_app_id(
       review_app_id=args.review_app_id, experiment_id=args.experiment_id
     )
-    
+
     # Get fresh data from API to avoid cache issues
     current_app = await review_apps_utils.get_review_app(review_app_id)
     current_schemas = current_app.get('labeling_schemas', [])

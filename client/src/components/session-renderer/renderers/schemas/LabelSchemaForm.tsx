@@ -67,12 +67,6 @@ export function LabelSchemaForm({
       // If there's an incomplete schema, expand it; otherwise collapse all (empty string)
       const targetValue = firstIncomplete?.name || "";
       
-      console.log("[ACCORDION INIT]", {
-        traceId,
-        firstIncomplete: firstIncomplete?.name,
-        willExpand: targetValue,
-      });
-      
       setExpandedValue(targetValue);
       setHasInitialized(true);
     }

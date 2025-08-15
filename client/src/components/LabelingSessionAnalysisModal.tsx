@@ -112,7 +112,6 @@ export function LabelingSessionAnalysisModal({
       }
       // Fallback: If analysis data is available but status isn't "completed", stop polling
       else if (analysisData?.has_analysis && !isLoadingAnalysis) {
-        console.log("Analysis data available, stopping polling as fallback");
         setIsPolling(false);
         toast.success("Analysis completed successfully!");
       }

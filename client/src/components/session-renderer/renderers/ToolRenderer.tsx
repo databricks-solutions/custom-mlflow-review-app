@@ -45,9 +45,14 @@ export function ToolRenderer({
   
   // Filter for tool spans from all spans
   const allSpans = extractedConversation?.spans || traceData?.spans || [];
-  const toolSpans = allSpans.filter(span => 
-    span.span_type === "TOOL" || span.type === "TOOL"
-  );
+  
+  // Look for spans that are tools - check attributes for TOOL type
+  const toolSpans = allSpans.filter(span => {
+    // Check if this is a tool span by looking at attributes (handle both formats)
+    const spanType = (span as any).attributes?.["mlflow.spanType"];
+    const isToolSpan = spanType === "TOOL" || spanType === "\"TOOL\"";
+    return isToolSpan;
+  });
   
   if (!extractedConversation) {
     // Minimal fallback - extract user/assistant messages
@@ -55,16 +60,24 @@ export function ToolRenderer({
       if (!userRequest && span.inputs) {
         if (typeof span.inputs === "string") {
           userRequest = { content: span.inputs };
-        } else if ((span.inputs as any)?.messages?.[0]?.content) {
-          userRequest = { content: (span.inputs as any).messages[0].content };
+        } else if (typeof span.inputs === "object" && span.inputs && 
+                   'messages' in span.inputs && Array.isArray(span.inputs.messages) &&
+                   span.inputs.messages[0] && typeof span.inputs.messages[0] === "object" &&
+                   'content' in span.inputs.messages[0]) {
+          userRequest = { content: String(span.inputs.messages[0].content) };
         }
       }
       
       if (!assistantResponse && span.outputs) {
         if (typeof span.outputs === "string") {
           assistantResponse = { content: span.outputs };
-        } else if ((span.outputs as any)?.choices?.[0]?.message?.content) {
-          assistantResponse = { content: (span.outputs as any).choices[0].message.content };
+        } else if (typeof span.outputs === "object" && span.outputs &&
+                   'choices' in span.outputs && Array.isArray(span.outputs.choices) &&
+                   span.outputs.choices[0] && typeof span.outputs.choices[0] === "object" &&
+                   'message' in span.outputs.choices[0] && 
+                   typeof span.outputs.choices[0].message === "object" &&
+                   span.outputs.choices[0].message && 'content' in span.outputs.choices[0].message) {
+          assistantResponse = { content: String(span.outputs.choices[0].message.content) };
         }
       }
     }
