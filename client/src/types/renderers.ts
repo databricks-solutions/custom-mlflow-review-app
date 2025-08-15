@@ -16,7 +16,7 @@ export interface Assessment extends BaseAssessment {
   assessment_id?: string;
 }
 
-export interface TraceData {
+export interface Trace {
   info: {
     trace_id: string;
     request_time: string;
@@ -102,7 +102,7 @@ export interface ExtractedConversation {
 export interface ItemRendererProps {
   // Core data
   item: LabelingItem;
-  traceData: TraceData;
+  traceData: Trace;
   reviewApp: ReviewApp;
   session: LabelingSession;
 
@@ -123,7 +123,7 @@ export interface ItemRendererProps {
   // UI state
   isLoading?: boolean;
   isSubmitting?: boolean;
-  
+
   // Optional pre-processed data for simpler renderers
   schemaAssessments?: SchemaAssessments;
   extractedConversation?: ExtractedConversation;

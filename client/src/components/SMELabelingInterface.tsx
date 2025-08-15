@@ -15,7 +15,7 @@ import {
   useCurrentUser,
 } from "@/hooks/api-hooks";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
-import { TraceData, Assessment, SchemaAssessments, LabelingSchema } from "@/types/renderers";
+import { Trace, Assessment, SchemaAssessments, LabelingSchema } from "@/types/renderers";
 import { combineSchemaWithAssessments, filterByType } from "@/utils/schema-assessment-utils";
 
 interface SMELabelingInterfaceProps {
@@ -41,10 +41,7 @@ export function SMELabelingInterface({
   // Data fetching - get review app from manifest
   const { data: manifest, isLoading: isLoadingManifest } = useAppManifest();
   const reviewApp = manifest?.review_app;
-  const { data: session } = useLabelingSession(
-    sessionId,
-    !!sessionId
-  );
+  const { data: session } = useLabelingSession(sessionId, !!sessionId);
   const { data: currentUser } = useCurrentUser();
 
   // Fetch all available schemas to match with session references
@@ -58,19 +55,20 @@ export function SMELabelingInterface({
   );
 
   const items = itemsData?.items || [];
-  
+
   // Fetch all traces for the session (for content and assessments)
   const { data: tracesData, isLoading: isLoadingTraces } = useSessionTraces(
     sessionId,
     session?.mlflow_run_id,
     !!sessionId && !!session?.mlflow_run_id
   );
-  
+
   // Initialize from URL trace parameter if provided
   useEffect(() => {
     if (!hasInitialized && items.length > 0 && initialTraceId) {
-      const traceIndex = items.findIndex(item => 
-        item.source && 'trace_id' in item.source && item.source.trace_id === initialTraceId
+      const traceIndex = items.findIndex(
+        (item) =>
+          item.source && "trace_id" in item.source && item.source.trace_id === initialTraceId
       );
       if (traceIndex !== -1) {
         setCurrentItemIndex(traceIndex);
@@ -79,21 +77,22 @@ export function SMELabelingInterface({
     } else if (!hasInitialized && items.length > 0) {
       // If no initial trace specified, set the first item's trace in URL
       const firstItem = items[0];
-      if (firstItem?.source && 'trace_id' in firstItem.source) {
+      if (firstItem?.source && "trace_id" in firstItem.source) {
         const newParams = new URLSearchParams(searchParams);
-        newParams.set('trace', firstItem.source.trace_id);
+        newParams.set("trace", firstItem.source.trace_id);
         setSearchParams(newParams, { replace: true });
       }
       setHasInitialized(true);
     }
   }, [items, initialTraceId, hasInitialized, searchParams, setSearchParams]);
-  
+
   const currentItem = items[currentItemIndex];
-  
+
   // Get the current trace from the session traces
-  const currentTraceId = currentItem?.source && 'trace_id' in currentItem.source 
-    ? currentItem.source.trace_id 
-    : undefined;
+  const currentTraceId =
+    currentItem?.source && "trace_id" in currentItem.source
+      ? currentItem.source.trace_id
+      : undefined;
   const traceSummary = tracesData?.traces?.find(
     (trace: any) => trace.info.trace_id === currentTraceId
   );
@@ -112,46 +111,49 @@ export function SMELabelingInterface({
   const RendererComponent = getRendererComponent(rendererName);
 
   // Pass the update mutation to the renderer for auto-save
-  const handleUpdateItem = useCallback((
-    itemId: string,
-    updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }
-  ) => {
-    if (!reviewApp?.review_app_id) {
-      throw new Error("Review app ID not available");
-    }
-    // Only include basic fields that are supported by Databricks API
-    const itemData: Record<string, string | undefined> = {};
-    const updateFields: string[] = [];
+  const handleUpdateItem = useCallback(
+    (
+      itemId: string,
+      updates: { state?: string; assessments?: Map<string, Assessment>; comment?: string }
+    ) => {
+      if (!reviewApp?.review_app_id) {
+        throw new Error("Review app ID not available");
+      }
+      // Only include basic fields that are supported by Databricks API
+      const itemData: Record<string, string | undefined> = {};
+      const updateFields: string[] = [];
 
-    if (updates.state !== undefined) {
-      itemData.state = updates.state;
-      updateFields.push("state");
-    }
+      if (updates.state !== undefined) {
+        itemData.state = updates.state;
+        updateFields.push("state");
+      }
 
-    if (updates.comment !== undefined) {
-      itemData.comment = updates.comment;
-      updateFields.push("comment");
-    }
+      if (updates.comment !== undefined) {
+        itemData.comment = updates.comment;
+        updateFields.push("comment");
+      }
 
-    // Note: assessments are handled separately via MLflow API calls
-    // They are not sent as part of the item update
+      // Note: assessments are handled separately via MLflow API calls
+      // They are not sent as part of the item update
 
-    return updateItemMutation.mutateAsync({
-      reviewAppId: reviewApp.review_app_id,
-      sessionId,
-      itemId,
-      item: itemData,
-      updateMask: updateFields.join(","),
-    });
-  }, [reviewApp?.review_app_id, sessionId, updateItemMutation]);
+      return updateItemMutation.mutateAsync({
+        reviewAppId: reviewApp.review_app_id,
+        sessionId,
+        itemId,
+        item: itemData,
+        updateMask: updateFields.join(","),
+      });
+    },
+    [reviewApp?.review_app_id, sessionId, updateItemMutation]
+  );
 
   const handleNavigateToIndex = (index: number) => {
     setCurrentItemIndex(index);
     // Update URL with the new trace ID
     const newItem = items[index];
-    if (newItem?.source && 'trace_id' in newItem.source) {
+    if (newItem?.source && "trace_id" in newItem.source) {
       const newParams = new URLSearchParams(searchParams);
-      newParams.set('trace', newItem.source.trace_id);
+      newParams.set("trace", newItem.source.trace_id);
       setSearchParams(newParams, { replace: true });
     }
     // Don't reset assessments here - let the useEffect handle loading from trace data
@@ -163,37 +165,34 @@ export function SMELabelingInterface({
       return false; // No user info available
     }
 
-    const userIdentifiers = [
-      currentUser.userName,
-      ...(currentUser.emails || [])
-    ].filter(Boolean);
+    const userIdentifiers = [currentUser.userName, ...(currentUser.emails || [])].filter(Boolean);
 
     if (!assessment.source) {
       return false; // No source information
     }
 
     // Handle different source formats
-    let sourceString = '';
-    if (typeof assessment.source === 'string') {
+    let sourceString = "";
+    if (typeof assessment.source === "string") {
       sourceString = assessment.source;
-    } else if (typeof assessment.source === 'object' && assessment.source.source_id) {
+    } else if (typeof assessment.source === "object" && assessment.source.source_id) {
       sourceString = assessment.source.source_id;
     }
 
     // Check if any user identifier appears in the source
-    return userIdentifiers.some(identifier => 
-      identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
+    return userIdentifiers.some(
+      (identifier) => identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
     );
   };
-  
+
   // Load assessments from trace data when trace changes
   useEffect(() => {
     // Always start with a fresh map to ensure we don't carry over old assessments
     const assessmentMap = new Map<string, Assessment>();
-    
+
     // Debug: Log trace change
     console.log(`[SME] Loading assessments for trace: ${currentTraceId}`);
-    
+
     if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
       // Work with MLflow's native assessment structure
       // Filter assessments to only include those created by the current user
@@ -202,47 +201,52 @@ export function SMELabelingInterface({
         if (!currentUser?.userName && !currentUser?.emails?.[0]) {
           return false;
         }
-        
-        const userIdentifiers = [
-          currentUser.userName,
-          ...(currentUser.emails || [])
-        ].filter(Boolean);
-        
+
+        const userIdentifiers = [currentUser.userName, ...(currentUser.emails || [])].filter(
+          Boolean
+        );
+
         if (!mlflowAssessment.source) {
           return false;
         }
-        
-        let sourceString = '';
-        if (typeof mlflowAssessment.source === 'string') {
+
+        let sourceString = "";
+        if (typeof mlflowAssessment.source === "string") {
           sourceString = mlflowAssessment.source;
         } else if (mlflowAssessment.source?.source_id) {
           sourceString = mlflowAssessment.source.source_id;
         }
-        
-        return userIdentifiers.some(identifier => 
-          identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
+
+        return userIdentifiers.some(
+          (identifier) =>
+            identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
         );
       });
-      
-      console.log(`[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`);
-      
+
+      console.log(
+        `[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`
+      );
+
       // Group user assessments by name and type, keeping only the latest one
       const latestAssessments = new Map<string, any>();
-      
+
       for (const mlflowAssessment of userAssessments) {
         // Use MLflow's assessment_name field
         const assessmentName = mlflowAssessment.assessment_name;
-        const assessmentType = mlflowAssessment.feedback ? 'feedback' : 'expectation';
+        const assessmentType = mlflowAssessment.feedback ? "feedback" : "expectation";
         const key = `${assessmentName}_${assessmentType}`;
         const existing = latestAssessments.get(key);
-        
+
         // Keep the latest assessment (compare by assessment_id or timestamp)
-        if (!existing || 
-            (mlflowAssessment.assessment_id && (!existing.assessment_id || mlflowAssessment.assessment_id > existing.assessment_id))) {
+        if (
+          !existing ||
+          (mlflowAssessment.assessment_id &&
+            (!existing.assessment_id || mlflowAssessment.assessment_id > existing.assessment_id))
+        ) {
           latestAssessments.set(key, mlflowAssessment);
         }
       }
-      
+
       // Transform to our internal format for the UI components
       // This transformation happens ONLY in the UI layer, not in the API
       for (const mlflowAssessment of latestAssessments.values()) {
@@ -250,7 +254,7 @@ export function SMELabelingInterface({
           assessment_id: mlflowAssessment.assessment_id,
           name: mlflowAssessment.assessment_name, // Map assessment_name to name for UI
           value: mlflowAssessment.feedback?.value ?? mlflowAssessment.expectation?.value,
-          type: mlflowAssessment.feedback ? 'feedback' : 'expectation',
+          type: mlflowAssessment.feedback ? "feedback" : "expectation",
           rationale: mlflowAssessment.metadata?.rationale, // Rationale is in metadata for both
           metadata: mlflowAssessment.metadata,
           source: mlflowAssessment.source,
@@ -261,7 +265,7 @@ export function SMELabelingInterface({
     } else {
       console.log(`[SME] No assessments found for trace ${currentTraceId}`);
     }
-    
+
     // Always set assessments, even if empty, to clear any previous values
     // This clears both remote assessments AND local changes when trace changes
     setAssessments(assessmentMap);
@@ -290,14 +294,14 @@ export function SMELabelingInterface({
 
     // Get all schemas for this session
     const sessionSchemas = session.labeling_schemas
-      .map(ref => allSchemas.find(schema => schema.name === ref.name))
+      .map((ref) => allSchemas.find((schema) => schema.name === ref.name))
       .filter(Boolean) as LabelingSchema[];
 
     // Check if all schemas have assessments with values
-    const allAssessmentsComplete = sessionSchemas.every(schema => {
+    const allAssessmentsComplete = sessionSchemas.every((schema) => {
       const assessment = assessments.get(schema.name);
       const value = assessment?.value;
-      
+
       // Check if assessment has a meaningful value
       if (value === undefined || value === null || value === "") {
         return false;
@@ -320,13 +324,15 @@ export function SMELabelingInterface({
         console.log(`[SME] Already updating item ${currentItem.item_id}, skipping duplicate`);
         return;
       }
-      
-      console.log(`[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`);
-      
+
+      console.log(
+        `[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`
+      );
+
       // Set flags to prevent multiple updates
       setHasAutoCompleted(true);
       pendingUpdateRef.current = currentItem.item_id;
-      
+
       // Update the item state to COMPLETED
       handleUpdateItem(currentItem.item_id, { state: "COMPLETED" })
         .then(() => {
@@ -345,7 +351,16 @@ export function SMELabelingInterface({
           setHasAutoCompleted(false);
         });
     }
-  }, [assessments, currentItem, session?.labeling_schemas, allSchemas, hasAutoCompleted, handleUpdateItem, currentItemIndex, items]);
+  }, [
+    assessments,
+    currentItem,
+    session?.labeling_schemas,
+    allSchemas,
+    hasAutoCompleted,
+    handleUpdateItem,
+    currentItemIndex,
+    items,
+  ]);
 
   const handlePrevious = () => {
     if (currentItemIndex > 0) {
@@ -418,12 +433,12 @@ export function SMELabelingInterface({
   if (!currentItem || !reviewApp) {
     return <LoadingState />;
   }
-  
+
   // If we don't have trace data yet, wait for it
   if (!traceSummary && isLoadingTraces) {
     return <LoadingState />;
   }
-  
+
   // If traces loaded but no matching trace found, show error
   if (!traceSummary && !isLoadingTraces) {
     return (
@@ -432,8 +447,8 @@ export function SMELabelingInterface({
           <CardHeader>
             <CardTitle>Trace Not Found</CardTitle>
             <CardDescription>
-              Could not find trace {currentTraceId} in the session's traces.
-              This trace may have been removed or is not linked to this session.
+              Could not find trace {currentTraceId} in the session's traces. This trace may have
+              been removed or is not linked to this session.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -450,7 +465,7 @@ export function SMELabelingInterface({
   }
 
   // Convert trace data to the expected format
-  const traceData: TraceData = {
+  const traceData: Trace = {
     info: {
       trace_id: traceSummary.info.trace_id,
       request_time: traceSummary.info.request_time,
@@ -463,21 +478,27 @@ export function SMELabelingInterface({
   };
 
   // Compute schema assessments from session schemas and FILTERED assessments
-  const schemaAssessments: SchemaAssessments | undefined = session?.labeling_schemas && allSchemas ? (() => {
-    // Map session schema references to full schema objects
-    const sessionSchemas = session.labeling_schemas
-      .map(ref => allSchemas.find(schema => schema.name === ref.name))
-      .filter(Boolean) as any[];
-    
-    // Use filtered assessments (only current user's assessments) instead of all assessments
-    const filteredAssessmentsArray = Array.from(assessments.values());
-    const combinedSchemas = combineSchemaWithAssessments(sessionSchemas, filteredAssessmentsArray);
-    
-    return {
-      feedback: filterByType(combinedSchemas, 'FEEDBACK'),
-      expectations: filterByType(combinedSchemas, 'EXPECTATION'),
-    };
-  })() : undefined;
+  const schemaAssessments: SchemaAssessments | undefined =
+    session?.labeling_schemas && allSchemas
+      ? (() => {
+          // Map session schema references to full schema objects
+          const sessionSchemas = session.labeling_schemas
+            .map((ref) => allSchemas.find((schema) => schema.name === ref.name))
+            .filter(Boolean) as any[];
+
+          // Use filtered assessments (only current user's assessments) instead of all assessments
+          const filteredAssessmentsArray = Array.from(assessments.values());
+          const combinedSchemas = combineSchemaWithAssessments(
+            sessionSchemas,
+            filteredAssessmentsArray
+          );
+
+          return {
+            feedback: filterByType(combinedSchemas, "FEEDBACK"),
+            expectations: filterByType(combinedSchemas, "EXPECTATION"),
+          };
+        })()
+      : undefined;
 
   return (
     <div className="h-screen flex flex-col">

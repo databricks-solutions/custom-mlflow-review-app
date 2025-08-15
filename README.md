@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue)](https://www.typescriptlang.org/)
 [![Claude](https://img.shields.io/badge/Claude_Code-Ready-purple)](https://claude.ai/code)
 
-Build custom [review apps](https://docs.databricks.com/aws/en/mlflow3/genai/human-feedback/concepts/review-app) on Databricks Apps with tailored UIs for your subject matter experts to evaluate AI agent traces.
+This template allows you to build custom review apps on Databricks Apps for collecting labels from Subject Matter Experts. Customize how MLflow traces are displayed—show specific spans, filter certain data, or present information differently than the standard Databricks review app. Create tailored labeling interfaces for your domain, collect targeted feedback for model improvement, and leverage integrated AI analysis for experiment optimization and result summarization.
 
 ## 🚀 Quick Start
 
@@ -48,46 +48,111 @@ The renderer system lets you completely customize how subject matter experts vie
 Create a new file in `client/src/components/session-renderer/renderers/`:
 
 ```typescript
-// YourCustomRenderer.tsx
+// AnalyticsRenderer.tsx
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ItemRendererProps } from "@/types/renderers";
+import { LabelSchemaForm } from "./schemas/LabelSchemaForm";
+import { BarChart3, AlertCircle, CheckCircle } from "lucide-react";
 
-export function YourCustomRenderer({
-  item,              // Current labeling item with state
-  traceData,         // Complete MLflow trace with spans
-  reviewApp,         // Review app configuration
-  assessments,       // Current assessment values (Map)
-  onUpdateItem,      // Update function with auto-save
-  currentIndex,      // Current position (0-based)
-  totalItems,        // Total items in session
+export function AnalyticsRenderer({
+  item,
+  traceData,
+  reviewApp,
+  session,
+  currentIndex,
+  totalItems,
+  assessments,
+  onUpdateItem,
+  onNavigateToIndex,
+  isSubmitting,
+  schemaAssessments,
 }: ItemRendererProps) {
-  
-  // Access trace spans for custom visualization
+  // Extract analytics-relevant data from trace spans
   const spans = traceData?.spans || [];
-  const toolCalls = spans.filter(s => s.type === "TOOL");
+  const querySpans = spans.filter(s => s.name?.includes("query"));
+  const totalDuration = spans[0]?.end_time - spans[0]?.start_time || 0;
+  
+  // Separate feedback and expectation schemas
+  const feedbackSchemas = schemaAssessments?.feedback || [];
+  const expectationSchemas = schemaAssessments?.expectations || [];
   
   return (
-    <div className="space-y-4">
-      {/* Your custom trace visualization */}
-      <div>
-        {toolCalls.map(tool => (
-          <div key={tool.name}>
-            Tool: {tool.name}
-            Input: {JSON.stringify(tool.inputs)}
-          </div>
-        ))}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Left: Query Analytics */}
+      <div className="lg:col-span-2 space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Query Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Duration</p>
+                  <p className="text-2xl font-bold">{totalDuration.toFixed(2)}ms</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Query Count</p>
+                  <p className="text-2xl font-bold">{querySpans.length}</p>
+                </div>
+              </div>
+              
+              {/* Show individual query details */}
+              {querySpans.map((span, idx) => (
+                <div key={idx} className="border-l-2 border-blue-500 pl-4">
+                  <p className="font-medium">{span.name}</p>
+                  <pre className="text-xs text-muted-foreground mt-1">
+                    {JSON.stringify(span.inputs, null, 2).slice(0, 200)}...
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
-      {/* Custom evaluation interface */}
-      {reviewApp.labeling_schemas.map(schema => (
-        <div key={schema.name}>
-          {/* Render your custom evaluation UI */}
+      {/* Right: Evaluation Forms */}
+      <div className="space-y-6">
+        {feedbackSchemas.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Performance Assessment</h3>
+            <LabelSchemaForm
+              schemas={feedbackSchemas.map(item => item.schema)}
+              assessments={new Map(
+                feedbackSchemas
+                  .filter(item => item.assessment)
+                  .map(item => [item.schema.name, item.assessment!])
+              )}
+              traceId={item.source?.trace_id || ""}
+              readOnly={false}
+              reviewAppId={reviewApp.review_app_id}
+              sessionId={session.labeling_session_id}
+            />
+          </div>
+        )}
+        
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onUpdateItem(item.item_id, { state: "SKIPPED" })}
+          >
+            Skip
+          </Button>
+          <Button
+            onClick={() => onUpdateItem(item.item_id, { state: "COMPLETED" })}
+            disabled={isSubmitting || assessments.size === 0}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Submit
+          </Button>
         </div>
-      ))}
-      
-      {/* Submit/Skip actions */}
-      <button onClick={() => onUpdateItem(item.item_id, { state: "COMPLETED" })}>
-        Submit
-      </button>
+      </div>
     </div>
   );
 }
@@ -98,14 +163,14 @@ export function YourCustomRenderer({
 Add to `client/src/components/session-renderer/renderers/index.ts`:
 
 ```typescript
-import { YourCustomRenderer } from "./YourCustomRenderer";
+import { AnalyticsRenderer } from "./AnalyticsRenderer";
 
 // In the constructor, add:
 this.registerRenderer({
-  name: "your-custom-view",           // Internal name (used in MLflow tag)
-  displayName: "Your Custom View",    // Display name in UI
-  description: "Description of what makes this view special",
-  component: YourCustomRenderer,      // Your component
+  name: "analytics",                    // Internal name (used in MLflow tag)
+  displayName: "Analytics View",        // Display name in UI
+  description: "Performance metrics and query analysis view",
+  component: AnalyticsRenderer,         // Your component
 });
 ```
 
