@@ -4,7 +4,6 @@ These endpoints automatically use the review app associated with the configured 
 eliminating the need to pass review_app_id in every request.
 """
 
-import asyncio
 import logging
 from typing import Any, Dict, Optional
 
@@ -49,6 +48,7 @@ class AnalysisStatus(BaseModel):
   message: Optional[str] = None
   run_id: Optional[str] = None
   report_path: Optional[str] = None
+
 
 router = APIRouter(prefix='/labeling-sessions', tags=['Labeling Sessions'])
 

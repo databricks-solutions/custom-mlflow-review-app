@@ -47,7 +47,7 @@ async def list_labeling_sessions(
       # Note: SDK doesn't provide review_app_id directly, so we use REST API fallback
       raise Exception("SDK doesn't provide review_app_id filtering")
 
-  except Exception as e:
+  except Exception:
     # Fallback to REST API
     params = {'page_size': page_size}
     if filter_string:
@@ -307,8 +307,6 @@ async def _update_session_with_sdk(
     # Update assigned users using SDK (handles permissions automatically)
     if 'assigned_users' in labeling_session_data:
       target_session.set_assigned_users(labeling_session_data['assigned_users'])
-        '✅ Updated assigned users using MLflow SDK (automatically handles experiment permissions)'
-      )
 
     # For other fields, we still need to use REST API
     other_updates = {k: v for k, v in labeling_session_data.items() if k != 'assigned_users'}
@@ -330,7 +328,7 @@ async def _update_session_with_sdk(
     # Return updated session data
     return await get_labeling_session(review_app_id, labeling_session_id)
 
-  except Exception as e:
+  except Exception:
     # Fallback to REST API if SDK fails
     url = get_managed_evals_api_url(
       f'/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}'
