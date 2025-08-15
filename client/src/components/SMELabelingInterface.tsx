@@ -222,6 +222,7 @@ export function SMELabelingInterface({
         );
       });
 
+      console.log(
         `[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`
       );
 
@@ -321,6 +322,7 @@ export function SMELabelingInterface({
         return;
       }
 
+      console.log(
         `[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`
       );
 
