@@ -594,7 +594,6 @@ export function SMELabelingInterface({
             currentIndex={currentItemIndex}
             totalItems={items.length}
             assessments={assessments}
-            onAssessmentsChange={setAssessments}
             onUpdateItem={handleUpdateItem}
             onNavigateToIndex={handleNavigateToIndex}
             isLoading={isLoadingTrace}

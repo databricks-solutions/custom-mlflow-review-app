@@ -196,7 +196,7 @@ This shows me:
 I'll run comprehensive AI analysis to generate tailored recommendations:
 ```bash
 # Run AI analysis on your experiment (this may take 1-2 minutes)
-./mlflow-cli run ai_analyze_experiment
+./mlflow-cli run ai_analyze_experiment -- --experiment-id <experiment_id>
 ```
 
 **🛑 IMPORTANT: I will wait for the AI analysis to complete before proceeding.**
