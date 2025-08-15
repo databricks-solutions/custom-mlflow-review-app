@@ -9,6 +9,14 @@
 
 This template allows you to build custom review apps on Databricks Apps for collecting labels from Subject Matter Experts. Customize how MLflow traces are displayed—show specific spans, filter certain data, or present information differently than the standard Databricks review app. Create tailored labeling interfaces for your domain, collect targeted feedback for model improvement, and leverage integrated AI analysis for experiment optimization and result summarization.
 
+## 🎬 Demo Video
+
+Watch a **complete walkthrough** of building a custom MLflow Review App using Claude Code's `/review-app` command:
+
+📹 **[Watch the Full Tutorial](https://youtu.be/xdvodY9-VQQ)** - See how to customize, deploy, and use the review app from start to finish
+
+[![MLflow Review App Demo](https://img.shields.io/badge/Watch-Demo_Video-red?style=for-the-badge&logo=youtube)](https://youtu.be/xdvodY9-VQQ)
+
 ## 🚀 Quick Start
 
 The setup script automatically handles all dependencies - just run it!
