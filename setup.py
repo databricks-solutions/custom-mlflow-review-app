@@ -127,12 +127,12 @@ class DatabricksAppSetup:
 
     if not tools_to_install:
       console.print('✅ All required tools are available')
-      
+
       # Check for .env file
       env_file = Path('.env')
       if env_file.exists():
         console.print('📋 Found existing .env file.')
-      
+
       return
 
     console.print(f'Installing missing tools: {", ".join(tools_to_install)}')
@@ -662,7 +662,7 @@ class DatabricksAppSetup:
     # First check .env file for MLFLOW_EXPERIMENT_ID
     env_file = Path('.env')
     current_experiment_id = None
-    
+
     if env_file.exists():
       with open(env_file, 'r') as f:
         for line in f:
@@ -670,7 +670,7 @@ class DatabricksAppSetup:
           if line and not line.startswith('#') and line.startswith('MLFLOW_EXPERIMENT_ID='):
             current_experiment_id = line.split('=', 1)[1].strip()
             break
-    
+
     # If not in .env, check config.yaml as fallback
     if not current_experiment_id:
       config = self.load_config_yaml()
@@ -1029,7 +1029,7 @@ class DatabricksAppSetup:
         for i, ep in enumerate(databricks_endpoints[:10]):  # Limit to top 10
           name = ep['name']
           creator = ep.get('creator', 'N/A')
-          console.print(f'  {len(options)+1}. {name}')
+          console.print(f'  {len(options) + 1}. {name}')
           if creator != 'N/A':
             console.print(f'      Creator: {creator}')
           options.append(ep)
@@ -1039,7 +1039,7 @@ class DatabricksAppSetup:
         for i, ep in enumerate(user_endpoints[:10]):  # Limit to top 10
           name = ep['name']
           creator = ep.get('creator', 'N/A')
-          console.print(f'  {len(options)+1}. {name}')
+          console.print(f'  {len(options) + 1}. {name}')
           if creator != 'N/A':
             console.print(f'      Creator: {creator}')
           options.append(ep)
@@ -1365,10 +1365,10 @@ class DatabricksAppSetup:
           if self.workspace_host:
             console.print(f'   {self.workspace_host}/previews/workspace')
           else:
-            console.print(
-              '   https://your-workspace.cloud.databricks.com/previews/workspace'
-            )
-          console.print("2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it")
+            console.print('   https://your-workspace.cloud.databricks.com/previews/workspace')
+          console.print(
+            "2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it"
+          )
           console.print('3. Come back here when enabled')
           console.print('')
           console.print('⚠️  Note: Only workspace administrators can enable this feature')
@@ -1376,7 +1376,10 @@ class DatabricksAppSetup:
 
           # Wait for user to enable OBO
           while True:
-            if Confirm.ask('Has a workspace administrator enabled OBO in workspace preview features?', default=True):
+            if Confirm.ask(
+              'Has a workspace administrator enabled OBO in workspace preview features?',
+              default=True,
+            ):
               console.print('🔍 Re-checking workspace OBO status...')
               # Re-check OBO status
               recheck_result = get_workspace_obo_status(self.auth_type, self.profile)
@@ -1403,17 +1406,19 @@ class DatabricksAppSetup:
                 if self.workspace_host:
                   console.print(f'   {self.workspace_host}/previews/workspace')
                 else:
-                  console.print(
-                    '   https://your-workspace.cloud.databricks.com/previews/workspace'
-                  )
-                console.print("2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it")
+                  console.print('   https://your-workspace.cloud.databricks.com/previews/workspace')
+                console.print(
+                  "2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it"
+                )
                 console.print('3. Come back here when enabled')
                 console.print('')
                 console.print('⚠️  Note: Only workspace administrators can enable this feature')
                 console.print('')
                 continue
             else:
-              console.print('💡 Please have a workspace administrator enable OBO to continue setup. This is required.')
+              console.print(
+                '💡 Please have a workspace administrator enable OBO to continue setup. This is required.'
+              )
               continue
         else:
           console.print('✅ Workspace OBO is enabled - user authentication will work!')
@@ -1738,10 +1743,12 @@ class DatabricksAppSetup:
 
       # Deploy the app to create the service principal
       if not self.deploy_app():
-        console.print('❌ Initial deployment failed. Service principal cannot be configured without deployment.')
+        console.print(
+          '❌ Initial deployment failed. Service principal cannot be configured without deployment.'
+        )
         console.print('   You can retry deployment manually with: ./deploy.sh --create')
         raise SetupError('Initial deployment required for service principal setup')
-      
+
       console.print('✅ Initial deployment successful!')
       console.print('')
 

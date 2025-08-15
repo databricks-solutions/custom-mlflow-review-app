@@ -35,8 +35,7 @@ class UserUtils:
     user = self.client.current_user.me()
     fetch_time = time.time() - fetch_start
     logger.info(
-      f'✅ [USER UTILS] Current user fetched in {fetch_time * 1000:.1f}ms '
-      f'(user: {user.user_name})'
+      f'✅ [USER UTILS] Current user fetched in {fetch_time * 1000:.1f}ms (user: {user.user_name})'
     )
     return user
 
@@ -97,7 +96,7 @@ class UserUtils:
       logger.info(f'💾 [USER UTILS] Cached user info for {email}')
     else:
       logger.warning(
-        f'⚠️ [USER UTILS] Email mismatch: requested {email}, ' f'got {user_info.get("emails", [])}'
+        f'⚠️ [USER UTILS] Email mismatch: requested {email}, got {user_info.get("emails", [])}'
       )
 
     return user_info

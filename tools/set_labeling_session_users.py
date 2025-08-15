@@ -71,7 +71,7 @@ Examples:
 
       print(f'📋 **Session: {session_name}**')
       print(f'  ID: {args.session_id}')
-      print(f"  Current assigned users: {', '.join(current_users) if current_users else 'None'}")
+      print(f'  Current assigned users: {", ".join(current_users) if current_users else "None"}')
 
     except Exception as e:
       print(f'⚠️  Warning: Could not fetch current session info: {e}')
@@ -84,11 +84,11 @@ Examples:
     # Show what will change
     if args.dry_run:
       print('\n🔍 **Dry Run - No changes will be made:**')
-      print(f"  Would set assigned users to: {', '.join(new_users) if new_users else 'None'}")
+      print(f'  Would set assigned users to: {", ".join(new_users) if new_users else "None"}')
       return
 
     print('\n🔄 **Updating assigned users...**')
-    print(f"  Setting assigned users to: {', '.join(new_users) if new_users else 'None'}")
+    print(f'  Setting assigned users to: {", ".join(new_users) if new_users else "None"}')
 
     # Use the update_labeling_session function with users parameter
     try:
@@ -99,7 +99,7 @@ Examples:
       )
 
       print(f"✅ Successfully updated session '{session_name}':")
-      print(f"  Assigned users: {', '.join(new_users) if new_users else 'None'}")
+      print(f'  Assigned users: {", ".join(new_users) if new_users else "None"}')
 
     except Exception as e:
       print(f'❌ Failed to update session: {e}')

@@ -159,7 +159,7 @@ def print_analysis_result(result: dict, format_type: str):
 
   # Text format - structured markdown-like output
   if result.get('status') == 'error':
-    print(f"❌ Analysis Failed: {result.get('error', 'Unknown error')}")
+    print(f'❌ Analysis Failed: {result.get("error", "Unknown error")}')
     return
 
   # Print AI analysis with beautiful formatting
@@ -172,13 +172,13 @@ def print_analysis_result(result: dict, format_type: str):
   # Print experiment metadata
   metadata = result.get('metadata', {})
   print('\n📋 **Analysis Details**:')
-  print(f"   • Experiment ID: {result.get('experiment_id', 'Unknown')}")
+  print(f'   • Experiment ID: {result.get("experiment_id", "Unknown")}')
   print(
-    f"   • Analysis Type: {result.get('analysis_type', 'Unknown')} ({result.get('focus', 'comprehensive')})"
+    f'   • Analysis Type: {result.get("analysis_type", "Unknown")} ({result.get("focus", "comprehensive")})'
   )
-  print(f"   • Traces Analyzed: {metadata.get('traces_analyzed', 0)}")
-  print(f"   • Model Endpoint: {metadata.get('model_endpoint', 'Unknown')}")
-  print(f"   • Sample Size: {metadata.get('traces_analyzed', metadata.get('sample_size', 0))}")
+  print(f'   • Traces Analyzed: {metadata.get("traces_analyzed", 0)}')
+  print(f'   • Model Endpoint: {metadata.get("model_endpoint", "Unknown")}')
+  print(f'   • Sample Size: {metadata.get("traces_analyzed", metadata.get("sample_size", 0))}')
 
   print('\n' + '=' * 60)
   print(ai_analysis)
@@ -190,11 +190,11 @@ def print_analysis_result(result: dict, format_type: str):
     experiment_info = raw_data.get('experiment_info', {})
     if experiment_info:
       print('\n📈 **Experiment Summary**:')
-      print(f"   • Name: {experiment_info.get('name', 'Unknown')}")
+      print(f'   • Name: {experiment_info.get("name", "Unknown")}')
       if experiment_info.get('creation_time'):
-        print(f"   • Created: {experiment_info.get('creation_time')}")
+        print(f'   • Created: {experiment_info.get("creation_time")}')
       if experiment_info.get('last_update_time'):
-        print(f"   • Last Updated: {experiment_info.get('last_update_time')}")
+        print(f'   • Last Updated: {experiment_info.get("last_update_time")}')
 
 
 def print_session_analysis_result(result: dict, format_type: str):
@@ -205,7 +205,7 @@ def print_session_analysis_result(result: dict, format_type: str):
 
   # Text format - structured output
   if result.get('status') == 'error':
-    print(f"❌ Session Analysis Failed: {result.get('error', 'Unknown error')}")
+    print(f'❌ Session Analysis Failed: {result.get("error", "Unknown error")}')
     return
 
   ai_analysis = result.get('ai_analysis', 'No analysis generated')
@@ -216,13 +216,13 @@ def print_session_analysis_result(result: dict, format_type: str):
   # Print session metadata
   metadata = result.get('metadata', {})
   print('\n📋 **Session Details**:')
-  print(f"   • Session ID: {result.get('session_id', 'Unknown')}")
-  print(f"   • Analysis Type: {result.get('session_analysis_type', 'Unknown')}")
-  print(f"   • Completion Rate: {metadata.get('completion_rate', 0):.1f}%")
-  print(f"   • Total Items: {metadata.get('total_items', 0)}")
-  print(f"   • Completed Items: {metadata.get('completed_items', 0)}")
-  print(f"   • Schemas: {metadata.get('schemas_count', 0)}")
-  print(f"   • Model Endpoint: {metadata.get('model_endpoint', 'Unknown')}")
+  print(f'   • Session ID: {result.get("session_id", "Unknown")}')
+  print(f'   • Analysis Type: {result.get("session_analysis_type", "Unknown")}')
+  print(f'   • Completion Rate: {metadata.get("completion_rate", 0):.1f}%')
+  print(f'   • Total Items: {metadata.get("total_items", 0)}')
+  print(f'   • Completed Items: {metadata.get("completed_items", 0)}')
+  print(f'   • Schemas: {metadata.get("schemas_count", 0)}')
+  print(f'   • Model Endpoint: {metadata.get("model_endpoint", "Unknown")}')
 
   print('\n' + '=' * 60)
   print(ai_analysis)
@@ -402,7 +402,7 @@ Session Analysis Types:
     if result.get('status') == 'success':
       print('\n✅ AI analysis completed successfully!')
     else:
-      print(f"\n❌ Analysis failed: {result.get('error', 'Unknown error')}")
+      print(f'\n❌ Analysis failed: {result.get("error", "Unknown error")}')
       sys.exit(1)
 
   except KeyboardInterrupt:

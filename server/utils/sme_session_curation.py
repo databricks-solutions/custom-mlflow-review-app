@@ -425,11 +425,11 @@ class SMESessionCurator:
 
     if 'execution_time_outlier' in anomaly_types:
       if exec_time > 30000:  # > 30 seconds
-        descriptions.append(f'Extremely slow execution ({exec_time/1000:.1f}s)')
+        descriptions.append(f'Extremely slow execution ({exec_time / 1000:.1f}s)')
       elif exec_time < 1000:  # < 1 second
         descriptions.append(f'Extremely fast execution ({exec_time}ms)')
       else:
-        descriptions.append(f'Unusual execution time ({exec_time/1000:.1f}s)')
+        descriptions.append(f'Unusual execution time ({exec_time / 1000:.1f}s)')
 
     if 'complexity_outlier' in anomaly_types:
       descriptions.append(f'Unusual workflow complexity ({span_count} spans)')

@@ -261,32 +261,32 @@ Examples:
     print(json.dumps(result, indent=2))
   else:
     if result['success']:
-      print(f"📊 Assessments for trace {result['trace_id']}")
-      print(f"   Experiment: {result['experiment_id']}")
+      print(f'📊 Assessments for trace {result["trace_id"]}')
+      print(f'   Experiment: {result["experiment_id"]}')
       if result['run_id']:
-        print(f"   Run: {result['run_id']}")
-      print(f"   Total assessments: {result['assessment_count']}")
+        print(f'   Run: {result["run_id"]}')
+      print(f'   Total assessments: {result["assessment_count"]}')
 
       if result['assessments']:
         print('\n📝 Assessments:')
         for i, assessment in enumerate(result['assessments'], 1):
-          print(f"\n   {i}. {assessment['name']}")
+          print(f'\n   {i}. {assessment["name"]}')
           if 'assessment_id' in assessment:
-            print(f"      Assessment ID: {assessment['assessment_id']}")
-          print(f"      Type: {assessment.get('type', 'unknown')}")
-          print(f"      Value: {assessment.get('value', 'N/A')}")
+            print(f'      Assessment ID: {assessment["assessment_id"]}')
+          print(f'      Type: {assessment.get("type", "unknown")}')
+          print(f'      Value: {assessment.get("value", "N/A")}')
           if 'rationale' in assessment:
-            print(f"      Rationale: {assessment['rationale']}")
+            print(f'      Rationale: {assessment["rationale"]}')
           if 'metadata' in assessment:
-            print(f"      Metadata: {json.dumps(assessment['metadata'], indent=10)}")
+            print(f'      Metadata: {json.dumps(assessment["metadata"], indent=10)}')
           if 'source' in assessment:
-            print(f"      Source: {assessment['source']['type']} ({assessment['source']['id']})")
+            print(f'      Source: {assessment["source"]["type"]} ({assessment["source"]["id"]})')
           if 'timestamp' in assessment:
-            print(f"      Timestamp: {assessment['timestamp']}")
+            print(f'      Timestamp: {assessment["timestamp"]}')
       else:
         print('\n   No assessments found')
     else:
-      print(f"❌ {result.get('error', 'Unknown error')}", file=sys.stderr)
+      print(f'❌ {result.get("error", "Unknown error")}', file=sys.stderr)
       sys.exit(1)
 
 

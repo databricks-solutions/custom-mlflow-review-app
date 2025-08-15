@@ -54,8 +54,8 @@ Examples:
       rationale=args.rationale,
     )
 
-    print(f"\n✅ {result['message']}")
-    print(f"Assessment ID: {result['assessment_id']}")
+    print(f'\n✅ {result["message"]}')
+    print(f'Assessment ID: {result["assessment_id"]}')
 
   except Exception as e:
     print(f'❌ Error updating feedback: {e}')

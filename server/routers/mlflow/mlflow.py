@@ -56,7 +56,7 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
       try:
         full_trace = mlflow_utils.get_trace(trace.info.trace_id)
         trace_dict = full_trace.to_dict()
-        
+
         # Add assessments to the dict since to_dict() doesn't include them
         if hasattr(full_trace, 'search_assessments'):
           assessments = full_trace.search_assessments()
@@ -69,33 +69,56 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
                 'assessment_name': assessment.assessment_name,
                 'timestamp': assessment.timestamp,
               }
-              
+
               # Add feedback or expectation details
               if assessment.feedback:
                 assessment_dict['feedback'] = {
                   'value': assessment.feedback.value,
-                  'rationale': assessment.feedback.rationale if hasattr(assessment.feedback, 'rationale') else None,
-                  'metadata': assessment.feedback.metadata if hasattr(assessment.feedback, 'metadata') else None,
+                  'rationale': assessment.feedback.rationale
+                  if hasattr(assessment.feedback, 'rationale')
+                  else None,
+                  'metadata': assessment.feedback.metadata
+                  if hasattr(assessment.feedback, 'metadata')
+                  else None,
                   'source': {
-                    'source_type': assessment.feedback.source.source_type if hasattr(assessment.feedback.source, 'source_type') else 'human',
-                    'source_id': assessment.feedback.source.source_id if hasattr(assessment.feedback.source, 'source_id') else None,
-                  } if hasattr(assessment.feedback, 'source') else None,
+                    'source_type': assessment.feedback.source.source_type
+                    if hasattr(assessment.feedback.source, 'source_type')
+                    else 'human',
+                    'source_id': assessment.feedback.source.source_id
+                    if hasattr(assessment.feedback.source, 'source_id')
+                    else None,
+                  }
+                  if hasattr(assessment.feedback, 'source')
+                  else None,
                 }
               elif assessment.expectation:
                 assessment_dict['expectation'] = {
                   'value': assessment.expectation.value,
-                  'metadata': assessment.expectation.metadata if hasattr(assessment.expectation, 'metadata') else None,
+                  'metadata': assessment.expectation.metadata
+                  if hasattr(assessment.expectation, 'metadata')
+                  else None,
                   'source': {
-                    'source_type': assessment.expectation.source.source_type if hasattr(assessment.expectation.source, 'source_type') else 'human',
-                    'source_id': assessment.expectation.source.source_id if hasattr(assessment.expectation.source, 'source_id') else None,
-                  } if hasattr(assessment.expectation, 'source') else None,
+                    'source_type': assessment.expectation.source.source_type
+                    if hasattr(assessment.expectation.source, 'source_type')
+                    else 'human',
+                    'source_id': assessment.expectation.source.source_id
+                    if hasattr(assessment.expectation.source, 'source_id')
+                    else None,
+                  }
+                  if hasattr(assessment.expectation, 'source')
+                  else None,
                 }
                 # For expectations, rationale is in metadata
-                if assessment_dict['expectation']['metadata'] and 'rationale' in assessment_dict['expectation']['metadata']:
-                  assessment_dict['metadata'] = {'rationale': assessment_dict['expectation']['metadata']['rationale']}
-              
+                if (
+                  assessment_dict['expectation']['metadata']
+                  and 'rationale' in assessment_dict['expectation']['metadata']
+                ):
+                  assessment_dict['metadata'] = {
+                    'rationale': assessment_dict['expectation']['metadata']['rationale']
+                  }
+
               trace_dict['assessments'].append(assessment_dict)
-        
+
       except Exception:
         # If we can't get the full trace, use the search result
         trace_dict = trace.to_dict()
@@ -170,7 +193,7 @@ async def get_trace(trace_id: str) -> Dict[str, Any]:
 
     # Convert to dict and add previews
     trace_dict = raw_trace.to_dict()
-    
+
     # Add assessments to the dict since to_dict() doesn't include them
     if hasattr(raw_trace, 'search_assessments'):
       assessments = raw_trace.search_assessments()
@@ -183,33 +206,56 @@ async def get_trace(trace_id: str) -> Dict[str, Any]:
             'assessment_name': assessment.assessment_name,
             'timestamp': assessment.timestamp,
           }
-          
+
           # Add feedback or expectation details
           if assessment.feedback:
             assessment_dict['feedback'] = {
               'value': assessment.feedback.value,
-              'rationale': assessment.feedback.rationale if hasattr(assessment.feedback, 'rationale') else None,
-              'metadata': assessment.feedback.metadata if hasattr(assessment.feedback, 'metadata') else None,
+              'rationale': assessment.feedback.rationale
+              if hasattr(assessment.feedback, 'rationale')
+              else None,
+              'metadata': assessment.feedback.metadata
+              if hasattr(assessment.feedback, 'metadata')
+              else None,
               'source': {
-                'source_type': assessment.feedback.source.source_type if hasattr(assessment.feedback.source, 'source_type') else 'human',
-                'source_id': assessment.feedback.source.source_id if hasattr(assessment.feedback.source, 'source_id') else None,
-              } if hasattr(assessment.feedback, 'source') else None,
+                'source_type': assessment.feedback.source.source_type
+                if hasattr(assessment.feedback.source, 'source_type')
+                else 'human',
+                'source_id': assessment.feedback.source.source_id
+                if hasattr(assessment.feedback.source, 'source_id')
+                else None,
+              }
+              if hasattr(assessment.feedback, 'source')
+              else None,
             }
           elif assessment.expectation:
             assessment_dict['expectation'] = {
               'value': assessment.expectation.value,
-              'metadata': assessment.expectation.metadata if hasattr(assessment.expectation, 'metadata') else None,
+              'metadata': assessment.expectation.metadata
+              if hasattr(assessment.expectation, 'metadata')
+              else None,
               'source': {
-                'source_type': assessment.expectation.source.source_type if hasattr(assessment.expectation.source, 'source_type') else 'human',
-                'source_id': assessment.expectation.source.source_id if hasattr(assessment.expectation.source, 'source_id') else None,
-              } if hasattr(assessment.expectation, 'source') else None,
+                'source_type': assessment.expectation.source.source_type
+                if hasattr(assessment.expectation.source, 'source_type')
+                else 'human',
+                'source_id': assessment.expectation.source.source_id
+                if hasattr(assessment.expectation.source, 'source_id')
+                else None,
+              }
+              if hasattr(assessment.expectation, 'source')
+              else None,
             }
             # For expectations, rationale is in metadata
-            if assessment_dict['expectation']['metadata'] and 'rationale' in assessment_dict['expectation']['metadata']:
-              assessment_dict['metadata'] = {'rationale': assessment_dict['expectation']['metadata']['rationale']}
-          
+            if (
+              assessment_dict['expectation']['metadata']
+              and 'rationale' in assessment_dict['expectation']['metadata']
+            ):
+              assessment_dict['metadata'] = {
+                'rationale': assessment_dict['expectation']['metadata']['rationale']
+              }
+
           trace_dict['assessments'].append(assessment_dict)
-    
+
     request_preview, response_preview = mlflow_utils._extract_request_response_preview(raw_trace)
 
     if 'info' in trace_dict:

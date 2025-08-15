@@ -43,11 +43,11 @@ async def analyze_session_with_report(
   # Check storage result
   storage = analysis_results.get('storage')
   if storage and not storage.get('error'):
-    print(f"✅ Analysis stored to MLflow run {storage.get('run_id')}")
-    print(f"   - Report: {storage.get('report_path')}")
-    print(f"   - Data: {storage.get('data_path')}")
+    print(f'✅ Analysis stored to MLflow run {storage.get("run_id")}')
+    print(f'   - Report: {storage.get("report_path")}')
+    print(f'   - Data: {storage.get("data_path")}')
   elif storage and storage.get('error'):
-    print(f"⚠️ Failed to store to MLflow: {storage.get('error')}")
+    print(f'⚠️ Failed to store to MLflow: {storage.get("error")}')
   else:
     print('⚠️ No MLflow run ID found for session')
 
@@ -122,7 +122,7 @@ Examples:
     if result.get('status') == 'success':
       print('\n✅ Analysis completed successfully!')
     else:
-      print(f"\n❌ Analysis failed: {result.get('error', 'Unknown error')}")
+      print(f'\n❌ Analysis failed: {result.get("error", "Unknown error")}')
       sys.exit(1)
 
   except KeyboardInterrupt:

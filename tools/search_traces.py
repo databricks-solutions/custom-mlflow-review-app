@@ -99,7 +99,7 @@ def _convert_traces_to_json_format(traces, include_spans: bool = False):
               source = assessment_dict['source']
               if isinstance(source, dict):
                 simplified['source'] = (
-                  f"{source.get('source_type', '')}:{source.get('source_id', '')}"
+                  f'{source.get("source_type", "")}:{source.get("source_id", "")}'
                 )
               else:
                 simplified['source'] = str(source)

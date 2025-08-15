@@ -141,7 +141,7 @@ class SchemaGenerator:
       'label_type': 'FEEDBACK',
       'schema_type': schema_type,
       'description': description,
-      'rationale': f"Human evaluation needed: {issue.get('description', '')}",
+      'rationale': f'Human evaluation needed: {issue.get("description", "")}',
       'priority_score': self._calculate_priority(issue),
       'grounded_in_traces': issue.get('example_traces', [])[:3],
       'all_affected_traces': issue.get('all_trace_ids', []),
@@ -176,12 +176,12 @@ class SchemaGenerator:
   def _create_expectation_schema(self, issue: Dict[str, Any]) -> Dict[str, Any]:
     """Create an expectation (ground truth) schema for an issue."""
     schema = {
-      'key': f"{self._sanitize_key(issue['issue_type'])}_expectation",
-      'name': f"Expected: {issue.get('title', issue['issue_type'].replace('_', ' ').title())}",
+      'key': f'{self._sanitize_key(issue["issue_type"])}_expectation',
+      'name': f'Expected: {issue.get("title", issue["issue_type"].replace("_", " ").title())}',
       'label_type': 'EXPECTATION',
       'schema_type': 'text',  # Expectations are usually text corrections
       'description': self._generate_expectation_question(issue),
-      'rationale': f"Ground truth needed: {issue.get('description', '')}",
+      'rationale': f'Ground truth needed: {issue.get("description", "")}',
       'priority_score': self._calculate_priority(issue),
       'grounded_in_traces': issue.get('example_traces', [])[:3],
       'all_affected_traces': issue.get('all_trace_ids', []),
@@ -260,7 +260,7 @@ class SchemaGenerator:
 
     # Default: Convert to "Is/Does..." if not already
     if not question.startswith(('Is ', 'Does ', 'Was ', 'Has ', 'Are ')):
-      return f"The {issue.get('title', 'response').lower()} is acceptable"
+      return f'The {issue.get("title", "response").lower()} is acceptable'
 
     return question
 

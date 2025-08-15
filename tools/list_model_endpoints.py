@@ -51,7 +51,7 @@ def list_endpoints(format_output: str = 'table') -> None:
         print(endpoint.name)
 
     else:  # table format (default)
-      print(f"{'NAME':<40} {'STATE':<15} {'CREATOR':<30} {'LAST UPDATED'}")
+      print(f'{"NAME":<40} {"STATE":<15} {"CREATOR":<30} {"LAST UPDATED"}')
       print('-' * 100)
 
       for endpoint in endpoints:

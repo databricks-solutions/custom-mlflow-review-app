@@ -323,8 +323,8 @@ class IssueDiscovery:
 
       if stated_count != actual_count:
         self.logger.warning(
-          f"Issue {issue.get('issue_type')}: "
-          f"stated {stated_count} traces but found {actual_count} IDs"
+          f'Issue {issue.get("issue_type")}: '
+          f'stated {stated_count} traces but found {actual_count} IDs'
         )
 
       organized_issue = {
@@ -435,7 +435,7 @@ class IssueDiscovery:
           'total_affected_traces': len(very_slow_traces),
           'all_affected_trace_ids': [t['trace_id'] for t in very_slow_traces],
           'example_snippets': [
-            f"Trace {t['trace_id']}: {t['execution_time_ms']}ms" for t in very_slow_traces[:3]
+            f'Trace {t["trace_id"]}: {t["execution_time_ms"]}ms' for t in very_slow_traces[:3]
           ],
           'evaluation_question': 'The response was delivered within acceptable time limits (<10s)',
           'requires_feedback': False,  # Performance is objective, not subjective
@@ -454,7 +454,7 @@ class IssueDiscovery:
           'total_affected_traces': len(slow_traces),
           'all_affected_trace_ids': [t['trace_id'] for t in slow_traces],
           'example_snippets': [
-            f"Trace {t['trace_id']}: {t['execution_time_ms']}ms" for t in slow_traces[:3]
+            f'Trace {t["trace_id"]}: {t["execution_time_ms"]}ms' for t in slow_traces[:3]
           ],
           'evaluation_question': 'The response time was acceptable for this type of query',
           'requires_feedback': False,  # Performance is objective, not subjective
@@ -503,7 +503,7 @@ class IssueDiscovery:
             'total_affected_traces': len(occurrences),
             'all_affected_trace_ids': [o['trace_id'] for o in occurrences],
             'example_snippets': [
-              f"Tool {o.get('raw_name', tool_name)}: {o['duration_ms']}ms in trace {o['trace_id']}"
+              f'Tool {o.get("raw_name", tool_name)}: {o["duration_ms"]}ms in trace {o["trace_id"]}'
               for o in occurrences[:3]
             ],
             'evaluation_question': f'{tool_name} executed efficiently (<5s)',

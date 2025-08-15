@@ -117,16 +117,16 @@ def test_labeling_rest():
 
   # First, get the manifest to retrieve review app ID
   response = api_call('GET', '/api/manifest')
-  assert (
-    response.status_code == 200
-  ), f'Failed to get manifest. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to get manifest. Status: {response.status_code}, Body: {response.text}'
+  )
 
   manifest = response.json()
   review_app_id = manifest.get('config', {}).get('review_app_id')
 
-  assert (
-    review_app_id
-  ), f'No review app configured for experiment {experiment_id}. Please ensure a review app exists.'
+  assert review_app_id, (
+    f'No review app configured for experiment {experiment_id}. Please ensure a review app exists.'
+  )
 
   print(f'✓ Using review app ID: {review_app_id}')
 
@@ -146,10 +146,10 @@ def test_labeling_rest():
     # Try without timestamp
     feedback_schema['name'] = 'test_feedback'
   else:
-    assert (
-      response.status_code == 200
-    ), f'Failed to create feedback schema. Status: {response.status_code}, Body: {response.text}'
-    print(f"✓ Created feedback schema: {response.json()['name']}")
+    assert response.status_code == 200, (
+      f'Failed to create feedback schema. Status: {response.status_code}, Body: {response.text}'
+    )
+    print(f'✓ Created feedback schema: {response.json()["name"]}')
 
   # Create expectation schema (text)
   expectation_schema = {
@@ -167,10 +167,10 @@ def test_labeling_rest():
     # Try without timestamp
     expectation_schema['name'] = 'test_guidelines'
   else:
-    assert (
-      response.status_code == 200
-    ), f'Failed to create expectation schema. Status: {response.status_code}, Body: {response.text}'
-    print(f"✓ Created expectation schema: {response.json()['name']}")
+    assert response.status_code == 200, (
+      f'Failed to create expectation schema. Status: {response.status_code}, Body: {response.text}'
+    )
+    print(f'✓ Created expectation schema: {response.json()["name"]}')
 
   # ========================================================================
   # Section 2: Search traces to receive 5 traces
@@ -180,19 +180,19 @@ def test_labeling_rest():
   search_request = {'experiment_ids': [experiment_id], 'max_results': 5}
 
   response = api_call('POST', '/api/mlflow/search-traces', json=search_request)
-  assert (
-    response.status_code == 200
-  ), f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
+  )
 
   traces = response.json().get('traces', [])
-  assert (
-    len(traces) > 0
-  ), f'No traces found in experiment {experiment_id}. Please ensure traces exist in the experiment.'
+  assert len(traces) > 0, (
+    f'No traces found in experiment {experiment_id}. Please ensure traces exist in the experiment.'
+  )
 
   # Take up to 5 traces
   trace_ids = [trace['info']['trace_id'] for trace in traces[:5]]
   print(f'✓ Found {len(trace_ids)} traces')
-  print(f"   First trace ID: {trace_ids[0] if trace_ids else 'None'}")
+  print(f'   First trace ID: {trace_ids[0] if trace_ids else "None"}')
 
   # ========================================================================
   # Section 3: Create labeling session with these 2 label schemas
@@ -208,9 +208,9 @@ def test_labeling_rest():
   response = api_call(
     'POST', f'/api/review-apps/{review_app_id}/labeling-sessions', json=session_data
   )
-  assert (
-    response.status_code == 200
-  ), f'Failed to create labeling session. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to create labeling session. Status: {response.status_code}, Body: {response.text}'
+  )
 
   session = response.json()
   session_id = session['labeling_session_id']
@@ -230,9 +230,9 @@ def test_labeling_rest():
       f'/api/review-apps/{review_app_id}/labeling-sessions/{session_id}/link-traces',
       json=link_request,
     )
-    assert (
-      response.status_code == 200
-    ), f'Failed to link traces. Status: {response.status_code}, Body: {response.text}'
+    assert response.status_code == 200, (
+      f'Failed to link traces. Status: {response.status_code}, Body: {response.text}'
+    )
     print(f'✓ Linked {len(trace_ids[:2])} traces to session')
 
   # ========================================================================
@@ -255,17 +255,17 @@ def test_labeling_rest():
   }
 
   response = api_call('POST', f'/api/mlflow/traces/{trace_id}/feedback', json=feedback_request)
-  assert (
-    response.status_code == 200
-  ), f'Failed to log feedback. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to log feedback. Status: {response.status_code}, Body: {response.text}'
+  )
 
   feedback_result = response.json()
   assessment_ids['feedback'] = feedback_result.get('assessment_id')
-  assert assessment_ids[
-    'feedback'
-  ], f'No assessment_id returned in feedback response: {feedback_result}'
+  assert assessment_ids['feedback'], (
+    f'No assessment_id returned in feedback response: {feedback_result}'
+  )
   print('✓ Logged feedback assessment')
-  print(f"   Assessment ID: {assessment_ids['feedback']}")
+  print(f'   Assessment ID: {assessment_ids["feedback"]}')
 
   # Log expectation assessment (text)
   expectation_request = {
@@ -279,17 +279,17 @@ def test_labeling_rest():
   response = api_call(
     'POST', f'/api/mlflow/traces/{trace_id}/expectation', json=expectation_request
   )
-  assert (
-    response.status_code == 200
-  ), f'Failed to log expectation. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to log expectation. Status: {response.status_code}, Body: {response.text}'
+  )
 
   expectation_result = response.json()
   assessment_ids['expectation'] = expectation_result.get('assessment_id')
-  assert assessment_ids[
-    'expectation'
-  ], f'No assessment_id returned in expectation response: {expectation_result}'
+  assert assessment_ids['expectation'], (
+    f'No assessment_id returned in expectation response: {expectation_result}'
+  )
   print('✓ Logged expectation assessment')
-  print(f"   Assessment ID: {assessment_ids['expectation']}")
+  print(f'   Assessment ID: {assessment_ids["expectation"]}')
 
   # ========================================================================
   # Section 5: Search traces to make sure there are assessments
@@ -307,9 +307,9 @@ def test_labeling_rest():
   }
 
   response = api_call('POST', '/api/mlflow/search-traces', json=search_request)
-  assert (
-    response.status_code == 200
-  ), f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to search traces. Status: {response.status_code}, Body: {response.text}'
+  )
 
   traces = response.json().get('traces', [])
   assert len(traces) > 0, 'No traces found after adding assessments'
@@ -367,8 +367,8 @@ def test_labeling_rest():
   else:
     print('   Note: Search API did not return assessments (this is expected behavior)')
     print('   Assessments were logged successfully with IDs:')
-    print(f"   - Feedback: {assessment_ids['feedback']}")
-    print(f"   - Expectation: {assessment_ids['expectation']}")
+    print(f'   - Feedback: {assessment_ids["feedback"]}')
+    print(f'   - Expectation: {assessment_ids["expectation"]}')
 
   # ========================================================================
   # Section 6: Update the assessments for that same trace
@@ -387,9 +387,9 @@ def test_labeling_rest():
   response = api_call(
     'PATCH', f'/api/mlflow/traces/{trace_id}/feedback', json=update_feedback_request
   )
-  assert (
-    response.status_code == 200
-  ), f'Failed to update feedback. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to update feedback. Status: {response.status_code}, Body: {response.text}'
+  )
   print("✓ Updated feedback assessment to 'false'")
 
   # Update expectation assessment (change text)
@@ -404,9 +404,9 @@ def test_labeling_rest():
   response = api_call(
     'PATCH', f'/api/mlflow/traces/{trace_id}/expectation', json=update_expectation_request
   )
-  assert (
-    response.status_code == 200
-  ), f'Failed to update expectation. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to update expectation. Status: {response.status_code}, Body: {response.text}'
+  )
   print('✓ Updated expectation assessment text')
 
   # ========================================================================
@@ -429,7 +429,7 @@ def test_labeling_rest():
     numeric_schema['name'] = 'test_rating'
   else:
     assert response.status_code == 200, f'Failed to create numeric schema: {response.text}'
-    print(f"✓ Created numeric schema: {numeric_schema['name']}")
+    print(f'✓ Created numeric schema: {numeric_schema["name"]}')
 
   # Test boolean dtype (actual boolean, not categorical)
   print('\n   Testing boolean data type...')
@@ -601,9 +601,9 @@ def test_labeling_rest():
   }
 
   response = api_call('POST', '/api/mlflow/search-traces', json=search_request)
-  assert (
-    response.status_code == 200
-  ), f'Failed to search traces after update. Status: {response.status_code}, Body: {response.text}'
+  assert response.status_code == 200, (
+    f'Failed to search traces after update. Status: {response.status_code}, Body: {response.text}'
+  )
 
   traces = response.json().get('traces', [])
   assert len(traces) > 0, 'No traces found after updating assessments'
@@ -632,9 +632,9 @@ def test_labeling_rest():
       if not value and 'feedback' in assessment:
         value = assessment['feedback'].get('value')
 
-      assert (
-        value == 'False' or value == 'false' or value is False
-      ), f"Feedback not updated. Expected 'False', got: {value}"
+      assert value == 'False' or value == 'false' or value is False, (
+        f"Feedback not updated. Expected 'False', got: {value}"
+      )
       feedback_updated = True
       print("✓ Feedback assessment successfully updated to 'false'")
 
@@ -644,9 +644,9 @@ def test_labeling_rest():
       if not value and 'expectation' in assessment:
         value = assessment['expectation'].get('value')
 
-      assert value and 'Updated guidelines' in str(
-        value
-      ), f"Expectation not updated. Expected 'Updated guidelines...', got: {value}"
+      assert value and 'Updated guidelines' in str(value), (
+        f"Expectation not updated. Expected 'Updated guidelines...', got: {value}"
+      )
       expectation_updated = True
       print('✓ Expectation assessment successfully updated')
 

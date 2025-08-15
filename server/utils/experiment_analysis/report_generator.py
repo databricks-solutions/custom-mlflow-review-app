@@ -95,7 +95,7 @@ class ReportGenerator:
     return f"""## 📊 Executive Summary
 
 - **Total Traces Analyzed:** {experiment_data['total_traces']}
-- **Traces with Issues:** {len(all_affected_traces)} ({len(all_affected_traces)*100//max(experiment_data['total_traces'], 1)}%)
+- **Traces with Issues:** {len(all_affected_traces)} ({len(all_affected_traces) * 100 // max(experiment_data['total_traces'], 1)}%)
 - **Unique Issue Types Found:** {len(issues)}
 - **Critical Issues:** {critical_count}
 - **High Priority Issues:** {high_count}
@@ -374,7 +374,7 @@ This analysis used an open-ended discovery approach:
       # Show the tool name with variations if they exist
       raw_names = info.get('raw_names', set())
       if len(raw_names) > 1:
-        variations_str = f" (includes: {', '.join(sorted(raw_names))})"
+        variations_str = f' (includes: {", ".join(sorted(raw_names))})'
       else:
         variations_str = ''
 
@@ -409,11 +409,11 @@ This analysis used an open-ended discovery approach:
     # Highlight critical performance issue
     if avg_latency > 30000:
       findings.append(
-        f'🔴 **CRITICAL:** Average response time is {avg_latency/1000:.1f}s (3x above 10s threshold)'
+        f'🔴 **CRITICAL:** Average response time is {avg_latency / 1000:.1f}s (3x above 10s threshold)'
       )
     elif avg_latency > 10000:
       findings.append(
-        f'🟠 **WARNING:** Average response time is {avg_latency/1000:.1f}s (above 10s threshold)'
+        f'🟠 **WARNING:** Average response time is {avg_latency / 1000:.1f}s (above 10s threshold)'
       )
 
     # Find slowest tool
@@ -432,7 +432,7 @@ This analysis used an open-ended discovery approach:
 
     if slowest_tool and max_tool_duration > 10000:
       findings.append(
-        f'🔧 **BOTTLENECK:** Tool `{slowest_tool}` took {max_tool_duration/1000:.1f}s'
+        f'🔧 **BOTTLENECK:** Tool `{slowest_tool}` took {max_tool_duration / 1000:.1f}s'
       )
 
     if findings:

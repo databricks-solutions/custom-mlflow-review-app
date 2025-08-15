@@ -68,7 +68,7 @@ class ModelServingClient:
         elif role_str == 'SYSTEM':
           role = ChatMessageRole.SYSTEM
         else:
-          raise ValueError(f"Invalid message role: {msg['role']}")
+          raise ValueError(f'Invalid message role: {msg["role"]}')
 
         chat_messages.append(ChatMessage(content=msg['content'], role=role))
 

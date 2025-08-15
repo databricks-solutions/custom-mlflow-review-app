@@ -176,7 +176,7 @@ class SMEInsightDiscovery:
   ) -> str:
     """Generate brief 1-paragraph context summary."""
     # Prepare concise schema list
-    schema_names = [f"{s.get('name')} ({s.get('schema_type')})" for s in schemas[:5]]
+    schema_names = [f'{s.get("name")} ({s.get("schema_type")})' for s in schemas[:5]]
 
     # Pass ALL traces for complete context
     prompt = f"""
@@ -556,15 +556,25 @@ Example format:
     {agent_understanding}
     
     Label Schemas:
-    {json.dumps([{{
-      'key': s.get('key'),
-      'name': s.get('name'),
-      'type': s.get('schema_type'),
-      'description': s.get('description'),
-      'min': s.get('min'),
-      'max': s.get('max'),
-      'categories': s.get('categories') if s.get('schema_type') == 'categorical' else None
-    }} for s in schemas], indent=2)}
+    {
+      json.dumps(
+        [
+          {
+            {
+              'key': s.get('key'),
+              'name': s.get('name'),
+              'type': s.get('schema_type'),
+              'description': s.get('description'),
+              'min': s.get('min'),
+              'max': s.get('max'),
+              'categories': s.get('categories') if s.get('schema_type') == 'categorical' else None,
+            }
+          }
+          for s in schemas
+        ],
+        indent=2,
+      )
+    }
     
     Session Overview:
     - Total traces in session: {len(all_trace_analyses)}
@@ -613,7 +623,9 @@ Example format:
         "total_traces": {len(all_trace_analyses)},
         "labeled_count": {len(labeled_traces)},
         "unlabeled_count": {len(unlabeled_traces)},
-        "completion_rate": "{round(len(labeled_traces) / len(all_trace_analyses) * 100 if all_trace_analyses else 0, 1)}%"
+        "completion_rate": "{
+      round(len(labeled_traces) / len(all_trace_analyses) * 100 if all_trace_analyses else 0, 1)
+    }%"
       }},
       "pattern_summary": "patterns across ALL {len(all_trace_analyses)} traces",
       "key_insights": [
@@ -1014,11 +1026,11 @@ class ActionableReportGenerator:
     lines = ['## Label Distributions']
     for key, dist in distributions.items():
       if dist.get('total', 0) > 0:
-        lines.append(f"- **{dist['name']}**: {dist['summary']}")
+        lines.append(f'- **{dist["name"]}**: {dist["summary"]}')
         # Add distribution details for categorical
         if dist.get('type') == 'categorical' and 'distribution' in dist:
           for cat, data in dist['distribution'].items():
-            lines.append(f"  - {cat}: {data['count']} ({data['percentage']}%)")
+            lines.append(f'  - {cat}: {data["count"]} ({data["percentage"]}%)')
 
     return '\n'.join(lines) if len(lines) > 1 else ''
 
@@ -1033,7 +1045,7 @@ class ActionableReportGenerator:
 
     # Main pattern
     if patterns.get('main_pattern'):
-      lines.append(f"**Main Pattern:** {patterns['main_pattern']}")
+      lines.append(f'**Main Pattern:** {patterns["main_pattern"]}')
 
     # Assessment trends
     if patterns.get('assessment_trends'):
@@ -1102,13 +1114,13 @@ class ActionableReportGenerator:
     if label_meanings:
       sections.append('### What the Labels Mean in This Context')
       if label_meanings.get('low_scores'):
-        sections.append(f"- **Low Scores:** {label_meanings['low_scores']}")
+        sections.append(f'- **Low Scores:** {label_meanings["low_scores"]}')
       if label_meanings.get('high_scores'):
-        sections.append(f"- **High Scores:** {label_meanings['high_scores']}")
+        sections.append(f'- **High Scores:** {label_meanings["high_scores"]}')
       if label_meanings.get('false_labels'):
-        sections.append(f"- **False/Incorrect Labels:** {label_meanings['false_labels']}")
+        sections.append(f'- **False/Incorrect Labels:** {label_meanings["false_labels"]}')
       if label_meanings.get('unlabeled_implications'):
-        sections.append(f"- **Unlabeled Traces:** {label_meanings['unlabeled_implications']}")
+        sections.append(f'- **Unlabeled Traces:** {label_meanings["unlabeled_implications"]}')
       sections.append('')
 
     # Key insights
@@ -1236,7 +1248,7 @@ class ActionableReportGenerator:
         consensus_type = area.get('consensus_type', 'unknown')
         emoji = '✅' if consensus_type == 'positive' else '❌'
         sections.append(
-          f"- {emoji} **{area.get('schema', 'Unknown')}**: {area.get('description', 'No description')}"
+          f'- {emoji} **{area.get("schema", "Unknown")}**: {area.get("description", "No description")}'
         )
 
     # Key trends
@@ -1310,7 +1322,7 @@ class ActionableReportGenerator:
       if stats.get('count', 0) == 0:
         continue
 
-      sections.append(f"\n### {stats.get('name', schema_key)}")
+      sections.append(f'\n### {stats.get("name", schema_key)}')
 
       if stats.get('type') == 'numerical':
         sections.append(f"""
@@ -1331,7 +1343,7 @@ class ActionableReportGenerator:
         if distribution:
           sections.append('\n**Distribution:**')
           for category, data in distribution.items():
-            sections.append(f"- {category}: {data['count']} ({data['percentage']:.1f}%)")
+            sections.append(f'- {category}: {data["count"]} ({data["percentage"]:.1f}%)')
 
       elif stats.get('type') == 'text':
         sections.append(f"""
@@ -1340,7 +1352,7 @@ class ActionableReportGenerator:
 
         themes = stats.get('themes', [])
         if themes:
-          sections.append(f"- **Common Themes:** {', '.join(themes)}")
+          sections.append(f'- **Common Themes:** {", ".join(themes)}')
 
     return '\n'.join(sections)
 
@@ -2010,15 +2022,15 @@ def _generate_basic_report(
 
   for schema_key, stats in statistics.items():
     if stats.get('count', 0) > 0:
-      report += f"### {stats.get('name', schema_key)}\n"
-      report += f"- Type: {stats.get('type', 'unknown')}\n"
-      report += f"- Responses: {stats.get('count', 0)}\n"
+      report += f'### {stats.get("name", schema_key)}\n'
+      report += f'- Type: {stats.get("type", "unknown")}\n'
+      report += f'- Responses: {stats.get("count", 0)}\n'
 
       if stats.get('type') == 'numerical':
-        report += f"- Mean: {stats.get('mean', 0):.2f}\n"
-        report += f"- Median: {stats.get('median', 0):.2f}\n"
+        report += f'- Mean: {stats.get("mean", 0):.2f}\n'
+        report += f'- Median: {stats.get("median", 0):.2f}\n'
       elif stats.get('type') == 'categorical':
-        report += f"- Most Common: {stats.get('mode', 'N/A')}\n"
+        report += f'- Most Common: {stats.get("mode", "N/A")}\n'
 
       report += '\n'
 

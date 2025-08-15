@@ -104,7 +104,7 @@ Examples:
 
     # Show conversation
     for i, msg in enumerate(messages, 1):
-      print(f"{i}. [{msg['role'].upper()}]: {msg['content']}")
+      print(f'{i}. [{msg["role"].upper()}]: {msg["content"]}')
     print('-' * 50)
 
     # Initialize client and query

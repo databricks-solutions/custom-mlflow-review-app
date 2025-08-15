@@ -15,7 +15,7 @@ class ReviewAppsUtils:
   def __init__(self):
     """Initialize with cache."""
     # Cache for experiment_id -> review_app_id mapping (1:1 relationship)
-    self._experiment_to_review_app_cache = {}
+    self._experiment_to_review_app_id_cache = {}
 
   async def list_review_apps(
     self,
@@ -116,7 +116,10 @@ class ReviewAppsUtils:
     return response
 
   async def get_review_app_by_experiment(self, experiment_id: str) -> Optional[Dict[str, Any]]:
-    """Get review app for a specific experiment ID with caching.
+    """Get review app for a specific experiment ID with ID caching.
+    
+    Note: Only the review_app_id mapping is cached, not the full review app data,
+    to ensure we always get fresh schema and configuration data.
 
     Args:
         experiment_id: The MLflow experiment ID
@@ -124,15 +127,15 @@ class ReviewAppsUtils:
     Returns:
         Dictionary containing review app details, or None if not found
     """
-    # Check cache first (since experiment:review_app is 1:1)
-    if experiment_id in self._experiment_to_review_app_cache:
-      cached_review_app_id = self._experiment_to_review_app_cache[experiment_id]
+    # Check cache for the review_app_id mapping (since experiment:review_app is 1:1)
+    if experiment_id in self._experiment_to_review_app_id_cache:
+      cached_review_app_id = self._experiment_to_review_app_id_cache[experiment_id]
       try:
-        # Get the full review app details
+        # Always fetch fresh review app details from the API
         return await self.get_review_app(cached_review_app_id)
       except Exception:
         # Cache miss or review app deleted, remove from cache and proceed
-        del self._experiment_to_review_app_cache[experiment_id]
+        del self._experiment_to_review_app_id_cache[experiment_id]
 
     try:
       # Set the experiment context
@@ -151,21 +154,16 @@ class ReviewAppsUtils:
       genai_time = time.time() - genai_start
       logger.info(f'🧬 [MLFLOW GENAI] get_review_app() completed in {genai_time * 1000:.1f}ms')
 
-      # Convert to dictionary format
+      # Extract review app ID from SDK response
       if review_app:
-        review_app_data = {
-          'review_app_id': getattr(review_app, 'review_app_id', None),
-          'experiment_id': experiment_id,
-          'url': review_app.url if hasattr(review_app, 'url') else None,
-          # Add other fields as needed based on the ReviewApp object
-        }
-
-        # Cache the mapping for future requests
-        review_app_id = review_app_data.get('review_app_id')
+        review_app_id = getattr(review_app, 'review_app_id', None)
+        
         if review_app_id:
-          self._experiment_to_review_app_cache[experiment_id] = review_app_id
-
-        return review_app_data
+          # Cache the ID mapping for future requests
+          self._experiment_to_review_app_id_cache[experiment_id] = review_app_id
+          
+          # Fetch full review app data from API (to get latest schemas, etc.)
+          return await self.get_review_app(review_app_id)
       return None
     except Exception:
       # Fallback to REST API if SDK fails
@@ -179,7 +177,7 @@ class ReviewAppsUtils:
           # Cache the mapping for future requests
           review_app_id = review_app.get('review_app_id')
           if review_app_id:
-            self._experiment_to_review_app_cache[experiment_id] = review_app_id
+            self._experiment_to_review_app_id_cache[experiment_id] = review_app_id
 
           return review_app
         return None
@@ -195,7 +193,7 @@ class ReviewAppsUtils:
     Returns:
         Cached review app ID, or None if not cached
     """
-    return self._experiment_to_review_app_cache.get(experiment_id)
+    return self._experiment_to_review_app_id_cache.get(experiment_id)
 
 
 # Create a global instance for easy access

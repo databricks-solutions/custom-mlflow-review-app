@@ -233,18 +233,18 @@ Examples:
 
   # Print result
   if result['success']:
-    print(f"✅ {result['message']}")
+    print(f'✅ {result["message"]}')
     if 'deleted' in result and result['deleted']:
       print('\nDeleted assessments:')
       for item in result['deleted']:
-        print(f"  - {item['name']} (ID: {item.get('id', 'N/A')})")
+        print(f'  - {item["name"]} (ID: {item.get("id", "N/A")})')
   else:
-    print(f"❌ {result.get('error', 'Unknown error')}", file=sys.stderr)
+    print(f'❌ {result.get("error", "Unknown error")}', file=sys.stderr)
     if 'failed' in result and result['failed']:
       print('\nFailed deletions:', file=sys.stderr)
       for item in result['failed']:
         print(
-          f"  - {item.get('name', 'unknown')}: {item.get('error', 'unknown error')}",
+          f'  - {item.get("name", "unknown")}: {item.get("error", "unknown error")}',
           file=sys.stderr,
         )
     sys.exit(1)
