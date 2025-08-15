@@ -210,8 +210,7 @@ class ApiClientWrapper {
         mlflow_run_id: string;
         trace_ids: string[];
       }) =>
-        ApiService.linkTracesToSessionApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdLinkTracesPost(
-          params.reviewAppId,
+        LabelingSessionsService.linkTracesToSessionApiLabelingSessionsLabelingSessionIdLinkTracesPost(
           params.sessionId,
           { mlflow_run_id: params.mlflow_run_id, trace_ids: params.trace_ids }
         ),

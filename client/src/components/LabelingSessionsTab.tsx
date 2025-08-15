@@ -841,26 +841,21 @@ function AddTracesButton({
     return new Set((itemsData?.items || []).map((item) => item.source?.trace_id).filter(Boolean));
   }, [itemsData]);
 
-  // Search traces - this will auto-fetch when isOpen is true
+  // Search traces - Always enabled but we control when we want fresh data
   const {
     data: tracesData,
     isLoading: isLoadingTraces,
     isFetching,
     refetch,
-  } = useSearchTraces(
-    {
-      experiment_ids: experimentId ? [experimentId] : [],
-      filter: searchFilter || undefined,
-      max_results: 50,
-      include_spans: false,
-      // TODO: Add page_token support when API supports it
-      // page_token: page > 0 ? `page_${page}` : undefined,
-    },
-    !!experimentId && isOpen // Enable when modal is open
-  );
+  } = useSearchTraces({
+    experiment_ids: experimentId ? [experimentId] : [],
+    filter: searchFilter || undefined,
+    max_results: 50,
+    include_spans: false,
+  });
 
-  // Update allTraces when new data arrives
-  useEffect(() => {
+  // Update allTraces when new data arrives (for infinite scroll)
+  React.useEffect(() => {
     if (tracesData?.traces) {
       if (page === 0) {
         setAllTraces(tracesData.traces);
@@ -870,16 +865,8 @@ function AddTracesButton({
     }
   }, [tracesData, page]);
 
-  // Load more traces
-  const loadMoreTraces = () => {
-    setPage(prev => prev + 1);
-    // In a real implementation with page tokens, we'd pass the token to the query
-    // For now, this will just refetch the same data
-    refetch();
-  };
-
   // Handle scroll to load more
-  useEffect(() => {
+  React.useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -896,6 +883,14 @@ function AddTracesButton({
   }, [isFetching, tracesData]);
 
   const traces = allTraces;
+
+  // Load more traces
+  const loadMoreTraces = () => {
+    setPage(prev => prev + 1);
+    // In a real implementation with page tokens, we'd pass the token to the query
+    // For now, this will just refetch the same data
+    refetch();
+  };
 
   // Link traces mutation
   const linkTracesMutation = useMutation({
@@ -914,8 +909,6 @@ function AddTracesButton({
         queryKey: queryKeys.labelingItems.list(reviewAppId, sessionId),
       });
       setSelectedTraces(new Set());
-      // Don't clear the traces, just refresh to update the "already added" status
-      // The useEffect for itemsData will handle updating the existingTraceIds
       toast.success(
         `Successfully linked ${traceIds.length} trace${traceIds.length !== 1 ? "s" : ""} to the session`
       );
@@ -931,15 +924,12 @@ function AddTracesButton({
     }
   };
 
-  // Reset state when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTraces(new Set());
-      setAllTraces([]);
-      setPage(0);
-      // The query will auto-fetch because it's enabled when isOpen is true
-    }
-  }, [isOpen]);
+  const handleSearch = () => {
+    setPage(0);
+    setAllTraces([]);
+    setSelectedTraces(new Set());
+    refetch();
+  };
 
   return (
     <>
@@ -963,17 +953,11 @@ function AddTracesButton({
                 onChange={(e) => setSearchFilter(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    setPage(0);
-                    setAllTraces([]);
-                    refetch();
+                    handleSearch();
                   }
                 }}
               />
-              <Button onClick={() => {
-                setPage(0);
-                setAllTraces([]);
-                refetch();
-              }}>Search</Button>
+              <Button onClick={handleSearch}>Search</Button>
             </div>
 
             {/* Traces table */}

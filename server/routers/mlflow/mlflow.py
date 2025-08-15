@@ -35,6 +35,8 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
   """Search for traces in MLflow experiments.
 
   Uses MLflow SDK since there's no direct API endpoint.
+  Note: This endpoint returns traces WITHOUT assessments for performance.
+  To get assessments, use the /traces/{trace_id} endpoint for individual traces.
   """
   try:
     # Get raw traces from the simplified search_traces function
@@ -46,83 +48,12 @@ async def search_traces(request: SearchTracesRequest) -> Dict[str, Any]:
       order_by=request.order_by,
     )
 
-    # Convert traces to dict format
+    # Convert traces to dict format WITHOUT fetching assessments
     traces_list = []
-
-    # For each trace, fetch the full trace with assessments
     for trace in raw_traces:
-      # Get the full trace with assessments using get_trace
-      # This is necessary because search_traces doesn't return assessments
-      try:
-        full_trace = mlflow_utils.get_trace(trace.info.trace_id)
-        trace_dict = full_trace.to_dict()
-
-        # Add assessments to the dict since to_dict() doesn't include them
-        if hasattr(full_trace, 'search_assessments'):
-          assessments = full_trace.search_assessments()
-          if assessments:
-            trace_dict['assessments'] = []
-            for assessment in assessments:
-              # Convert assessment to dict format
-              assessment_dict = {
-                'assessment_id': assessment.assessment_id,
-                'assessment_name': assessment.assessment_name,
-                'timestamp': assessment.timestamp,
-              }
-
-              # Add feedback or expectation details
-              if assessment.feedback:
-                assessment_dict['feedback'] = {
-                  'value': assessment.feedback.value,
-                  'rationale': assessment.feedback.rationale
-                  if hasattr(assessment.feedback, 'rationale')
-                  else None,
-                  'metadata': assessment.feedback.metadata
-                  if hasattr(assessment.feedback, 'metadata')
-                  else None,
-                  'source': {
-                    'source_type': assessment.feedback.source.source_type
-                    if hasattr(assessment.feedback.source, 'source_type')
-                    else 'human',
-                    'source_id': assessment.feedback.source.source_id
-                    if hasattr(assessment.feedback.source, 'source_id')
-                    else None,
-                  }
-                  if hasattr(assessment.feedback, 'source')
-                  else None,
-                }
-              elif assessment.expectation:
-                assessment_dict['expectation'] = {
-                  'value': assessment.expectation.value,
-                  'metadata': assessment.expectation.metadata
-                  if hasattr(assessment.expectation, 'metadata')
-                  else None,
-                  'source': {
-                    'source_type': assessment.expectation.source.source_type
-                    if hasattr(assessment.expectation.source, 'source_type')
-                    else 'human',
-                    'source_id': assessment.expectation.source.source_id
-                    if hasattr(assessment.expectation.source, 'source_id')
-                    else None,
-                  }
-                  if hasattr(assessment.expectation, 'source')
-                  else None,
-                }
-                # For expectations, rationale is in metadata
-                if (
-                  assessment_dict['expectation']['metadata']
-                  and 'rationale' in assessment_dict['expectation']['metadata']
-                ):
-                  assessment_dict['metadata'] = {
-                    'rationale': assessment_dict['expectation']['metadata']['rationale']
-                  }
-
-              trace_dict['assessments'].append(assessment_dict)
-
-      except Exception:
-        # If we can't get the full trace, use the search result
-        trace_dict = trace.to_dict()
-
+      # Just use the trace as returned by search_traces
+      trace_dict = trace.to_dict()
+      
       # Add request/response previews
       request_preview, response_preview = mlflow_utils._extract_request_response_preview(trace)
       if 'info' in trace_dict:

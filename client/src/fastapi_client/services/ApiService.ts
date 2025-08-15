@@ -145,6 +145,8 @@ export class ApiService {
      * Search for traces in MLflow experiments.
      *
      * Uses MLflow SDK since there's no direct API endpoint.
+     * Note: This endpoint returns traces WITHOUT assessments for performance.
+     * To get assessments, use the /traces/{trace_id} endpoint for individual traces.
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
