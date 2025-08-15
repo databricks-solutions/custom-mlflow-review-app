@@ -43,7 +43,13 @@ export function SavingStateProvider({ children }: SavingStateProviderProps) {
 export function useSavingState() {
   const context = useContext(SavingStateContext);
   if (context === undefined) {
-    throw new Error('useSavingState must be used within a SavingStateProvider');
+    // Return no-op functions when not within a provider
+    return {
+      isSaving: false,
+      lastSavedAt: null,
+      setSaving: () => {},
+      setLastSaved: () => {},
+    };
   }
   return context;
 }
