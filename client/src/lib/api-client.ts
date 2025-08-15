@@ -279,13 +279,11 @@ class ApiClientWrapper {
 
       // Analysis endpoints
       getSessionAnalysis: (params: { reviewAppId: string; sessionId: string }) =>
-        ApiService.getSessionAnalysisApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdAnalysisGet(
-          params.reviewAppId,
+        ApiService.getSessionAnalysisApiLabelingSessionsLabelingSessionIdAnalysisGet(
           params.sessionId
         ),
       getAnalysisStatus: (params: { reviewAppId: string; sessionId: string }) =>
-        ApiService.getAnalysisStatusApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdAnalysisStatusGet(
-          params.reviewAppId,
+        ApiService.getAnalysisStatusApiLabelingSessionsLabelingSessionIdAnalysisStatusGet(
           params.sessionId
         ),
       triggerSessionAnalysis: (params: {
@@ -294,8 +292,7 @@ class ApiClientWrapper {
         include_ai_insights?: boolean;
         model_endpoint?: string;
       }) =>
-        ApiService.triggerSessionAnalysisApiReviewAppsReviewAppIdLabelingSessionsLabelingSessionIdAnalysisTriggerPost(
-          params.reviewAppId,
+        ApiService.triggerSessionAnalysisApiLabelingSessionsLabelingSessionIdAnalysisTriggerPost(
           params.sessionId,
           {
             include_ai_insights: params.include_ai_insights ?? true,

@@ -23,7 +23,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from server.middleware import AuthMiddleware, ErrorHandlerMiddleware
-from server.middleware.profiler import DetailedTimingMiddleware, ProfilerMiddleware
 from server.middleware.timing import TimingMiddleware
 from server.routers import router
 
@@ -47,10 +46,6 @@ app = FastAPI(
 
 # Add error handling middleware (must be first to catch all errors)
 app.add_middleware(ErrorHandlerMiddleware)
-
-# Add profiling middleware for performance debugging (early in chain)
-app.add_middleware(ProfilerMiddleware, slow_threshold_ms=500)
-app.add_middleware(DetailedTimingMiddleware)
 
 # Add authentication middleware to extract user tokens
 app.add_middleware(AuthMiddleware)

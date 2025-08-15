@@ -32,11 +32,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     is_obo = bool(forwarded_email or forwarded_user or forwarded_preferred_username)
 
-    print(
-      f'AUTH DEBUG: user_token={bool(user_token)}, forwarded_email={forwarded_email}, '
-      f'forwarded_user={forwarded_user}, is_obo={is_obo}'
-    )
-
     # Fallback to WorkspaceClient for local development
     if not user_token and not is_obo:
       try:
@@ -58,7 +53,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
         'active': True,
         'emails': [forwarded_email] if forwarded_email else [],
       }
-      print(f'AUTH DEBUG: Using OBO headers - username={username}, obo_user_info={obo_user_info}')
     elif user_token:
       # For non-OBO requests, get username from token
       try:

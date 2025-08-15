@@ -3,12 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Status of an analysis request.
+ * Status of a session analysis.
  */
-export type AnalysisStatus = {
-    experiment_id: string;
+export type server__routers__review__labeling_sessions__AnalysisStatus = {
+    session_id: string;
     status: string;
     message?: (string | null);
     run_id?: (string | null);
+    report_path?: (string | null);
 };
 

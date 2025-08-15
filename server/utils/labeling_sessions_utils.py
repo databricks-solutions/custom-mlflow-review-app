@@ -48,7 +48,6 @@ async def list_labeling_sessions(
       raise Exception("SDK doesn't provide review_app_id filtering")
 
   except Exception as e:
-    print(f'🔄 UTILS_LIST_SESSIONS: SDK failed with {str(e)}, falling back to REST API')
     # Fallback to REST API
     params = {'page_size': page_size}
     if filter_string:
@@ -308,7 +307,6 @@ async def _update_session_with_sdk(
     # Update assigned users using SDK (handles permissions automatically)
     if 'assigned_users' in labeling_session_data:
       target_session.set_assigned_users(labeling_session_data['assigned_users'])
-      print(
         '✅ Updated assigned users using MLflow SDK (automatically handles experiment permissions)'
       )
 
@@ -334,7 +332,6 @@ async def _update_session_with_sdk(
 
   except Exception as e:
     # Fallback to REST API if SDK fails
-    print(f'⚠️  Warning: SDK update failed, falling back to REST API: {str(e)}')
     url = get_managed_evals_api_url(
       f'/review-apps/{review_app_id}/labeling-sessions/{labeling_session_id}'
     )
