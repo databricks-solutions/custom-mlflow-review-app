@@ -650,7 +650,14 @@ class DatabricksAppSetup:
     console.print('\n🧪 MLflow Experiment Configuration')
     console.print('-' * 34)
     console.print('The Review App needs an MLflow experiment to analyze traces from.')
-    console.print('You can provide either an experiment name or experiment ID.\n')
+    console.print('You can provide either an experiment name or experiment ID.')
+    console.print('')
+    console.print('📋 To browse your MLflow experiments:')
+    if self.workspace_host:
+      console.print(f'   {self.workspace_host}/ml/experiments')
+    else:
+      console.print('   https://your-workspace.cloud.databricks.com/ml/experiments')
+    console.print('')
 
     # First check .env file for MLFLOW_EXPERIMENT_ID
     env_file = Path('.env')
@@ -703,6 +710,8 @@ class DatabricksAppSetup:
           console.print('✅ Found experiment:')
           console.print(f'   Name: {exp_name}')
           console.print(f'   ID: {exp_id}')
+          if self.workspace_host:
+            console.print(f'   URL: {self.workspace_host}/ml/experiments/{exp_id}/traces')
 
           if Confirm.ask('Use this experiment?', default=True):
             self.experiment_id = exp_id
@@ -1351,45 +1360,60 @@ class DatabricksAppSetup:
           console.print('\n❌ OBO is currently DISABLED in workspace preview features')
           console.print('🚨 ERROR: OBO is REQUIRED for this app to function properly!')
           console.print('')
-          console.print('📋 Please enable OBO now:')
-          console.print('1. Visit workspace settings:')
+          console.print('📋 Please have a workspace administrator enable OBO:')
+          console.print('1. A workspace admin must visit workspace settings:')
           if self.workspace_host:
-            console.print(f'   {self.workspace_host}/settings/workspace/preview')
+            console.print(f'   {self.workspace_host}/previews/workspace')
           else:
             console.print(
-              '   https://your-workspace.cloud.databricks.com/settings/workspace/preview'
+              '   https://your-workspace.cloud.databricks.com/previews/workspace'
             )
-          console.print("2. Look for 'On-behalf-of authentication' and enable it")
+          console.print("2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it")
           console.print('3. Come back here when enabled')
+          console.print('')
+          console.print('⚠️  Note: Only workspace administrators can enable this feature')
           console.print('')
 
           # Wait for user to enable OBO
           while True:
-            if Confirm.ask('Have you enabled OBO in workspace preview features?', default=True):
-              break
-            else:
-              console.print('💡 Please enable OBO to continue setup. This is required.')
-              continue
+            if Confirm.ask('Has a workspace administrator enabled OBO in workspace preview features?', default=True):
+              console.print('🔍 Re-checking workspace OBO status...')
+              # Re-check OBO status
+              recheck_result = get_workspace_obo_status(self.auth_type, self.profile)
+              if not recheck_result.get('error') and recheck_result.get('obo_enabled', False):
+                console.print('✅ OBO is now enabled in workspace!')
+                self.workspace_obo_enabled = True
 
-            console.print('🔍 Re-checking workspace OBO status...')
-            # Re-check OBO status
-            recheck_result = get_workspace_obo_status(self.auth_type, self.profile)
-            if not recheck_result.get('error') and recheck_result.get('obo_enabled', False):
-              console.print('✅ OBO is now enabled in workspace!')
-              self.workspace_obo_enabled = True
+                # Restart the app immediately after OBO is enabled
+                if self.app_name:
+                  console.print('🔄 Restarting app to enable user authentication...')
+                  console.print('⏰ This will take 2-3 minutes...')
+                  if self.restart_app():
+                    console.print('✅ App restarted successfully with OBO enabled!')
+                  else:
+                    console.print('⚠️  App restart failed. You may need to restart manually later.')
 
-              # Restart the app immediately after OBO is enabled
-              if self.app_name:
-                console.print('🔄 Restarting app to enable user authentication...')
-                console.print('⏰ This will take 2-3 minutes...')
-                if self.restart_app():
-                  console.print('✅ App restarted successfully with OBO enabled!')
+                break
+              else:
+                console.print('\n❌ OBO is still DISABLED in workspace preview features')
+                console.print('🚨 ERROR: OBO is REQUIRED for this app to function properly!')
+                console.print('')
+                console.print('📋 Please have a workspace administrator enable OBO:')
+                console.print('1. A workspace admin must visit workspace settings:')
+                if self.workspace_host:
+                  console.print(f'   {self.workspace_host}/previews/workspace')
                 else:
-                  console.print('⚠️  App restart failed. You may need to restart manually later.')
-
-              break
+                  console.print(
+                    '   https://your-workspace.cloud.databricks.com/previews/workspace'
+                  )
+                console.print("2. Look for 'Databricks Apps - On-Behalf-Of User Authorization' and enable it")
+                console.print('3. Come back here when enabled')
+                console.print('')
+                console.print('⚠️  Note: Only workspace administrators can enable this feature')
+                console.print('')
+                continue
             else:
-              console.print("❌ OBO still appears to be disabled. Please ensure it's enabled.")
+              console.print('💡 Please have a workspace administrator enable OBO to continue setup. This is required.')
               continue
         else:
           console.print('✅ Workspace OBO is enabled - user authentication will work!')
@@ -1705,6 +1729,23 @@ class DatabricksAppSetup:
       console.print('')
 
       # ===============================================
+      # INITIAL DEPLOYMENT (Required for Service Principal)
+      # ===============================================
+      console.print('🚀 INITIAL DEPLOYMENT')
+      console.print('=' * 20)
+      console.print('Deploying app to create service principal and enable permissions management.')
+      console.print('')
+
+      # Deploy the app to create the service principal
+      if not self.deploy_app():
+        console.print('❌ Initial deployment failed. Service principal cannot be configured without deployment.')
+        console.print('   You can retry deployment manually with: ./deploy.sh --create')
+        raise SetupError('Initial deployment required for service principal setup')
+      
+      console.print('✅ Initial deployment successful!')
+      console.print('')
+
+      # ===============================================
       # SECTION C: REVIEW APP SETUP
       # ===============================================
       console.print('🔬 SECTION C: REVIEW APP SETUP')
@@ -1726,28 +1767,12 @@ class DatabricksAppSetup:
       console.print('')
 
       # ===============================================
-      # FINAL DEPLOYMENT
+      # PERMISSIONS VERIFICATION
       # ===============================================
-      console.print('🚀 FINAL DEPLOYMENT')
-      console.print('=' * 20)
-      console.print('All configuration is complete. Ready to deploy the app.')
-      console.print('')
-
-      # Deploy the app with complete configuration
-      if not self.deploy_app():
-        console.print(
-          '⚠️  Deployment failed, but you can deploy manually later with: ./deploy.sh --create'
-        )
-      else:
-        console.print('✅ App deployed successfully!')
-
-        # ===============================================
-        # DEPLOYMENT VERIFICATION
-        # ===============================================
-        console.print('\n🔍 DEPLOYMENT VERIFICATION')
-        console.print('=' * 27)
-        console.print('Verifying all permissions after deployment...')
-        self.verify_all_permissions_post_deployment()
+      console.print('🔐 PERMISSIONS VERIFICATION')
+      console.print('=' * 27)
+      console.print('Verifying service principal and developer permissions...')
+      self.verify_all_permissions_post_deployment()
 
       console.print('')
 
