@@ -19,10 +19,7 @@ export function PreviewPage() {
   const reviewApp = manifest?.review_app;
 
   // Get session data
-  const { data: session } = useLabelingSession(
-    sessionId || "",
-    !!sessionId
-  );
+  const { data: session } = useLabelingSession(sessionId || "", !!sessionId);
 
   if (!sessionId) {
     return <NoSessionSelected />;
@@ -58,8 +55,8 @@ export function PreviewPage() {
       <div className="border-t border-border"></div>
 
       {/* Direct SME UI without card wrapper */}
-      <SMELabelingInterface 
-        sessionId={sessionId!} 
+      <SMELabelingInterface
+        sessionId={sessionId!}
         hideNavigation={true}
         initialTraceId={traceId || undefined}
       />

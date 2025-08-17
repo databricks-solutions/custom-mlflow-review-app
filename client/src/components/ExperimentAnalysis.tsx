@@ -73,9 +73,7 @@ interface ExperimentAnalysisProps {
   experimentId: string;
 }
 
-export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
-  experimentId,
-}) => {
+export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({ experimentId }) => {
   // Fetch experiment summary when component renders
   const { data: experimentSummary, isLoading: isLoadingSummary } = useExperimentSummary(
     experimentId,
@@ -104,7 +102,6 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
   // Handle analysis status changes and show appropriate messages
   React.useEffect(() => {
     if (!analysisStatus) return;
-
 
     if (analysisStatus.status === "completed") {
       // Refresh the summary to get new results
@@ -323,9 +320,11 @@ export const ExperimentAnalysis: React.FC<ExperimentAnalysisProps> = ({
               />
             </CardContent>
           </Card>
-          
+
           {/* Loading overlay when analysis is running */}
-          {(triggerAnalysisMutation.isPending || analysisStatus?.status === "running" || analysisStatus?.status === "pending") && (
+          {(triggerAnalysisMutation.isPending ||
+            analysisStatus?.status === "running" ||
+            analysisStatus?.status === "pending") && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">

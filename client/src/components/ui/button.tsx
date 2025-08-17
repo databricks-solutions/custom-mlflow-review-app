@@ -11,22 +11,31 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Primary Button - Du Bois primary action
-        primary: "bg-[hsl(var(--btn-primary-bg))] text-[hsl(var(--btn-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-primary-bg-hover))] active:bg-[hsl(var(--btn-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        primary:
+          "bg-[hsl(var(--btn-primary-bg))] text-[hsl(var(--btn-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-primary-bg-hover))] active:bg-[hsl(var(--btn-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
         // Default/Secondary Button - Du Bois default action with border
-        default: "bg-[hsl(var(--btn-default-bg))] text-[hsl(var(--btn-default-text))] border border-[hsl(var(--btn-default-border))] hover:bg-[hsl(var(--btn-default-bg-hover))] hover:text-[hsl(var(--btn-default-text-hover))] hover:border-[hsl(var(--btn-default-border-hover))] active:bg-[hsl(var(--btn-default-bg-press))] active:text-[hsl(var(--btn-default-text-press))] active:border-[hsl(var(--btn-default-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        default:
+          "bg-[hsl(var(--btn-default-bg))] text-[hsl(var(--btn-default-text))] border border-[hsl(var(--btn-default-border))] hover:bg-[hsl(var(--btn-default-bg-hover))] hover:text-[hsl(var(--btn-default-text-hover))] hover:border-[hsl(var(--btn-default-border-hover))] active:bg-[hsl(var(--btn-default-bg-press))] active:text-[hsl(var(--btn-default-text-press))] active:border-[hsl(var(--btn-default-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
         // Tertiary Button - Du Bois tertiary action (no border)
-        tertiary: "bg-[hsl(var(--btn-tertiary-bg))] text-[hsl(var(--btn-tertiary-text))] border border-transparent hover:bg-[hsl(var(--btn-tertiary-bg-hover))] hover:text-[hsl(var(--btn-tertiary-text-hover))] active:bg-[hsl(var(--btn-tertiary-bg-press))] active:text-[hsl(var(--btn-tertiary-text-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        tertiary:
+          "bg-[hsl(var(--btn-tertiary-bg))] text-[hsl(var(--btn-tertiary-text))] border border-transparent hover:bg-[hsl(var(--btn-tertiary-bg-hover))] hover:text-[hsl(var(--btn-tertiary-text-hover))] active:bg-[hsl(var(--btn-tertiary-bg-press))] active:text-[hsl(var(--btn-tertiary-text-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
         // Danger Button - Du Bois danger action with border
-        danger: "bg-[hsl(var(--btn-danger-bg))] text-[hsl(var(--btn-danger-text))] border border-[hsl(var(--btn-danger-border))] hover:bg-[hsl(var(--btn-danger-bg-hover))] hover:text-[hsl(var(--btn-danger-text-hover))] hover:border-[hsl(var(--btn-danger-border-hover))] active:bg-[hsl(var(--btn-danger-bg-press))] active:text-[hsl(var(--btn-danger-text-press))] active:border-[hsl(var(--btn-danger-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        danger:
+          "bg-[hsl(var(--btn-danger-bg))] text-[hsl(var(--btn-danger-text))] border border-[hsl(var(--btn-danger-border))] hover:bg-[hsl(var(--btn-danger-bg-hover))] hover:text-[hsl(var(--btn-danger-text-hover))] hover:border-[hsl(var(--btn-danger-border-hover))] active:bg-[hsl(var(--btn-danger-bg-press))] active:text-[hsl(var(--btn-danger-text-press))] active:border-[hsl(var(--btn-danger-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
         // Danger Primary Button - Du Bois filled danger action
-        dangerPrimary: "bg-[hsl(var(--btn-danger-primary-bg))] text-[hsl(var(--btn-danger-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-danger-primary-bg-hover))] active:bg-[hsl(var(--btn-danger-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        dangerPrimary:
+          "bg-[hsl(var(--btn-danger-primary-bg))] text-[hsl(var(--btn-danger-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-danger-primary-bg-hover))] active:bg-[hsl(var(--btn-danger-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
         // Link Button - Du Bois link styling
         link: "bg-transparent text-[hsl(var(--link-default))] border-none underline-offset-4 hover:underline hover:text-[hsl(var(--link-hover))] active:text-[hsl(var(--link-press))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:no-underline disabled:opacity-100 p-0 h-auto",
         // Legacy variants for backward compatibility
-        destructive: "bg-[hsl(var(--btn-danger-primary-bg))] text-[hsl(var(--btn-danger-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-danger-primary-bg-hover))] active:bg-[hsl(var(--btn-danger-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
-        outline: "bg-[hsl(var(--btn-default-bg))] text-[hsl(var(--btn-default-text))] border border-[hsl(var(--btn-default-border))] hover:bg-[hsl(var(--btn-default-bg-hover))] hover:text-[hsl(var(--btn-default-text-hover))] hover:border-[hsl(var(--btn-default-border-hover))] active:bg-[hsl(var(--btn-default-bg-press))] active:text-[hsl(var(--btn-default-text-press))] active:border-[hsl(var(--btn-default-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
-        secondary: "bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] border border-transparent hover:bg-[hsl(var(--secondary))]/80 disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:opacity-100",
-        ghost: "bg-[hsl(var(--btn-tertiary-bg))] text-[hsl(var(--btn-tertiary-text))] border border-transparent hover:bg-[hsl(var(--btn-tertiary-bg-hover))] hover:text-[hsl(var(--btn-tertiary-text-hover))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:opacity-100",
+        destructive:
+          "bg-[hsl(var(--btn-danger-primary-bg))] text-[hsl(var(--btn-danger-primary-text))] border border-transparent hover:bg-[hsl(var(--btn-danger-primary-bg-hover))] active:bg-[hsl(var(--btn-danger-primary-bg-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        outline:
+          "bg-[hsl(var(--btn-default-bg))] text-[hsl(var(--btn-default-text))] border border-[hsl(var(--btn-default-border))] hover:bg-[hsl(var(--btn-default-bg-hover))] hover:text-[hsl(var(--btn-default-text-hover))] hover:border-[hsl(var(--btn-default-border-hover))] active:bg-[hsl(var(--btn-default-bg-press))] active:text-[hsl(var(--btn-default-text-press))] active:border-[hsl(var(--btn-default-border-press))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:border-[hsl(var(--btn-disabled-border))] disabled:opacity-100",
+        secondary:
+          "bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] border border-transparent hover:bg-[hsl(var(--secondary))]/80 disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:opacity-100",
+        ghost:
+          "bg-[hsl(var(--btn-tertiary-bg))] text-[hsl(var(--btn-tertiary-text))] border border-transparent hover:bg-[hsl(var(--btn-tertiary-bg-hover))] hover:text-[hsl(var(--btn-tertiary-text-hover))] disabled:bg-[hsl(var(--btn-disabled-bg))] disabled:text-[hsl(var(--btn-disabled-text))] disabled:opacity-100",
       },
       size: {
         // Du Bois size variations
@@ -34,13 +43,13 @@ const buttonVariants = cva(
         default: "h-10 px-4 py-2 text-sm rounded-md min-w-10",
         lg: "h-12 px-6 py-3 text-base rounded-md min-w-12",
         icon: "h-10 w-10 p-0 rounded-md",
-      }
+      },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
     },
-  },
+  }
 );
 
 export interface ButtonProps
@@ -52,29 +61,32 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ 
-    className, 
-    variant, 
-    size, 
-    asChild = false, 
-    loading = false,
-    loadingText,
-    children,
-    disabled,
-    ...props 
-  }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      loading = false,
+      loadingText,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const Comp = asChild ? Slot : "button";
     const isDisabled = disabled || loading;
-    
-    const content = loading 
-      ? (
-          <>
-            <Loader2 className="animate-spin" />
-            {loadingText || children}
-          </>
-        )
-      : children;
-    
+
+    const content = loading ? (
+      <>
+        <Loader2 className="animate-spin" />
+        {loadingText || children}
+      </>
+    ) : (
+      children
+    );
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -85,7 +97,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {content}
       </Comp>
     );
-  },
+  }
 );
 Button.displayName = "Button";
 

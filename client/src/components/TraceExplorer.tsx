@@ -310,9 +310,11 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                         </pre>
                       ) : (
                         <ChatMessage
-                          content={conversation.find(
-                            (item) => item.type === "message" && item.role === "user"
-                          )?.content || ""}
+                          content={
+                            conversation.find(
+                              (item) => item.type === "message" && item.role === "user"
+                            )?.content || ""
+                          }
                         />
                       )}
                     </div>
@@ -416,9 +418,11 @@ const TraceViewer: React.FC<{ trace: TraceData; mlflowUrl?: string | null }> = (
                         </pre>
                       ) : (
                         <ChatMessage
-                          content={conversation.find(
-                            (item) => item.type === "message" && item.role === "assistant"
-                          )?.content || ""}
+                          content={
+                            conversation.find(
+                              (item) => item.type === "message" && item.role === "assistant"
+                            )?.content || ""
+                          }
                         />
                       )}
                     </div>
@@ -705,9 +709,11 @@ const MLflowStyleTraceView: React.FC<{
     spans.forEach((span) => {
       const spanId = span.attributes?.["mlflow.span_id"] || `${span.name}-${span.start_time_ms}`;
       const parentId = span.attributes?.["mlflow.parent_id"];
+      // Safe: We added all spans to the map in the first pass above
       const spanWithChildren = spanMap.get(spanId)!;
 
       if (parentId && spanMap.has(parentId)) {
+        // Safe: We just checked with has() that the parent exists
         spanMap.get(parentId)!.children.push(spanWithChildren);
       } else {
         rootSpans.push(spanWithChildren);

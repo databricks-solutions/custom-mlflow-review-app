@@ -244,7 +244,7 @@ class ApiClientWrapper {
         MLflowService.updateTraceFeedbackApiMlflowTracesTraceIdFeedbackPatch(params.traceId, {
           assessment_id: params.assessment_id,
           assessment: {
-            name: '', // Name not needed for updates as it's tied to assessment_id
+            name: "", // Name not needed for updates as it's tied to assessment_id
             value: params.value,
             rationale: params.rationale,
           },
@@ -271,7 +271,7 @@ class ApiClientWrapper {
         MLflowService.updateTraceExpectationApiMlflowTracesTraceIdExpectationPatch(params.traceId, {
           assessment_id: params.assessment_id,
           assessment: {
-            name: '', // Name not needed for updates as it's tied to assessment_id
+            name: "", // Name not needed for updates as it's tied to assessment_id
             value: params.value,
             rationale: params.rationale,
           },
@@ -308,8 +308,7 @@ class ApiClientWrapper {
         focus?: string;
         trace_sample_size?: number;
         model_endpoint?: string;
-      }) =>
-        ApiService.triggerAnalysisApiExperimentSummaryTriggerAnalysisPost(params),
+      }) => ApiService.triggerAnalysisApiExperimentSummaryTriggerAnalysisPost(params),
       getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet: (experimentId: string) =>
         ApiService.getAnalysisStatusApiExperimentSummaryStatusExperimentIdGet(experimentId),
     };

@@ -29,7 +29,7 @@ export function LabelSchemaForm({
 
   // Detect when we navigate to a new trace
   const isNewTrace = currentTraceId !== traceId;
-  
+
   // When trace changes, reset initialization flag
   useEffect(() => {
     if (isNewTrace) {
@@ -62,21 +62,21 @@ export function LabelSchemaForm({
       };
 
       // Find first incomplete schema
-      const firstIncomplete = schemas.find(schema => !isSchemaCompleted(schema));
-      
+      const firstIncomplete = schemas.find((schema) => !isSchemaCompleted(schema));
+
       // If there's an incomplete schema, expand it; otherwise collapse all (empty string)
       const targetValue = firstIncomplete?.name || "";
-      
+
       setExpandedValue(targetValue);
       setHasInitialized(true);
     }
   }, [hasInitialized, schemas, assessments, traceId]);
 
   return (
-    <Accordion 
-      type="single" 
-      collapsible 
-      className="w-full space-y-2" 
+    <Accordion
+      type="single"
+      collapsible
+      className="w-full space-y-2"
       value={expandedValue}
       onValueChange={setExpandedValue}
     >

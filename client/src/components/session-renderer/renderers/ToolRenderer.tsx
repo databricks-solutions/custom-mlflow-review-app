@@ -34,7 +34,7 @@ export function ToolRenderer({
 
   // Use provided data or minimal defaults
   const traceId = extractedConversation?.traceId || item?.source?.trace_id || "";
-  
+
   // Just use what's passed in - no filtering here!
   const feedbackSchemas = schemaAssessments?.feedback || [];
   const expectationSchemas = schemaAssessments?.expectations || [];
@@ -42,41 +42,52 @@ export function ToolRenderer({
   // Use extracted conversation or fallback
   let userRequest = extractedConversation?.userRequest;
   let assistantResponse = extractedConversation?.assistantResponse;
-  
+
   // Filter for tool spans from all spans
   const allSpans = extractedConversation?.spans || traceData?.spans || [];
-  
+
   // Look for spans that are tools - check attributes for TOOL type
-  const toolSpans = allSpans.filter(span => {
+  const toolSpans = allSpans.filter((span) => {
     // Check if this is a tool span by looking at attributes (handle both formats)
     const spanType = (span as any).attributes?.["mlflow.spanType"];
-    const isToolSpan = spanType === "TOOL" || spanType === "\"TOOL\"";
+    const isToolSpan = spanType === "TOOL" || spanType === '"TOOL"';
     return isToolSpan;
   });
-  
+
   if (!extractedConversation) {
     // Minimal fallback - extract user/assistant messages
     for (const span of allSpans) {
       if (!userRequest && span.inputs) {
         if (typeof span.inputs === "string") {
           userRequest = { content: span.inputs };
-        } else if (typeof span.inputs === "object" && span.inputs && 
-                   'messages' in span.inputs && Array.isArray(span.inputs.messages) &&
-                   span.inputs.messages[0] && typeof span.inputs.messages[0] === "object" &&
-                   'content' in span.inputs.messages[0]) {
+        } else if (
+          typeof span.inputs === "object" &&
+          span.inputs &&
+          "messages" in span.inputs &&
+          Array.isArray(span.inputs.messages) &&
+          span.inputs.messages[0] &&
+          typeof span.inputs.messages[0] === "object" &&
+          "content" in span.inputs.messages[0]
+        ) {
           userRequest = { content: String(span.inputs.messages[0].content) };
         }
       }
-      
+
       if (!assistantResponse && span.outputs) {
         if (typeof span.outputs === "string") {
           assistantResponse = { content: span.outputs };
-        } else if (typeof span.outputs === "object" && span.outputs &&
-                   'choices' in span.outputs && Array.isArray(span.outputs.choices) &&
-                   span.outputs.choices[0] && typeof span.outputs.choices[0] === "object" &&
-                   'message' in span.outputs.choices[0] && 
-                   typeof span.outputs.choices[0].message === "object" &&
-                   span.outputs.choices[0].message && 'content' in span.outputs.choices[0].message) {
+        } else if (
+          typeof span.outputs === "object" &&
+          span.outputs &&
+          "choices" in span.outputs &&
+          Array.isArray(span.outputs.choices) &&
+          span.outputs.choices[0] &&
+          typeof span.outputs.choices[0] === "object" &&
+          "message" in span.outputs.choices[0] &&
+          typeof span.outputs.choices[0].message === "object" &&
+          span.outputs.choices[0].message &&
+          "content" in span.outputs.choices[0].message
+        ) {
           assistantResponse = { content: String(span.outputs.choices[0].message.content) };
         }
       }
@@ -197,8 +208,14 @@ export function ToolRenderer({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Feedback</h3>
             <LabelSchemaForm
-              schemas={feedbackSchemas.map(item => item.schema)}
-              assessments={new Map(feedbackSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
+              schemas={feedbackSchemas.map((item) => item.schema)}
+              assessments={
+                new Map(
+                  feedbackSchemas
+                    .filter((item) => item.assessment)
+                    .map((item) => [item.schema.name, item.assessment!])
+                )
+              }
               traceId={traceId}
               readOnly={false}
               reviewAppId={reviewApp.review_app_id}
@@ -212,8 +229,14 @@ export function ToolRenderer({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Expectations</h3>
             <LabelSchemaForm
-              schemas={expectationSchemas.map(item => item.schema)}
-              assessments={new Map(expectationSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
+              schemas={expectationSchemas.map((item) => item.schema)}
+              assessments={
+                new Map(
+                  expectationSchemas
+                    .filter((item) => item.assessment)
+                    .map((item) => [item.schema.name, item.assessment!])
+                )
+              }
               traceId={traceId}
               readOnly={false}
               reviewAppId={reviewApp.review_app_id}

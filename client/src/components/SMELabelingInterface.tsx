@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
   useCurrentUser,
 } from "@/hooks/api-hooks";
 import { getRendererComponent } from "@/components/session-renderer/renderers";
-import { Trace, Assessment, SchemaAssessments, LabelingSchema } from "@/types/renderers";
+import { Assessment, SchemaAssessments, LabelingSchema, Trace } from "@/types/renderers";
+import { Trace as MLflowTrace, Assessment as MLflowAssessment } from "@/types/mlflow-trace";
 import { combineSchemaWithAssessments, filterByType } from "@/utils/schema-assessment-utils";
 
 interface SMELabelingInterfaceProps {
@@ -88,15 +89,22 @@ export function SMELabelingInterface({
 
   const currentItem = items[currentItemIndex];
 
-  // Get the current trace from the session traces
+  // Get the current trace ID from the current item
   const currentTraceId =
     currentItem?.source && "trace_id" in currentItem.source
       ? currentItem.source.trace_id
       : undefined;
-  const traceSummary = tracesData?.traces?.find(
-    (trace: any) => trace.info.trace_id === currentTraceId
-  );
-  const isLoadingTrace = isLoadingTraces && !!currentTraceId;
+
+  // Find the current trace from the session traces using memoization
+  const trace = useMemo(() => {
+    if (!tracesData?.traces || !currentTraceId) return null;
+    return tracesData.traces.find(
+      (t: MLflowTrace) => t.info.trace_id === currentTraceId
+    );
+  }, [tracesData, currentTraceId]);
+
+  // Check if we've attempted to load traces (to prevent flash)
+  const hasAttemptedTraceLoad = tracesData !== undefined || isLoadingTraces;
 
   const updateItemMutation = useUpdateLabelingItem();
 
@@ -159,32 +167,6 @@ export function SMELabelingInterface({
     // Don't reset assessments here - let the useEffect handle loading from trace data
   };
 
-  // Function to check if an assessment belongs to the current user
-  const isCurrentUserAssessment = (assessment: Assessment): boolean => {
-    if (!currentUser?.userName && !currentUser?.emails?.[0]) {
-      return false; // No user info available
-    }
-
-    const userIdentifiers = [currentUser.userName, ...(currentUser.emails || [])].filter(Boolean);
-
-    if (!assessment.source) {
-      return false; // No source information
-    }
-
-    // Handle different source formats
-    let sourceString = "";
-    if (typeof assessment.source === "string") {
-      sourceString = assessment.source;
-    } else if (typeof assessment.source === "object" && assessment.source.source_id) {
-      sourceString = assessment.source.source_id;
-    }
-
-    // Check if any user identifier appears in the source
-    return userIdentifiers.some(
-      (identifier) => identifier && sourceString.toLowerCase().includes(identifier.toLowerCase())
-    );
-  };
-
   // Load assessments from trace data when trace changes
   useEffect(() => {
     // Always start with a fresh map to ensure we don't carry over old assessments
@@ -192,10 +174,10 @@ export function SMELabelingInterface({
 
     // Debug: Log trace change
 
-    if (traceSummary?.info?.assessments && Array.isArray(traceSummary.info.assessments)) {
+    if (trace?.info?.assessments && Array.isArray(trace.info.assessments)) {
       // Work with MLflow's native assessment structure
       // Filter assessments to only include those created by the current user
-      const userAssessments = traceSummary.info.assessments.filter((mlflowAssessment: any) => {
+      const userAssessments = trace.info.assessments.filter((mlflowAssessment: MLflowAssessment) => {
         // Check if assessment belongs to current user using MLflow's source structure
         if (!currentUser?.userName && !currentUser?.emails?.[0]) {
           return false;
@@ -222,16 +204,13 @@ export function SMELabelingInterface({
         );
       });
 
-      console.log(
-        `[SME] Found ${userAssessments.length} user assessments for trace ${currentTraceId}`
-      );
 
       // Group user assessments by name and type, keeping only the latest one
-      const latestAssessments = new Map<string, any>();
+      const latestAssessments = new Map<string, MLflowAssessment>();
 
       for (const mlflowAssessment of userAssessments) {
-        // Use MLflow's assessment_name field
-        const assessmentName = mlflowAssessment.assessment_name;
+        // Use MLflow's name field
+        const assessmentName = mlflowAssessment.name;
         const assessmentType = mlflowAssessment.feedback ? "feedback" : "expectation";
         const key = `${assessmentName}_${assessmentType}`;
         const existing = latestAssessments.get(key);
@@ -251,17 +230,16 @@ export function SMELabelingInterface({
       for (const mlflowAssessment of latestAssessments.values()) {
         const assessment: Assessment = {
           assessment_id: mlflowAssessment.assessment_id,
-          name: mlflowAssessment.assessment_name, // Map assessment_name to name for UI
+          name: mlflowAssessment.name,
           value: mlflowAssessment.feedback?.value ?? mlflowAssessment.expectation?.value,
           type: mlflowAssessment.feedback ? "feedback" : "expectation",
           rationale: mlflowAssessment.metadata?.rationale, // Rationale is in metadata for both
           metadata: mlflowAssessment.metadata,
           source: mlflowAssessment.source,
-          timestamp: mlflowAssessment.create_time,
+          timestamp: mlflowAssessment.create_time_ms?.toString(),
         };
         assessmentMap.set(assessment.name, assessment);
       }
-    } else {
     }
 
     // Always set assessments, even if empty, to clear any previous values
@@ -270,7 +248,7 @@ export function SMELabelingInterface({
     // Reset auto-completed flag and pending update when trace changes
     setHasAutoCompleted(false);
     pendingUpdateRef.current = null;
-  }, [traceSummary, currentUser, currentTraceId]);
+  }, [trace, currentUser, currentTraceId]);
 
   // Reset auto-completed flag when item changes
   useEffect(() => {
@@ -322,9 +300,6 @@ export function SMELabelingInterface({
         return;
       }
 
-      console.log(
-        `[SME] All ${sessionSchemas.length} assessments complete for item ${currentItem.item_id}, auto-marking as COMPLETED`
-      );
 
       // Set flags to prevent multiple updates
       setHasAutoCompleted(true);
@@ -340,8 +315,7 @@ export function SMELabelingInterface({
           updatedItems[currentItemIndex] = { ...currentItem, state: "COMPLETED" };
           // Note: We don't have setItems here, so the state will be updated on next fetch
         })
-        .catch((error) => {
-          console.error(`[SME] Failed to auto-mark item as COMPLETED:`, error);
+        .catch(() => {
           // Clear the pending update ref and reset the flag on error so it can be retried
           pendingUpdateRef.current = null;
           setHasAutoCompleted(false);
@@ -398,7 +372,8 @@ export function SMELabelingInterface({
     return Math.round((completedItems / items.length) * 100);
   };
 
-  if (isLoadingItems || isLoadingTrace || isLoadingManifest) {
+  // Initial loading states - waiting for prerequisites
+  if (isLoadingManifest || !session?.mlflow_run_id || isLoadingItems) {
     return <LoadingState />;
   }
 
@@ -430,13 +405,13 @@ export function SMELabelingInterface({
     return <LoadingState />;
   }
 
-  // If we don't have trace data yet, wait for it
-  if (!traceSummary && isLoadingTraces) {
+  // Wait for traces to at least attempt loading (prevents flash)
+  if (!hasAttemptedTraceLoad) {
     return <LoadingState />;
   }
 
-  // If traces loaded but no matching trace found, show error
-  if (!traceSummary && !isLoadingTraces) {
+  // If traces have been fetched but no matching trace found, show error
+  if (!trace && !isLoadingTraces) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -460,17 +435,23 @@ export function SMELabelingInterface({
     );
   }
 
+  // If we still don't have a trace at this point, show loading
+  // This handles the case where traces are still loading
+  if (!trace) {
+    return <LoadingState />;
+  }
+
   // Convert trace data to the expected format
   const traceData: Trace = {
     info: {
-      trace_id: traceSummary.info.trace_id,
-      request_time: traceSummary.info.request_time,
-      execution_duration: traceSummary.info.execution_duration,
-      execution_duration_ms: traceSummary.info.execution_duration_ms,
-      state: traceSummary.info.state,
-      assessments: traceSummary.info.assessments,
+      trace_id: trace.info.trace_id,
+      request_time: trace.info.request_time,
+      execution_duration: trace.info.execution_duration,
+      execution_duration_ms: trace.info.execution_duration_ms,
+      state: trace.info.state,
+      assessments: trace.info.assessments,
     },
-    spans: traceSummary.data?.spans || [],
+    spans: trace.data?.spans || [],
   };
 
   // Compute schema assessments from session schemas and FILTERED assessments
@@ -592,7 +573,7 @@ export function SMELabelingInterface({
             assessments={assessments}
             onUpdateItem={handleUpdateItem}
             onNavigateToIndex={handleNavigateToIndex}
-            isLoading={isLoadingTrace}
+            isLoading={isLoadingTraces}
             isSubmitting={updateItemMutation.isPending}
             schemaAssessments={schemaAssessments}
           />

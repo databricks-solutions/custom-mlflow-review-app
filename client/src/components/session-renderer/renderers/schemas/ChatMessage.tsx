@@ -32,22 +32,18 @@ export function ChatMessage({ content, className = "" }: ChatMessageProps) {
               {children}
             </h3>
           ),
-          
+
           // Paragraphs and text
           p: ({ children }) => (
-            <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-              {children}
-            </p>
+            <p className="text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">{children}</p>
           ),
           strong: ({ children }) => (
-            <strong className="font-semibold text-gray-900 dark:text-gray-100">
-              {children}
-            </strong>
+            <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>
           ),
           em: ({ children }) => (
             <em className="italic text-gray-700 dark:text-gray-300">{children}</em>
           ),
-          
+
           // Lists
           ul: ({ children }) => (
             <ul className="list-disc pl-5 mb-3 space-y-1 text-gray-700 dark:text-gray-300">
@@ -59,10 +55,8 @@ export function ChatMessage({ content, className = "" }: ChatMessageProps) {
               {children}
             </ol>
           ),
-          li: ({ children }) => (
-            <li className="text-gray-700 dark:text-gray-300">{children}</li>
-          ),
-          
+          li: ({ children }) => <li className="text-gray-700 dark:text-gray-300">{children}</li>,
+
           // Code
           code: ({ inline, children, className }) => {
             return inline ? (
@@ -78,14 +72,14 @@ export function ChatMessage({ content, className = "" }: ChatMessageProps) {
               {children}
             </pre>
           ),
-          
+
           // Blockquotes
           blockquote: ({ children }) => (
             <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-600 dark:text-gray-400 my-3">
               {children}
             </blockquote>
           ),
-          
+
           // Links
           a: ({ href, children }) => (
             <a
@@ -97,7 +91,7 @@ export function ChatMessage({ content, className = "" }: ChatMessageProps) {
               {children}
             </a>
           ),
-          
+
           // Tables
           table: ({ children }) => (
             <div className="overflow-x-auto mb-4">
@@ -121,11 +115,9 @@ export function ChatMessage({ content, className = "" }: ChatMessageProps) {
             </th>
           ),
           td: ({ children }) => (
-            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
-              {children}
-            </td>
+            <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{children}</td>
           ),
-          
+
           // Horizontal rule
           hr: () => <hr className="my-4 border-gray-200 dark:border-gray-700" />,
         }}

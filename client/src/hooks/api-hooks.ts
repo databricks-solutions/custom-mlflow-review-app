@@ -9,7 +9,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { ReviewApp, LabelingSession, LabelingItem } from "@/types/renderers";
-import { LabelSchemasService, LabelingSessionsService, type LabelingSchema } from "@/fastapi_client";
+import {
+  LabelSchemasService,
+  LabelingSessionsService,
+  type LabelingSchema,
+} from "@/fastapi_client";
 import { transformTrace, transformSearchTracesResponse } from "@/utils/mlflow-transforms";
 
 // Query Keys Factory
@@ -88,7 +92,7 @@ export function useConfig() {
   const { data: manifest, ...rest } = useAppManifest();
   return {
     data: manifest?.config,
-    ...rest
+    ...rest,
   };
 }
 
@@ -97,26 +101,28 @@ export function useCurrentUser() {
   const { data: manifest, ...rest } = useAppManifest();
   return {
     data: manifest?.user,
-    ...rest
+    ...rest,
   };
 }
 
 export function useUserRole() {
   // Get user role from the manifest
   const { data: manifest, ...rest } = useAppManifest();
-  
+
   // Transform the user data to match the old user-role response format
   // for backward compatibility
-  const roleData = manifest?.user ? {
-    username: manifest.user.userName,
-    role: manifest.user.role || 'sme',
-    is_developer: manifest.user.is_developer || false,
-    can_access_dev_pages: manifest.user.can_access_dev_pages || false,
-  } : undefined;
-  
+  const roleData = manifest?.user
+    ? {
+        username: manifest.user.userName,
+        role: manifest.user.role || "sme",
+        is_developer: manifest.user.is_developer || false,
+        can_access_dev_pages: manifest.user.can_access_dev_pages || false,
+      }
+    : undefined;
+
   return {
     data: roleData,
-    ...rest
+    ...rest,
   };
 }
 
@@ -130,7 +136,6 @@ export function useReviewApps(filter?: string) {
       }),
   });
 }
-
 
 export function useCreateReviewApp() {
   const queryClient = useQueryClient();
@@ -179,7 +184,8 @@ export function useLabelingSessions(enabled = true) {
 export function useLabelingSession(sessionId: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.labelingSessions.detail(sessionId),
-    queryFn: () => LabelingSessionsService.getLabelingSessionApiLabelingSessionsLabelingSessionIdGet(sessionId),
+    queryFn: () =>
+      LabelingSessionsService.getLabelingSessionApiLabelingSessionsLabelingSessionIdGet(sessionId),
     enabled: enabled && !!sessionId,
   });
 }
@@ -188,7 +194,7 @@ export function useCreateLabelingSession() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { reviewAppId: string; session: LabelingSession }) => 
+    mutationFn: (params: { reviewAppId: string; session: LabelingSession }) =>
       LabelingSessionsService.createLabelingSessionApiLabelingSessionsPost(params.session),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -211,9 +217,10 @@ export function useUpdateLabelingSession() {
       sessionId: string;
       session: LabelingSession;
       updateMask: string;
-    }) => LabelingSessionsService.updateLabelingSessionApiLabelingSessionsLabelingSessionIdPatch(
-        sessionId, 
-        updateMask, 
+    }) =>
+      LabelingSessionsService.updateLabelingSessionApiLabelingSessionsLabelingSessionIdPatch(
+        sessionId,
+        updateMask,
         session
       ),
     onSuccess: (data, variables) => {
@@ -233,7 +240,9 @@ export function useDeleteLabelingSession() {
 
   return useMutation({
     mutationFn: ({ sessionId }: { sessionId: string }) =>
-      LabelingSessionsService.deleteLabelingSessionApiLabelingSessionsLabelingSessionIdDelete(sessionId),
+      LabelingSessionsService.deleteLabelingSessionApiLabelingSessionsLabelingSessionIdDelete(
+        sessionId
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelingSessions.list(),
@@ -336,7 +345,6 @@ export function useTrace(traceId: string, enabled = true) {
     staleTime: 5 * 60 * 1000, // 5 minutes - match prefetch staleTime
   });
 }
-
 
 export function useLinkTracesToRun() {
   const queryClient = useQueryClient();
@@ -511,7 +519,7 @@ export function useExperimentAnalysisStatus(experimentId: string, enabled = true
     refetchInterval: (query) => {
       // Only poll if there's an active task running
       const status = query.state.data?.status;
-      return status === 'running' || status === 'pending' ? 3000 : false;
+      return status === "running" || status === "pending" ? 3000 : false;
     },
     refetchIntervalInBackground: false,
   });
@@ -556,7 +564,10 @@ export function useTriggerExperimentAnalysis() {
 /**
  * Hook to log feedback on a trace
  */
-export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
+export function useLogFeedbackMutation(sessionContext?: {
+  reviewAppId: string;
+  sessionId: string;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -582,16 +593,19 @@ export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; s
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      
+
       // Also invalidate search queries (used by session traces)
       queryClient.invalidateQueries({
-        queryKey: ['traces', 'search'],
+        queryKey: ["traces", "search"],
       });
-      
+
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+          queryKey: queryKeys.labelingItems.list(
+            sessionContext.reviewAppId,
+            sessionContext.sessionId
+          ),
         });
       }
     },
@@ -605,7 +619,10 @@ export function useLogFeedbackMutation(sessionContext?: { reviewAppId: string; s
 /**
  * Hook to update existing feedback on a trace
  */
-export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
+export function useUpdateFeedbackMutation(sessionContext?: {
+  reviewAppId: string;
+  sessionId: string;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -631,16 +648,19 @@ export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      
+
       // Also invalidate search queries (used by session traces)
       queryClient.invalidateQueries({
-        queryKey: ['traces', 'search'],
+        queryKey: ["traces", "search"],
       });
-      
+
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+          queryKey: queryKeys.labelingItems.list(
+            sessionContext.reviewAppId,
+            sessionContext.sessionId
+          ),
         });
       }
     },
@@ -654,7 +674,10 @@ export function useUpdateFeedbackMutation(sessionContext?: { reviewAppId: string
 /**
  * Hook to log expectation on a trace
  */
-export function useLogExpectationMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
+export function useLogExpectationMutation(sessionContext?: {
+  reviewAppId: string;
+  sessionId: string;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -680,16 +703,19 @@ export function useLogExpectationMutation(sessionContext?: { reviewAppId: string
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      
+
       // Also invalidate search queries (used by session traces)
       queryClient.invalidateQueries({
-        queryKey: ['traces', 'search'],
+        queryKey: ["traces", "search"],
       });
-      
+
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+          queryKey: queryKeys.labelingItems.list(
+            sessionContext.reviewAppId,
+            sessionContext.sessionId
+          ),
         });
       }
     },
@@ -703,7 +729,10 @@ export function useLogExpectationMutation(sessionContext?: { reviewAppId: string
 /**
  * Hook to update existing expectation on a trace
  */
-export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: string; sessionId: string }) {
+export function useUpdateExpectationMutation(sessionContext?: {
+  reviewAppId: string;
+  sessionId: string;
+}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -729,16 +758,19 @@ export function useUpdateExpectationMutation(sessionContext?: { reviewAppId: str
       queryClient.invalidateQueries({
         queryKey: queryKeys.traces.detail(variables.traceId),
       });
-      
+
       // Also invalidate search queries (used by session traces)
       queryClient.invalidateQueries({
-        queryKey: ['traces', 'search'],
+        queryKey: ["traces", "search"],
       });
-      
+
       // Invalidate session items if session context is provided
       if (sessionContext) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.labelingItems.list(sessionContext.reviewAppId, sessionContext.sessionId),
+          queryKey: queryKeys.labelingItems.list(
+            sessionContext.reviewAppId,
+            sessionContext.sessionId
+          ),
         });
       }
     },
@@ -762,7 +794,7 @@ export function useCreateLabelSchema() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (schema: LabelingSchema) => 
+    mutationFn: (schema: LabelingSchema) =>
       LabelSchemasService.createLabelSchemaApiLabelSchemasPost(schema),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -780,17 +812,8 @@ export function useUpdateLabelSchema() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      schemaName,
-      schema,
-    }: {
-      schemaName: string;
-      schema: LabelingSchema;
-    }) => 
-      LabelSchemasService.updateLabelSchemaApiLabelSchemasSchemaNamePatch(
-        schemaName,
-        schema
-      ),
+    mutationFn: ({ schemaName, schema }: { schemaName: string; schema: LabelingSchema }) =>
+      LabelSchemasService.updateLabelSchemaApiLabelSchemasSchemaNamePatch(schemaName, schema),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.labelSchemas.list(),
@@ -807,7 +830,7 @@ export function useDeleteLabelSchema() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ schemaName }: { schemaName: string }) => 
+    mutationFn: ({ schemaName }: { schemaName: string }) =>
       LabelSchemasService.deleteLabelSchemaApiLabelSchemasSchemaNameDelete(schemaName),
     onSuccess: () => {
       queryClient.invalidateQueries({

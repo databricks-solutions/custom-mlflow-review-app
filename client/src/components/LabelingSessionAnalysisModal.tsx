@@ -215,7 +215,10 @@ export function LabelingSessionAnalysisModal({
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    window.open(`${workspaceUrl}/ml/experiments/${experimentId}/evaluation-runs?selectedRunUuid=${mlflowRunId}`, "_blank");
+                    window.open(
+                      `${workspaceUrl}/ml/experiments/${experimentId}/evaluation-runs?selectedRunUuid=${mlflowRunId}`,
+                      "_blank"
+                    );
                   }}
                 >
                   <ExternalLink className="h-4 w-4 mr-1" />

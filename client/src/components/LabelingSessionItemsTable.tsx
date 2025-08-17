@@ -65,9 +65,11 @@ export function LabelingSessionItemsTable({
               <TableHead>Request</TableHead>
               <TableHead>Response</TableHead>
               {/* Use session-specific schemas if available, otherwise use review app schemas */}
-              {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => (
-                <TableHead key={schema.name}>{schema.title || schema.name}</TableHead>
-              ))}
+              {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map(
+                (schema: any) => (
+                  <TableHead key={schema.name}>{schema.title || schema.name}</TableHead>
+                )
+              )}
               {showActions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -93,14 +95,14 @@ export function LabelingSessionItemsTable({
                   <div
                     className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left overflow-hidden max-h-12"
                     onClick={() => {
-                      if (item.source && 'trace_id' in item.source) {
+                      if (item.source && "trace_id" in item.source) {
                         onTraceClick?.(item.source.trace_id || "");
                       }
                     }}
                     style={{
-                      display: '-webkit-box',
+                      display: "-webkit-box",
                       WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
+                      WebkitBoxOrient: "vertical",
                     }}
                     title={item.request_preview || ""}
                   >
@@ -111,9 +113,9 @@ export function LabelingSessionItemsTable({
                   <div
                     className="overflow-hidden max-h-12"
                     style={{
-                      display: '-webkit-box',
+                      display: "-webkit-box",
                       WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
+                      WebkitBoxOrient: "vertical",
                     }}
                     title={item.response_preview || ""}
                   >
@@ -121,43 +123,45 @@ export function LabelingSessionItemsTable({
                   </div>
                 </TableCell>
                 {/* Use session-specific schemas if available, otherwise use review app schemas */}
-                {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map((schema: any) => {
-                  const label = item.labels?.[schema.name];
-                  let labelValue = "-";
-                  
-                  if (label !== undefined && label !== null) {
-                    if (typeof label === 'object' && 'value' in label) {
-                      labelValue = String(label.value);
-                    } else {
-                      labelValue = String(label);
+                {(session?.labeling_schemas || reviewApp?.labeling_schemas || []).map(
+                  (schema: any) => {
+                    const label = item.labels?.[schema.name];
+                    let labelValue = "-";
+
+                    if (label !== undefined && label !== null) {
+                      if (typeof label === "object" && "value" in label) {
+                        labelValue = String(label.value);
+                      } else {
+                        labelValue = String(label);
+                      }
                     }
+
+                    return (
+                      <TableCell key={schema.name} className="max-w-xs text-sm align-top">
+                        <div
+                          className="overflow-hidden max-h-12"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                          title={labelValue}
+                        >
+                          {labelValue}
+                        </div>
+                      </TableCell>
+                    );
                   }
-                  
-                  return (
-                    <TableCell key={schema.name} className="max-w-xs text-sm align-top">
-                      <div
-                        className="overflow-hidden max-h-12"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                        title={labelValue}
-                      >
-                        {labelValue}
-                      </div>
-                    </TableCell>
-                  );
-                })}
+                )}
                 {showActions && (
                   <TableCell>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (item.source && 'trace_id' in item.source) {
+                        if (item.source && "trace_id" in item.source) {
                           navigate(
-                            `/review-app/${reviewAppId}?session=${sessionId}&trace=${item.source.trace_id}`
+                            `/preview/${sessionId}?trace=${item.source.trace_id}`
                           );
                         }
                       }}

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface SavingStateContextType {
   isSaving: boolean;
@@ -47,8 +47,12 @@ export function useSavingState() {
     return {
       isSaving: false,
       lastSavedAt: null,
-      setSaving: () => {},
-      setLastSaved: () => {},
+      setSaving: () => {
+        // No-op when outside provider
+      },
+      setLastSaved: () => {
+        // No-op when outside provider
+      },
     };
   }
   return context;

@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -32,12 +31,11 @@ import {
   Eye,
   Trash2,
   Tag,
-  Users,
   X,
   Check,
-  UserMinus,
 } from "lucide-react";
-import { ReviewApp, LabelingSession } from "@/types/renderers";
+import { ReviewApp, LabelingSession, LabelingSchema } from "@/types/renderers";
+import { LabelingSchemaRef } from "@/fastapi_client/models/LabelingSchemaRef";
 import {
   useLabelingSessions,
   useCreateLabelingSession,
@@ -59,17 +57,12 @@ function SessionItemsWrapper({
   sessionId,
   reviewApp,
   session,
-  experimentId,
-  workspaceData,
 }: {
   reviewAppId: string;
   sessionId: string;
   reviewApp: ReviewApp | null | undefined;
   session: LabelingSession;
-  experimentId?: string;
-  workspaceData?: any;
 }) {
-  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +89,7 @@ function SessionItemsWrapper({
         });
       },
       {
-        rootMargin: '100px', // Start loading 100px before the element comes into view
+        rootMargin: "100px", // Start loading 100px before the element comes into view
       }
     );
 
@@ -114,20 +107,20 @@ function SessionItemsWrapper({
     sessionId,
     isVisible && !!reviewAppId && !!sessionId
   );
-  
+
   // Fetch traces for merging (only for preview display)
   const { data: tracesData } = useSessionTraces(
     sessionId,
     session?.mlflow_run_id,
     isVisible && !!session?.mlflow_run_id && !!sessionId
   );
-  
+
   // Merge items with trace previews
   const mergedItems = React.useMemo(() => {
     if (!itemsData?.items) return [];
     return mergeItemsWithTraces(itemsData.items, tracesData?.traces);
   }, [itemsData?.items, tracesData?.traces]);
-  
+
   const isLoading = isLoadingItems;
 
   return (
@@ -191,7 +184,7 @@ function SessionItemsWrapper({
           onTraceClick={handleTraceClick}
         />
       )}
-      
+
       {/* Trace Explorer Modal */}
       <Dialog open={traceExplorerOpen} onOpenChange={setTraceExplorerOpen}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
@@ -199,9 +192,7 @@ function SessionItemsWrapper({
             <DialogTitle>Trace Explorer</DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto max-h-[80vh]">
-            {selectedTraceId && (
-              <TraceExplorer traceId={selectedTraceId} />
-            )}
+            {selectedTraceId && <TraceExplorer traceId={selectedTraceId} />}
           </div>
         </DialogContent>
       </Dialog>
@@ -241,9 +232,12 @@ export function LabelingSessionsTab({
   // Add user state
   const [addingUserSessionId, setAddingUserSessionId] = useState<string | null>(null);
   const [newUserInput, setNewUserInput] = useState("");
-  
+
   // Remove user confirmation dialog
-  const [removeUserConfirmDialog, setRemoveUserConfirmDialog] = useState<{sessionId: string, userEmail: string} | null>(null);
+  const [removeUserConfirmDialog, setRemoveUserConfirmDialog] = useState<{
+    sessionId: string;
+    userEmail: string;
+  } | null>(null);
 
   // Get highlighted session ID from URL params
   const highlightSessionId = searchParams.get("highlight");
@@ -254,11 +248,11 @@ export function LabelingSessionsTab({
   );
 
   // Fetch available label schemas
-  const { data: labelSchemas, isLoading: isLoadingSchemas } = useLabelSchemas();
+  const { data: labelSchemas } = useLabelSchemas();
 
   // Create labeling session mutation
   const createSessionMutation = useCreateLabelingSession();
-  
+
   // Delete labeling session mutation
   const deleteSessionMutation = useDeleteLabelingSession();
 
@@ -267,7 +261,6 @@ export function LabelingSessionsTab({
 
   // Delete confirmation state
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<string | null>(null);
-
 
   const handleCreateSession = () => {
     if (!newSessionName || !reviewApp?.review_app_id) return;
@@ -279,7 +272,7 @@ export function LabelingSessionsTab({
     }
 
     // Auto-add current user if not already included
-    let userEmails = assignedUsers ? assignedUsers.split(",").map((email) => email.trim()) : [];
+    const userEmails = assignedUsers ? assignedUsers.split(",").map((email: string) => email.trim()) : [];
     const currentUserEmail = currentUser?.emails?.[0] || currentUser?.userName;
     if (currentUserEmail && !userEmails.includes(currentUserEmail)) {
       userEmails.push(currentUserEmail);
@@ -325,33 +318,35 @@ export function LabelingSessionsTab({
 
   const handleSaveNewUser = async (sessionId: string) => {
     if (!reviewApp?.review_app_id || !newUserInput.trim()) return;
-    
+
     // Get current session data
-    const session = sessionsData?.labeling_sessions?.find(s => s.labeling_session_id === sessionId);
+    const session = sessionsData?.labeling_sessions?.find(
+      (s: LabelingSession) => s.labeling_session_id === sessionId
+    );
     if (!session) return;
-    
+
     const newEmail = newUserInput.trim();
     const currentUsers = session.assigned_users || [];
-    
+
     // Check if user already exists
     if (currentUsers.includes(newEmail)) {
       toast.error("User is already assigned to this session");
       return;
     }
-    
+
     const updatedUsers = [...currentUsers, newEmail];
-    
+
     try {
       await updateSessionMutation.mutateAsync({
         reviewAppId: reviewApp.review_app_id,
         sessionId,
-        session: { 
+        session: {
           name: session.name, // Include required name field
-          assigned_users: updatedUsers 
+          assigned_users: updatedUsers,
         },
-        updateMask: "assigned_users"
+        updateMask: "assigned_users",
       });
-      
+
       setAddingUserSessionId(null);
       setNewUserInput("");
       toast.success("User added successfully");
@@ -365,27 +360,29 @@ export function LabelingSessionsTab({
     setAddingUserSessionId(null);
     setNewUserInput("");
   };
-  
+
   const handleRemoveUser = async (sessionId: string, userEmail: string) => {
     if (!reviewApp?.review_app_id) return;
-    
+
     // Get current session data
-    const session = sessionsData?.labeling_sessions?.find(s => s.labeling_session_id === sessionId);
+    const session = sessionsData?.labeling_sessions?.find(
+      (s: LabelingSession) => s.labeling_session_id === sessionId
+    );
     if (!session) return;
-    
-    const updatedUsers = (session.assigned_users || []).filter(email => email !== userEmail);
-    
+
+    const updatedUsers = (session.assigned_users || []).filter((email: string) => email !== userEmail);
+
     try {
       await updateSessionMutation.mutateAsync({
         reviewAppId: reviewApp.review_app_id,
         sessionId,
-        session: { 
+        session: {
           name: session.name, // Include required name field
-          assigned_users: updatedUsers 
+          assigned_users: updatedUsers,
         },
-        updateMask: "assigned_users"
+        updateMask: "assigned_users",
       });
-      
+
       setRemoveUserConfirmDialog(null);
       toast.success("User removed successfully");
     } catch (error) {
@@ -393,7 +390,6 @@ export function LabelingSessionsTab({
       toast.error("Failed to remove user");
     }
   };
-
 
   if (isLoadingSessions) {
     return (
@@ -456,8 +452,8 @@ export function LabelingSessionsTab({
                 {labelSchemas && labelSchemas.length > 0 ? (
                   <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto space-y-4">
                     {[...labelSchemas]
-                      .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                      .map((schema) => (
+                      .sort((a: LabelingSchema, b: LabelingSchema) => (a.title || a.name).localeCompare(b.title || b.name))
+                      .map((schema: LabelingSchema) => (
                         <div key={schema.name} className="relative">
                           <div className="absolute left-2 top-3 z-10">
                             <Checkbox
@@ -489,8 +485,7 @@ export function LabelingSessionsTab({
                 )}
                 {selectedSchemas.size > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    {selectedSchemas.size} schema{selectedSchemas.size !== 1 ? "s" : ""}{" "}
-                    selected
+                    {selectedSchemas.size} schema{selectedSchemas.size !== 1 ? "s" : ""} selected
                   </p>
                 )}
               </div>
@@ -504,7 +499,8 @@ export function LabelingSessionsTab({
                   rows={2}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current user ({currentUser?.emails?.[0] || currentUser?.userName || "unknown"}) will be automatically added
+                  Current user ({currentUser?.emails?.[0] || currentUser?.userName || "unknown"})
+                  will be automatically added
                 </p>
               </div>
             </div>
@@ -512,9 +508,7 @@ export function LabelingSessionsTab({
               <Button
                 onClick={handleCreateSession}
                 disabled={
-                  !newSessionName ||
-                  selectedSchemas.size === 0 ||
-                  createSessionMutation.isPending
+                  !newSessionName || selectedSchemas.size === 0 || createSessionMutation.isPending
                 }
               >
                 {createSessionMutation.isPending ? "Creating..." : "Create Session"}
@@ -527,10 +521,8 @@ export function LabelingSessionsTab({
       {sessionsData?.labeling_sessions && sessionsData.labeling_sessions.length > 0 ? (
         <div className="grid gap-4 overflow-x-hidden">
           {sessionsData.labeling_sessions
-            .sort(
-              (a, b) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime()
-            )
-            .map((session) => {
+            .sort((a: LabelingSession, b: LabelingSession) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime())
+            .map((session: LabelingSession) => {
               const isHighlighted = highlightSessionId === session.labeling_session_id;
 
               return (
@@ -603,7 +595,10 @@ export function LabelingSessionsTab({
                     </div>
                     {/* Created date and by line */}
                     <CardDescription className="mt-2 space-y-2">
-                      <div>Created {new Date(session.create_time).toLocaleDateString()} by {session.created_by}</div>
+                      <div>
+                        Created {new Date(session.create_time).toLocaleDateString()} by{" "}
+                        {session.created_by}
+                      </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <div className="text-xs text-muted-foreground">assigned users</div>
@@ -616,7 +611,7 @@ export function LabelingSessionsTab({
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                        
+
                         {addingUserSessionId === session.labeling_session_id ? (
                           <div className="flex items-center gap-2 mb-2">
                             <Input
@@ -626,9 +621,9 @@ export function LabelingSessionsTab({
                               placeholder="user@example.com"
                               className="h-7 text-xs"
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                                if (e.key === "Enter") {
                                   handleSaveNewUser(session.labeling_session_id);
-                                } else if (e.key === 'Escape') {
+                                } else if (e.key === "Escape") {
                                   handleCancelAddUser();
                                 }
                               }}
@@ -652,24 +647,35 @@ export function LabelingSessionsTab({
                             </Button>
                           </div>
                         ) : null}
-                        
+
                         <div className="flex flex-wrap gap-1">
                           {session.assigned_users && session.assigned_users.length > 0 ? (
-                            session.assigned_users.map((user, index) => (
-                              <Badge key={index} variant="outline" className="text-xs pr-1 flex items-center gap-1">
+                            session.assigned_users.map((user: string, index: number) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-xs pr-1 flex items-center gap-1"
+                              >
                                 <span>{user}</span>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   className="h-3 w-3 p-0 ml-1 text-muted-foreground rounded-full"
-                                  onClick={() => setRemoveUserConfirmDialog({sessionId: session.labeling_session_id, userEmail: user})}
+                                  onClick={() =>
+                                    setRemoveUserConfirmDialog({
+                                      sessionId: session.labeling_session_id,
+                                      userEmail: user,
+                                    })
+                                  }
                                 >
                                   <X className="h-2 w-2" />
                                 </Button>
                               </Badge>
                             ))
                           ) : (
-                            <div className="text-xs text-muted-foreground italic">No users assigned</div>
+                            <div className="text-xs text-muted-foreground italic">
+                              No users assigned
+                            </div>
                           )}
                         </div>
                       </div>
@@ -677,12 +683,11 @@ export function LabelingSessionsTab({
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="space-y-4">
-
                       {session.labeling_schemas && session.labeling_schemas.length > 0 && (
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">Selected Schemas</div>
                           <div className="flex flex-wrap gap-2">
-                            {session.labeling_schemas.map((schema, index) => (
+                            {session.labeling_schemas.map((schema: LabelingSchemaRef, index: number) => (
                               <Button
                                 key={index}
                                 variant="outline"
@@ -743,7 +748,8 @@ export function LabelingSessionsTab({
             <DialogDescription>
               <div className="space-y-2">
                 <p>
-                  Are you sure you want to delete this labeling session? This action cannot be undone.
+                  Are you sure you want to delete this labeling session? This action cannot be
+                  undone.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   All labeling items and progress for this session will be permanently removed.
@@ -772,17 +778,22 @@ export function LabelingSessionsTab({
       </Dialog>
 
       {/* Remove User Confirmation Dialog */}
-      <Dialog open={removeUserConfirmDialog !== null} onOpenChange={() => setRemoveUserConfirmDialog(null)}>
+      <Dialog
+        open={removeUserConfirmDialog !== null}
+        onOpenChange={() => setRemoveUserConfirmDialog(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove User</DialogTitle>
             <DialogDescription>
               <div className="space-y-2">
                 <p>
-                  Are you sure you want to remove <strong>{removeUserConfirmDialog?.userEmail}</strong> from this labeling session?
+                  Are you sure you want to remove{" "}
+                  <strong>{removeUserConfirmDialog?.userEmail}</strong> from this labeling session?
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  This will remove their access to the session but keep any existing labels they've provided.
+                  This will remove their access to the session but keep any existing labels they've
+                  provided.
                 </p>
               </div>
             </DialogDescription>
@@ -793,7 +804,13 @@ export function LabelingSessionsTab({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => removeUserConfirmDialog && handleRemoveUser(removeUserConfirmDialog.sessionId, removeUserConfirmDialog.userEmail)}
+              onClick={() =>
+                removeUserConfirmDialog &&
+                handleRemoveUser(
+                  removeUserConfirmDialog.sessionId,
+                  removeUserConfirmDialog.userEmail
+                )
+              }
               disabled={updateSessionMutation.isPending}
             >
               {updateSessionMutation.isPending ? (
@@ -860,7 +877,7 @@ function AddTracesButton({
       if (page === 0) {
         setAllTraces(tracesData.traces);
       } else {
-        setAllTraces(prev => [...prev, ...tracesData.traces]);
+        setAllTraces((prev) => [...prev, ...tracesData.traces]);
       }
     }
   }, [tracesData, page]);
@@ -873,20 +890,24 @@ function AddTracesButton({
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       // If we're within 100px of the bottom and not currently fetching, load more
-      if (scrollHeight - scrollTop <= clientHeight + 100 && !isFetching && tracesData?.traces?.length === 50) {
+      if (
+        scrollHeight - scrollTop <= clientHeight + 100 &&
+        !isFetching &&
+        tracesData?.traces?.length === 50
+      ) {
         loadMoreTraces();
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
   }, [isFetching, tracesData]);
 
   const traces = allTraces;
 
   // Load more traces
   const loadMoreTraces = () => {
-    setPage(prev => prev + 1);
+    setPage((prev) => prev + 1);
     // In a real implementation with page tokens, we'd pass the token to the query
     // For now, this will just refetch the same data
     refetch();
@@ -1011,11 +1032,21 @@ function AddTracesButton({
                     <tr>
                       <th className="text-left p-2 w-10">
                         <Checkbox
-                          checked={traces.length > 0 && selectedTraces.size === traces.filter(t => t.info?.trace_id && !existingTraceIds.has(t.info.trace_id)).length}
+                          checked={
+                            traces.length > 0 &&
+                            selectedTraces.size ===
+                              traces.filter(
+                                (t) => t.info?.trace_id && !existingTraceIds.has(t.info.trace_id)
+                              ).length
+                          }
                           onCheckedChange={(checked) => {
                             if (checked) {
-                              const availableTraces = traces.filter(t => t.info?.trace_id && !existingTraceIds.has(t.info.trace_id));
-                              setSelectedTraces(new Set(availableTraces.map(t => t.info.trace_id)));
+                              const availableTraces = traces.filter(
+                                (t) => t.info?.trace_id && !existingTraceIds.has(t.info.trace_id)
+                              );
+                              setSelectedTraces(
+                                new Set(availableTraces.map((t) => t.info.trace_id))
+                              );
                             } else {
                               setSelectedTraces(new Set());
                             }
@@ -1034,7 +1065,10 @@ function AddTracesButton({
                       const traceId = trace.info?.trace_id;
                       const isAlreadyInSession = traceId && existingTraceIds.has(traceId);
                       return (
-                        <tr key={traceId || Math.random()} className={`border-b hover:bg-muted/30 ${isAlreadyInSession ? 'opacity-50' : ''}`}>
+                        <tr
+                          key={traceId || Math.random()}
+                          className={`border-b hover:bg-muted/30 ${isAlreadyInSession ? "opacity-50" : ""}`}
+                        >
                           <td className="p-2 w-10">
                             <Checkbox
                               checked={traceId && selectedTraces.has(traceId)}
@@ -1053,7 +1087,7 @@ function AddTracesButton({
                           </td>
                           <td className="p-2 font-mono text-xs min-w-[120px]">
                             <div className="truncate" title={traceId}>
-                              {traceId ? `${traceId.slice(0, 8)}...` : 'No ID'}
+                              {traceId ? `${traceId.slice(0, 8)}...` : "No ID"}
                             </div>
                             {isAlreadyInSession && (
                               <Badge variant="secondary" className="mt-1 text-xs">
@@ -1063,21 +1097,23 @@ function AddTracesButton({
                           </td>
                           <td className="p-2 text-xs min-w-[250px]">
                             <div className="truncate" title={trace.info?.request_preview}>
-                              {trace.info?.request_preview || '-'}
+                              {trace.info?.request_preview || "-"}
                             </div>
                           </td>
                           <td className="p-2 text-xs min-w-[250px]">
                             <div className="truncate" title={trace.info?.response_preview}>
-                              {trace.info?.response_preview || '-'}
+                              {trace.info?.response_preview || "-"}
                             </div>
                           </td>
                           <td className="p-2 min-w-[80px]">
-                            <Badge variant={trace.info?.state === 'OK' ? 'default' : 'destructive'}>
-                              {trace.info?.state || 'Unknown'}
+                            <Badge variant={trace.info?.state === "OK" ? "default" : "destructive"}>
+                              {trace.info?.state || "Unknown"}
                             </Badge>
                           </td>
                           <td className="p-2 text-xs text-muted-foreground min-w-[150px]">
-                            {trace.info?.request_time ? new Date(parseInt(trace.info.request_time)).toLocaleString() : '-'}
+                            {trace.info?.request_time
+                              ? new Date(parseInt(trace.info.request_time)).toLocaleString()
+                              : "-"}
                           </td>
                         </tr>
                       );
@@ -1097,27 +1133,22 @@ function AddTracesButton({
               {/* Load more button (as fallback if scroll doesn't work) */}
               {!isFetching && tracesData?.traces?.length === 50 && traces.length > 0 && (
                 <div className="p-4 text-center border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadMoreTraces}
-                  >
+                  <Button variant="outline" size="sm" onClick={loadMoreTraces}>
                     Load More Traces
                   </Button>
                 </div>
               )}
             </div>
-            
+
             {/* Footer with selection count and link button */}
             <div className="flex items-center justify-between pt-4 border-t">
               <span className="text-sm text-muted-foreground">
-                {selectedTraces.size > 0 
+                {selectedTraces.size > 0
                   ? `${selectedTraces.size} trace${selectedTraces.size !== 1 ? "s" : ""} selected`
-                  : "No traces selected"
-                }
+                  : "No traces selected"}
               </span>
-              <Button 
-                onClick={handleLinkTraces} 
+              <Button
+                onClick={handleLinkTraces}
                 disabled={selectedTraces.size === 0 || linkTracesMutation.isPending}
               >
                 {linkTracesMutation.isPending ? "Linking..." : "Link Selected Traces"}

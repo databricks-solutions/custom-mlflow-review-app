@@ -12,7 +12,7 @@ interface LabelSchemaFieldPreviewProps {
 
 export function LabelSchemaFieldPreview({ schema }: LabelSchemaFieldPreviewProps) {
   // Default values for preview
-  const defaultNumericValue = schema.numeric 
+  const defaultNumericValue = schema.numeric
     ? Math.floor((schema.numeric.min_value + schema.numeric.max_value) / 2)
     : 0;
 
@@ -40,9 +40,7 @@ export function LabelSchemaFieldPreview({ schema }: LabelSchemaFieldPreviewProps
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{schema.numeric.min_value}</span>
-              <span className="font-medium text-foreground">
-                {defaultNumericValue}
-              </span>
+              <span className="font-medium text-foreground">{defaultNumericValue}</span>
               <span>{schema.numeric.max_value}</span>
             </div>
           </div>

@@ -3,8 +3,8 @@
  * Only used in dev dashboard where we need to show previews
  */
 
-import { Item } from '@/fastapi_client';
-import { LabelingItem } from '@/types/renderers';
+import { Item } from "@/fastapi_client";
+import { LabelingItem } from "@/types/renderers";
 
 export interface TraceInfo {
   trace_id: string;
@@ -17,20 +17,16 @@ export interface TraceInfo {
  * Merge items with traces for preview display
  * Used only in the dev dashboard table view
  */
-export function mergeItemsWithTraces(
-  items: Item[], 
-  traces: any[] | undefined
-): LabelingItem[] {
+export function mergeItemsWithTraces(items: Item[], traces: any[] | undefined): LabelingItem[] {
   if (!traces || traces.length === 0) {
     // Convert items to LabelingItem format without previews
-    return items.map(item => ({
-      item_id: item.item_id || '',
+    return items.map((item) => ({
+      item_id: item.item_id || "",
       state: item.state as "PENDING" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED",
       labels: item.labels,
       comment: item.comment,
-      source: item.source && 'trace_id' in item.source 
-        ? { trace_id: item.source.trace_id }
-        : undefined,
+      source:
+        item.source && "trace_id" in item.source ? { trace_id: item.source.trace_id } : undefined,
       request_preview: undefined,
       response_preview: undefined,
     }));
@@ -45,26 +41,25 @@ export function mergeItemsWithTraces(
   }
 
   // Merge items with trace previews and convert to LabelingItem format
-  return items.map(item => {
+  return items.map((item) => {
     let request_preview: string | undefined;
     let response_preview: string | undefined;
-    
-    if (item.source && 'trace_id' in item.source) {
+
+    if (item.source && "trace_id" in item.source) {
       const traceInfo = traceMap.get(item.source.trace_id);
       if (traceInfo) {
         request_preview = traceInfo.request_preview || undefined;
         response_preview = traceInfo.response_preview || undefined;
       }
     }
-    
+
     return {
-      item_id: item.item_id || '',
+      item_id: item.item_id || "",
       state: item.state as "PENDING" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED",
       labels: item.labels,
       comment: item.comment,
-      source: item.source && 'trace_id' in item.source 
-        ? { trace_id: item.source.trace_id }
-        : undefined,
+      source:
+        item.source && "trace_id" in item.source ? { trace_id: item.source.trace_id } : undefined,
       request_preview,
       response_preview,
     };

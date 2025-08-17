@@ -1,25 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { TraceExplorer } from "@/components/TraceExplorer";
 import { LabelingSchemasPage } from "./LabelingSchemasPage";
 import { LabelingSessionsTab } from "@/components/LabelingSessionsTab";
 import { ExperimentAnalysis } from "@/components/ExperimentAnalysis";
-import {
-  ArrowLeft,
-  Users,
-  Tag,
-  BookOpen,
-  ExternalLink,
-  Settings,
-} from "lucide-react";
-import {
-  useAppManifest,
-} from "@/hooks/api-hooks";
+import { ArrowLeft, Users, Tag, BookOpen, ExternalLink } from "lucide-react";
+import { useAppManifest } from "@/hooks/api-hooks";
 
 export function DeveloperDashboard() {
   const navigate = useNavigate();
@@ -86,11 +76,11 @@ export function DeveloperDashboard() {
             <div className="flex items-center gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="p-0 h-auto text-2xl font-bold text-foreground hover:text-foreground"
-                    onClick={() => navigate('/dev')}
+                    onClick={() => navigate("/dev")}
                   >
                     Developer Dashboard
                   </Button>
@@ -98,10 +88,10 @@ export function DeveloperDashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* Info section */}
           <div className="text-right space-y-2">
-              {EXPERIMENT_ID && (
+            {EXPERIMENT_ID && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Experiment:</span>
                 <TooltipProvider>
@@ -192,9 +182,7 @@ export function DeveloperDashboard() {
 
           {/* Experiment Summary Tab */}
           <TabsContent value="summary" className="space-y-4">
-            <ExperimentAnalysis
-              experimentId={EXPERIMENT_ID || ""}
-            />
+            <ExperimentAnalysis experimentId={EXPERIMENT_ID || ""} />
           </TabsContent>
         </Tabs>
       </div>

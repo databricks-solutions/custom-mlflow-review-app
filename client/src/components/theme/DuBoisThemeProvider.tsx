@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = "light" | "dark" | "system";
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: 'system',
+  theme: "system",
   setTheme: () => null,
   isDarkMode: false,
 };
@@ -24,8 +24,8 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function DuBoisThemeProvider({
   children,
-  defaultTheme = 'system',
-  storageKey = 'mlflow-review-app-theme',
+  defaultTheme = "system",
+  storageKey = "mlflow-review-app-theme",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
@@ -37,21 +37,20 @@ export function DuBoisThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement;
 
-    root.classList.remove('light', 'dark');
+    root.classList.remove("light", "dark");
 
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light';
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
 
       root.classList.add(systemTheme);
-      setIsDarkMode(systemTheme === 'dark');
+      setIsDarkMode(systemTheme === "dark");
       return;
     }
 
     root.classList.add(theme);
-    setIsDarkMode(theme === 'dark');
+    setIsDarkMode(theme === "dark");
   }, [theme]);
 
   const value = {
@@ -74,18 +73,18 @@ export const useDuBoisTheme = () => {
   const context = useContext(ThemeProviderContext);
 
   if (context === undefined)
-    throw new Error('useDuBoisTheme must be used within a DuBoisThemeProvider');
+    throw new Error("useDuBoisTheme must be used within a DuBoisThemeProvider");
 
   return context;
 };
 
 // Theme toggle component
 export function ThemeToggle() {
-  const { theme, setTheme, isDarkMode } = useDuBoisTheme();
+  const { setTheme, isDarkMode } = useDuBoisTheme();
 
   return (
     <button
-      onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+      onClick={() => setTheme(isDarkMode ? "light" : "dark")}
       className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
     >
       {isDarkMode ? (

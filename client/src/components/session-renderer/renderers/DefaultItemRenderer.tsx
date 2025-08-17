@@ -13,9 +13,14 @@ interface NavigationButtonsProps {
   hasAssessments: boolean;
 }
 
-function NavigationButtons({ onSkip, onSubmit, isSubmitting, hasAssessments }: NavigationButtonsProps) {
+function NavigationButtons({
+  onSkip,
+  onSubmit,
+  isSubmitting,
+  hasAssessments,
+}: NavigationButtonsProps) {
   const { isSaving, lastSavedAt } = useSavingState();
-  
+
   // Show saving status
   const showSaving = isSaving;
   const showSaved = !isSaving && lastSavedAt && Date.now() - lastSavedAt.getTime() < 3000; // Show "Saved" for 3 seconds
@@ -37,20 +42,12 @@ function NavigationButtons({ onSkip, onSubmit, isSubmitting, hasAssessments }: N
           </>
         )}
       </div>
-      
-      <Button
-        variant="outline"
-        onClick={onSkip}
-        disabled={isSubmitting}
-      >
+
+      <Button variant="outline" onClick={onSkip} disabled={isSubmitting}>
         <XCircle className="h-4 w-4 mr-2" />
         Skip
       </Button>
-      <Button
-        variant="primary"
-        onClick={onSubmit}
-        disabled={isSubmitting || !hasAssessments}
-      >
+      <Button variant="primary" onClick={onSubmit} disabled={isSubmitting || !hasAssessments}>
         <CheckCircle className="h-4 w-4 mr-2" />
         Submit & Next
       </Button>
@@ -74,19 +71,19 @@ function DefaultItemRendererContent({
 }: ItemRendererProps) {
   // Use provided data or minimal defaults
   const traceId = extractedConversation?.traceId || item?.source?.trace_id || "";
-  
+
   // Just use what's passed in - no filtering here!
   const feedbackSchemas = schemaAssessments?.feedback || [];
   const expectationSchemas = schemaAssessments?.expectations || [];
-  
+
   // Use extracted conversation or fallback
   let userRequest = extractedConversation?.userRequest;
   let assistantResponse = extractedConversation?.assistantResponse;
-  
+
   if (!extractedConversation) {
     // Minimal fallback - just grab first user/assistant messages
     const spans = traceData?.spans || [];
-    
+
     for (const span of spans) {
       if (!userRequest && span.inputs) {
         if (typeof span.inputs === "string") {
@@ -95,7 +92,7 @@ function DefaultItemRendererContent({
           userRequest = { content: (span.inputs as any).messages[0].content };
         }
       }
-      
+
       if (!assistantResponse && span.outputs) {
         if (typeof span.outputs === "string") {
           assistantResponse = { content: span.outputs };
@@ -148,8 +145,14 @@ function DefaultItemRendererContent({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Feedback</h3>
             <LabelSchemaForm
-              schemas={feedbackSchemas.map(item => item.schema)}
-              assessments={new Map(feedbackSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
+              schemas={feedbackSchemas.map((item) => item.schema)}
+              assessments={
+                new Map(
+                  feedbackSchemas
+                    .filter((item) => item.assessment)
+                    .map((item) => [item.schema.name, item.assessment!])
+                )
+              }
               traceId={traceId}
               readOnly={false}
               reviewAppId={reviewApp.review_app_id}
@@ -163,8 +166,14 @@ function DefaultItemRendererContent({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Expectations</h3>
             <LabelSchemaForm
-              schemas={expectationSchemas.map(item => item.schema)}
-              assessments={new Map(expectationSchemas.filter(item => item.assessment).map(item => [item.schema.name, item.assessment!]))}
+              schemas={expectationSchemas.map((item) => item.schema)}
+              assessments={
+                new Map(
+                  expectationSchemas
+                    .filter((item) => item.assessment)
+                    .map((item) => [item.schema.name, item.assessment!])
+                )
+              }
               traceId={traceId}
               readOnly={false}
               reviewAppId={reviewApp.review_app_id}

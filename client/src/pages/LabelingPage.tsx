@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, User, Wrench } from "lucide-react";
+import { ChevronRight, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   useCurrentUser,
@@ -175,11 +175,7 @@ export function LabelingPage() {
 
                 <div className="flex justify-end">
                   <Button
-                    onClick={() =>
-                      navigate(
-                        `/review/${session.labeling_session_id}`
-                      )
-                    }
+                    onClick={() => navigate(`/review/${session.labeling_session_id}`)}
                     className="flex items-center gap-2"
                   >
                     Start review

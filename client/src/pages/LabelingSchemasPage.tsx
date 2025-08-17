@@ -1,36 +1,40 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Plus, Trash2, Save, Info, Users } from "lucide-react";
+import { Plus, Trash2, Save, Info, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ReviewAppsService } from "@/fastapi_client";
 import { LabelingSchema } from "@/types/renderers";
 import {
-  useConfig,
-  useAppManifest,
   useLabelingSessions,
   useLabelSchemas,
   useCreateLabelSchema,
   useUpdateLabelSchema,
   useDeleteLabelSchema,
-  useUserRole,
 } from "@/hooks/api-hooks";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function LabelingSchemasPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  // Get user role to determine if dev navigation should be shown
-  const { data: userRole } = useUserRole();
 
   // Get labeling sessions for usage tracking
   const { data: sessionsData, isLoading: isLoadingSessions } = useLabelingSessions();
@@ -142,7 +146,7 @@ export function LabelingSchemasPage() {
         schemaName: schemaName,
         schema: editingSchemas[schemaName],
       });
-      
+
       // Clear the editing state for this schema once saved
       setEditingSchemas((prev) => {
         const updated = { ...prev };
@@ -217,7 +221,7 @@ export function LabelingSchemasPage() {
 
       // Track as newly created so it appears first
       setNewlyCreatedSchemas((prev) => new Set([...prev, schemaName]));
-      
+
       toast.success(`Created new assessment schema: ${schemaName}`);
     } catch (error) {
       toast.error("Failed to create schema");
@@ -249,10 +253,7 @@ export function LabelingSchemasPage() {
               will be asked to your subject matter experts.
             </p>
           </div>
-          <Button 
-            onClick={handleCreateSchema}
-            disabled={createSchemaMutation.isPending}
-          >
+          <Button onClick={handleCreateSchema} disabled={createSchemaMutation.isPending}>
             <Plus className="h-4 w-4 mr-2" />
             {createSchemaMutation.isPending ? "Creating..." : "Create Schema"}
           </Button>
@@ -282,10 +283,7 @@ export function LabelingSchemasPage() {
               const usageCount = getSchemaUsageCount(schema.name);
 
               return (
-                <Card
-                  key={schema.name}
-                  className="border shadow-sm transition-all duration-300"
-                >
+                <Card key={schema.name} className="border shadow-sm transition-all duration-300">
                   <CardContent className="p-6">
                     {/* Schema Name and Type Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -361,9 +359,7 @@ export function LabelingSchemasPage() {
                                 variant="outline"
                                 size="sm"
                                 className="h-8 px-3 text-xs"
-                                onClick={() =>
-                                  navigate(`/preview/${session.labeling_session_id}`)
-                                }
+                                onClick={() => navigate(`/preview/${session.labeling_session_id}`)}
                               >
                                 <Users className="h-3 w-3 mr-1" />
                                 {session.name}
@@ -413,9 +409,7 @@ export function LabelingSchemasPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pass_fail">Pass/Fail</SelectItem>
-                          <SelectItem value="categorical">
-                            Categorical (Single Choice)
-                          </SelectItem>
+                          <SelectItem value="categorical">Categorical (Single Choice)</SelectItem>
                           <SelectItem value="text">Text</SelectItem>
                           <SelectItem value="numeric">Numeric</SelectItem>
                         </SelectContent>
@@ -469,9 +463,7 @@ export function LabelingSchemasPage() {
                                       categorical: { options: newOptions },
                                     });
                                   }}
-                                  disabled={
-                                    (editingSchema.categorical?.options || []).length <= 1
-                                  }
+                                  disabled={(editingSchema.categorical?.options || []).length <= 1}
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -551,9 +543,7 @@ export function LabelingSchemasPage() {
                             type="number"
                             value={editingSchema.text?.max_length?.toString() || ""}
                             onChange={(e) => {
-                              const value = e.target.value
-                                ? parseInt(e.target.value)
-                                : undefined;
+                              const value = e.target.value ? parseInt(e.target.value) : undefined;
                               updateEditingSchema(schema.name, {
                                 text: { max_length: value },
                               });

@@ -42,7 +42,7 @@ export function LabelSchemaField({
     // Return empty string as default for all types (will be converted as needed)
     return "";
   };
-  
+
   const [localValue, setLocalValue] = useState<JsonValue>(getDefaultValue());
   const [localRationale, setLocalRationale] = useState<string>(assessment?.rationale || "");
   const [localAssessmentId, setLocalAssessmentId] = useState<string | undefined>(
@@ -67,7 +67,7 @@ export function LabelSchemaField({
 
   // Debounce timer ref
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Refs to track latest values for debounced save
   const latestValueRef = useRef<JsonValue>(localValue);
   const latestRationaleRef = useRef<string>(localRationale);
@@ -101,7 +101,12 @@ export function LabelSchemaField({
       setSaving(true);
       try {
         const schemaType = schema.type || "FEEDBACK";
-        let result: LogFeedbackResponse | LogExpectationResponse | UpdateFeedbackResponse | UpdateExpectationResponse | undefined;
+        let result:
+          | LogFeedbackResponse
+          | LogExpectationResponse
+          | UpdateFeedbackResponse
+          | UpdateExpectationResponse
+          | undefined;
 
         // Simple logic: if we have an assessment_id, update; otherwise create
         const hasExistingAssessment = !!localAssessmentId;
@@ -146,7 +151,7 @@ export function LabelSchemaField({
         }
 
         // Update local assessment ID if we created a new one
-        if (result && 'assessment_id' in result && result.assessment_id && !localAssessmentId) {
+        if (result && "assessment_id" in result && result.assessment_id && !localAssessmentId) {
           setLocalAssessmentId(result.assessment_id);
         }
 
