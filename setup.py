@@ -22,7 +22,8 @@ from app_status import (
   get_workspace_obo_status,
   load_env_local,
 )
-from check_permissions import check_permissions, fix_permissions, format_text_output
+import subprocess
+import json
 
 try:
   from rich.console import Console
@@ -781,53 +782,87 @@ class DatabricksAppSetup:
 
       console.print('')
 
-      # Use check_permissions to get comprehensive permission status
+      # Use check_experiment_permissions tool
       console.print('🔍 Checking experiment permissions...')
-      check_result = check_permissions(
-        self.experiment_id,
-        self.auth_type,
-        self.profile if self.auth_type == 'profile' else None,
-        self.app_name,
-      )
+      try:
+        cmd = ['uv', 'run', 'python', 'tools/check_experiment_permissions.py', self.experiment_id]
+        if self.app_name:
+          cmd.extend(['--app-name', self.app_name])
+        cmd.extend(['--format', 'json'])
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode != 0:
+          console.print(f'❌ Failed to check permissions: {result.stderr}')
+          return False
+        
+        check_result = json.loads(result.stdout)
+      except subprocess.TimeoutExpired:
+        console.print('❌ Permission check timed out')
+        return False
+      except json.JSONDecodeError:
+        console.print('❌ Failed to parse permission check results')
+        return False
+      except Exception as e:
+        console.print(f'❌ Failed to check permissions: {e}')
+        return False
 
       if check_result.get('error'):
         console.print(f'❌ Failed to check permissions: {check_result["error"]}')
         return False
 
-      # Display formatted permission output as plain text to avoid rich auto-coloring
-      output = format_text_output(check_result)
-      # Print line by line without rich formatting
-      for line in output.split('\n'):
-        print(line)
+      # Display formatted permission output using text format
+      cmd = ['uv', 'run', 'python', 'tools/check_experiment_permissions.py', self.experiment_id]
+      if self.app_name:
+        cmd.extend(['--app-name', self.app_name])
+      cmd.extend(['--format', 'text'])
+      
+      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+      if result.returncode == 0:
+        # Print line by line without rich formatting
+        for line in result.stdout.split('\n'):
+          print(line)
       print('')
 
       # If there are missing permissions, offer to fix them
       if check_result['status'] == 'MISSING_PERMISSIONS':
         console.print('⚠️ Some principals are missing required permissions!')
         if Confirm.ask('\n🔧 Grant missing CAN_MANAGE permissions?', default=True):
-          fix_result = fix_permissions(check_result, self.experiment_id, interactive=False)
-
-          if fix_result.get('fixed'):
-            console.print(
-              f'\n✅ Successfully granted permissions to: {", ".join(fix_result["fixed"])}'
+          # Use fix_experiment_permissions tool
+          try:
+            result = subprocess.run(
+              ['uv', 'run', 'python', 'tools/fix_experiment_permissions.py', self.experiment_id, '--yes', '--format', 'json'],
+              capture_output=True,
+              text=True,
+              timeout=60
             )
+            
+            if result.returncode == 0:
+              fix_data = json.loads(result.stdout)
+              fix_result = fix_data.get('fix_result', {})
+              
+              if fix_result.get('fixed'):
+                console.print(
+                  f'\n✅ Successfully granted permissions to: {", ".join(fix_result["fixed"])}'
+                )
 
-            # Re-check permissions
-            console.print('\n🔍 Re-verifying permissions...')
-            updated_check = check_permissions(
-              self.experiment_id,
-              self.auth_type,
-              self.profile if self.auth_type == 'profile' else None,
-              self.app_name,
-            )
-            # Print without rich formatting
-            output = format_text_output(updated_check)
-            for line in output.split('\n'):
-              print(line)
+                # Re-check permissions
+                console.print('\n🔍 Re-verifying permissions...')
+                cmd = ['uv', 'run', 'python', 'tools/check_experiment_permissions.py', self.experiment_id]
+                if self.app_name:
+                  cmd.extend(['--app-name', self.app_name])
+                cmd.extend(['--format', 'text'])
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                  for line in result.stdout.split('\n'):
+                    print(line)
 
-          if fix_result.get('failed'):
-            console.print(f'\n❌ Failed to grant permissions to: {", ".join(fix_result["failed"])}')
-            console.print('⚠️ You may need to grant these permissions manually')
+              if fix_result.get('failed'):
+                console.print(f'\n❌ Failed to grant permissions to: {", ".join(fix_result["failed"])}')
+                console.print('⚠️ You may need to grant these permissions manually')
+          except Exception as e:
+            console.print(f'❌ Failed to fix permissions: {e}')
       else:
         console.print('✅ All required permissions are already configured correctly!')
 
@@ -889,22 +924,30 @@ class DatabricksAppSetup:
         console.print('\n🔍 VERIFYING FINAL PERMISSIONS')
         console.print('=' * 32)
 
-        final_check = check_permissions(
-          self.experiment_id,
-          self.auth_type,
-          self.profile if self.auth_type == 'profile' else None,
-          self.app_name,
-        )
-
-        # Print without rich formatting to avoid auto-coloring
-        output = format_text_output(final_check)
-        for line in output.split('\n'):
-          print(line)
-
-        if final_check['status'] == 'OK':
-          console.print('\n✅ All permissions successfully configured!')
-        else:
-          console.print('\n⚠️ Some permissions may still need manual configuration')
+        # Use check_experiment_permissions tool for final check
+        cmd = ['uv', 'run', 'python', 'tools/check_experiment_permissions.py', self.experiment_id]
+        if self.app_name:
+          cmd.extend(['--app-name', self.app_name])
+        cmd.extend(['--format', 'json'])
+        
+        try:
+          result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+          if result.returncode == 0:
+            final_check = json.loads(result.stdout)
+            
+            # Display final status with text format
+            cmd_text = cmd[:-2] + ['--format', 'text']  # Change to text format
+            result = subprocess.run(cmd_text, capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+              for line in result.stdout.split('\n'):
+                print(line)
+            
+            if final_check['status'] == 'OK':
+              console.print('\n✅ All permissions successfully configured!')
+            else:
+              console.print('\n⚠️ Some permissions may still need manual configuration')
+        except Exception:
+          console.print('\n⚠️ Could not verify final permissions')
 
       return True
 

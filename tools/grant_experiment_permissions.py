@@ -2,7 +2,7 @@
 """Grant permissions to a service principal or user for an MLflow experiment.
 
 This tool allows you to programmatically add permissions to MLflow experiments,
-which is essential for enabling OBO (On-Behalf-Of) functionality in Databricks Apps.
+handling both regular and notebook-style experiments automatically.
 """
 
 import argparse
@@ -11,7 +11,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+from server.utils.permissions import (
+    get_experiment_permissions,
+    get_permissions_api_endpoint,
+    is_notebook_experiment,
+    run_databricks_command,
+)
 
 
 def load_env_local():
@@ -47,35 +54,37 @@ def load_config_yaml() -> Dict[str, Any]:
   return {}
 
 
-def run_databricks_command(cmd: list, profile: Optional[str] = None) -> tuple[bool, str]:
-  """Run a databricks CLI command and return success status and output."""
-  full_cmd = ['databricks'] + cmd
-  if profile:
-    full_cmd.extend(['--profile', profile])
-
-  try:
-    result = subprocess.run(full_cmd, capture_output=True, text=True, timeout=30)
-    return result.returncode == 0, result.stdout if result.returncode == 0 else result.stderr
-  except subprocess.TimeoutExpired:
-    return False, 'Command timed out'
-  except Exception as e:
-    return False, f'Command failed: {e}'
-
-
 def get_current_permissions(
   experiment_id: str, auth_type: str, profile: Optional[str] = None
 ) -> Dict[str, Any]:
-  """Get current experiment permissions."""
-  cmd = ['api', 'get', f'/api/2.0/permissions/experiments/{experiment_id}']
-  success, output = run_databricks_command(cmd, profile if auth_type == 'profile' else None)
-
-  if not success:
-    return {'error': f'Failed to get current permissions: {output}'}
-
+  """Get current experiment permissions, handling both experiment types."""
   try:
-    return json.loads(output)
-  except json.JSONDecodeError as e:
-    return {'error': f'Failed to parse permissions JSON: {e}'}
+    # Use our unified function to get permissions
+    acl_list = get_experiment_permissions(experiment_id)
+    
+    # Convert to API format
+    access_control_list = []
+    for acl in acl_list:
+      entry = {}
+      if acl.user_name:
+        entry['user_name'] = acl.user_name
+      if acl.group_name:
+        entry['group_name'] = acl.group_name
+      if acl.service_principal_name:
+        entry['service_principal_name'] = acl.service_principal_name
+      
+      # Get highest permission level
+      for perm in acl.all_permissions:
+        if not perm.inherited:
+          entry['permission_level'] = perm.permission_level
+          break
+      
+      if 'permission_level' in entry:
+        access_control_list.append(entry)
+    
+    return {'access_control_list': access_control_list}
+  except Exception as e:
+    return {'error': f'Failed to get current permissions: {str(e)}'}
 
 
 def grant_experiment_permission(
@@ -86,7 +95,7 @@ def grant_experiment_permission(
   auth_type: str,
   profile: Optional[str] = None,
 ) -> Dict[str, Any]:
-  """Grant permission to an experiment."""
+  """Grant permission to an experiment (handles both regular and notebook experiments)."""
   # Validate inputs
   valid_principal_types = ['user', 'service_principal', 'group']
   if principal_type not in valid_principal_types:
@@ -96,6 +105,12 @@ def grant_experiment_permission(
   if permission_level not in valid_permission_levels:
     return {'error': f'Invalid permission_level. Must be one of: {valid_permission_levels}'}
 
+  # Detect experiment type
+  is_notebook = is_notebook_experiment(experiment_id)
+  
+  # Get appropriate API endpoint
+  endpoint = get_permissions_api_endpoint(experiment_id, is_notebook)
+  
   # Create access control entry
   if principal_type == 'user':
     principal_field = 'user_name'
@@ -108,33 +123,30 @@ def grant_experiment_permission(
 
   # Prepare the API call
   request_data = {'access_control_list': [access_control_entry]}
+  
+  # Add send_notification for notebook experiments
+  if is_notebook:
+    request_data['send_notification'] = True
 
   # Make the API call
   cmd = [
     'api',
     'patch',
-    f'/api/2.0/permissions/experiments/{experiment_id}',
+    endpoint,
     '--json',
     json.dumps(request_data),
   ]
-  if profile and auth_type == 'profile':
-    cmd.extend(['--profile', profile])
+  
+  success, output = run_databricks_command(cmd)
 
-  try:
-    result = subprocess.run(['databricks'] + cmd, capture_output=True, text=True, timeout=30)
-
-    if result.returncode == 0:
-      return {
-        'success': True,
-        'message': f'Successfully granted {permission_level} to {principal_id}',
-      }
-    else:
-      return {'error': f'Failed to grant permission: {result.stderr}'}
-
-  except subprocess.TimeoutExpired:
-    return {'error': 'Request timed out'}
-  except Exception as e:
-    return {'error': f'Request failed: {e}'}
+  if success:
+    return {
+      'success': True,
+      'message': f'Successfully granted {permission_level} to {principal_id} on {"notebook" if is_notebook else "regular"} experiment',
+      'experiment_type': 'notebook' if is_notebook else 'regular',
+    }
+  else:
+    return {'error': f'Failed to grant permission: {output}'}
 
 
 def main():
