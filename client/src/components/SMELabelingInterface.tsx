@@ -230,7 +230,7 @@ export function SMELabelingInterface({
       for (const mlflowAssessment of latestAssessments.values()) {
         const assessment: Assessment = {
           assessment_id: mlflowAssessment.assessment_id,
-          name: mlflowAssessment.name,
+          name: mlflowAssessment.assessment_name || mlflowAssessment.name, // Use assessment_name (MLflow standard) or name as fallback
           value: mlflowAssessment.feedback?.value ?? mlflowAssessment.expectation?.value,
           type: mlflowAssessment.feedback ? "feedback" : "expectation",
           rationale: mlflowAssessment.metadata?.rationale, // Rationale is in metadata for both
