@@ -31,7 +31,10 @@ git clone https://github.com/databricks-solutions/custom-mlflow-review-app.git
 
 #### 🤖 AI-Powered Setup (Claude Code)
 
+Install and configure Claude Code following these [instructions](https://docs.anthropic.com/en/docs/claude-code/setup), then:
+
 ```
+claude
 /review-app
 ```
 
