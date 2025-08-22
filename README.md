@@ -23,6 +23,12 @@ The setup script automatically handles all dependencies - just run it!
 
 ### Choose Your Path
 
+First, clone the repo:
+
+```
+git clone https://github.com/databricks-solutions/custom-mlflow-review-app.git
+```
+
 #### 🤖 AI-Powered Setup (Claude Code)
 
 ```
