@@ -242,6 +242,113 @@ fi
 echo "✅ Source code uploaded"
 print_timing "Workspace setup completed"
 
+# Check if deployment is already in progress
+echo "🔍 Checking app deployment status..."
+if [ "$DATABRICKS_AUTH_TYPE" = "profile" ]; then
+  APP_STATE=$(databricks apps get "$DATABRICKS_APP_NAME" --profile "$DATABRICKS_CONFIG_PROFILE" --output json 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    # Check for deployment state
+    if 'active_deployment' in data and data['active_deployment']:
+        deployment_state = data['active_deployment'].get('deployment_state', {}).get('state', '')
+        if deployment_state:
+            print(deployment_state)
+        else:
+            print('UNKNOWN')
+    else:
+        print('NO_DEPLOYMENT')
+except: 
+    print('ERROR')
+" 2>/dev/null || echo "ERROR")
+else
+  APP_STATE=$(databricks apps get "$DATABRICKS_APP_NAME" --output json 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    # Check for deployment state
+    if 'active_deployment' in data and data['active_deployment']:
+        deployment_state = data['active_deployment'].get('deployment_state', {}).get('state', '')
+        if deployment_state:
+            print(deployment_state)
+        else:
+            print('UNKNOWN')
+    else:
+        print('NO_DEPLOYMENT')
+except: 
+    print('ERROR')
+" 2>/dev/null || echo "ERROR")
+fi
+
+# Check if deployment is in progress
+if [ "$APP_STATE" = "IN_PROGRESS" ] || [ "$APP_STATE" = "PENDING" ]; then
+  echo "⏳ Another deployment is currently in progress (state: $APP_STATE)"
+  echo "   Waiting for it to complete..."
+  
+  # Wait for deployment to complete (max 10 minutes)
+  WAIT_TIME=0
+  MAX_WAIT=600  # 10 minutes
+  while [ "$WAIT_TIME" -lt "$MAX_WAIT" ]; do
+    sleep 10
+    WAIT_TIME=$((WAIT_TIME + 10))
+    
+    # Check state again
+    if [ "$DATABRICKS_AUTH_TYPE" = "profile" ]; then
+      APP_STATE=$(databricks apps get "$DATABRICKS_APP_NAME" --profile "$DATABRICKS_CONFIG_PROFILE" --output json 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    if 'active_deployment' in data and data['active_deployment']:
+        deployment_state = data['active_deployment'].get('deployment_state', {}).get('state', '')
+        if deployment_state:
+            print(deployment_state)
+        else:
+            print('UNKNOWN')
+    else:
+        print('NO_DEPLOYMENT')
+except: 
+    print('ERROR')
+" 2>/dev/null || echo "ERROR")
+    else
+      APP_STATE=$(databricks apps get "$DATABRICKS_APP_NAME" --output json 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    if 'active_deployment' in data and data['active_deployment']:
+        deployment_state = data['active_deployment'].get('deployment_state', {}).get('state', '')
+        if deployment_state:
+            print(deployment_state)
+        else:
+            print('UNKNOWN')
+    else:
+        print('NO_DEPLOYMENT')
+except: 
+    print('ERROR')
+" 2>/dev/null || echo "ERROR")
+    fi
+    
+    if [ "$APP_STATE" != "IN_PROGRESS" ] && [ "$APP_STATE" != "PENDING" ]; then
+      echo "✅ Previous deployment completed (state: $APP_STATE)"
+      break
+    fi
+    
+    echo "   Still waiting... ($WAIT_TIME seconds elapsed, state: $APP_STATE)"
+  done
+  
+  if [ "$WAIT_TIME" -ge "$MAX_WAIT" ]; then
+    echo "❌ Timeout waiting for previous deployment to complete"
+    echo "   Current state: $APP_STATE"
+    echo "   Please check the app status and try again later"
+    exit 1
+  fi
+elif [ "$APP_STATE" = "ERROR" ] || [ "$APP_STATE" = "UNKNOWN" ]; then
+  echo "⚠️  Could not determine app deployment state, proceeding with deployment..."
+elif [ "$APP_STATE" = "NO_DEPLOYMENT" ]; then
+  echo "✅ No active deployment found, ready to deploy"
+else
+  echo "✅ App deployment state: $APP_STATE"
+fi
+
 # Deploy to Databricks
 print_timing "Starting Databricks deployment"
 echo "🚀 Deploying to Databricks..."

@@ -193,19 +193,33 @@ This shows me:
 - **Current infrastructure gaps** that need to be filled
 
 ### AI-Powered Recommendations  
-I'll run comprehensive AI analysis to generate tailored recommendations:
+
+**🛑 CRITICAL: I MUST ASK FOR YOUR PERMISSION FIRST**
+
+**Before running AI analysis, I will ask you:**
+
+**"Would you like me to run AI-powered analysis on your experiment to generate tailored recommendations?"**
+
+**This analysis will:**
+- **Analyze your traces** to understand agent patterns and capabilities
+- **Generate schema recommendations** tailored to your specific agent type
+- **Suggest evaluation criteria** based on actual trace patterns
+- **Recommend labeling strategies** for effective SME workflows
+- **Create custom thank you messages** for your reviewers
+
+**The analysis may take 1-2 minutes and requires a model endpoint.**
+
+**Options:**
+- **"Yes, run analysis"** → I'll proceed with AI analysis
+- **"No, skip analysis"** → I'll help you set up manually without AI recommendations
+
+**If you choose YES, I'll run:**
 ```bash
 # Run AI analysis on your experiment (this may take 1-2 minutes)
 ./mlflow-cli run ai_analyze_experiment -- --experiment-id <experiment_id>
 ```
 
 **🛑 IMPORTANT: I will wait for the AI analysis to complete before proceeding.**
-
-The analysis will generate:
-- **Suggested labeling schemas** tailored to your specific agent
-- **Recommended evaluation criteria** based on actual trace patterns
-- **Labeling session strategies** for effective SME workflows
-- **Custom thank you messages** for your reviewers
 
 **After the analysis completes, I'll present all recommendations to you before proceeding.**
 

@@ -386,15 +386,30 @@ class DatabricksAppSetup:
 
     # Test profile
     if not self.test_databricks_connection(profile):
-      console.print(f"\nProfile '{profile}' not found or invalid.")
-      if Confirm.ask('Configure this profile now?', default=True):
-        success, output = self.run_command(['databricks', 'configure', '--profile', profile])
-        if not success or not self.test_databricks_connection(profile):
-          console.print('❌ Profile configuration failed. Please check your settings.')
+      # Check if it's an authentication error
+      cmd = ['databricks', 'current-user', 'me', '--profile', profile]
+      success, output = self.run_command(cmd)
+      
+      if 'refresh token is invalid' in output.lower() or 'reauthenticate' in output.lower():
+        console.print(f"\n⚠️  Profile '{profile}' needs re-authentication.")
+        if Confirm.ask('Re-authenticate this profile now?', default=True):
+          success, output = self.run_command(['databricks', 'auth', 'login', '--profile', profile])
+          if not success or not self.test_databricks_connection(profile):
+            console.print('❌ Profile re-authentication failed. Please check your settings.')
+            return False
+        else:
+          console.print('❌ Valid Databricks authentication is required.')
           return False
       else:
-        console.print('❌ Valid Databricks authentication is required.')
-        return False
+        console.print(f"\nProfile '{profile}' not found or invalid.")
+        if Confirm.ask('Configure this profile now?', default=True):
+          success, output = self.run_command(['databricks', 'auth', 'login', '--profile', profile])
+          if not success or not self.test_databricks_connection(profile):
+            console.print('❌ Profile configuration failed. Please check your settings.')
+            return False
+        else:
+          console.print('❌ Valid Databricks authentication is required.')
+          return False
 
     return True
 
