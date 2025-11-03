@@ -22,6 +22,9 @@ import {
 
 // Configure the OpenAPI client - use relative URLs (Vite proxies /api to localhost:8000 in dev)
 OpenAPI.BASE = "";
+OpenAPI.HEADERS = {
+  'managed-evals-client-name': 'custom-review-app'
+};
 
 interface ApiError {
   error: {
